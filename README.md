@@ -10,7 +10,7 @@
 ## 디렉터리
 
 ```
-ticketmoa-repo/
+aio-01-p4-team4/
 ├── README.md              # 이 파일 (실행 방법·웹훅 경로·시연 순서)
 ├── AGENTS.md              # 코딩 에이전트 규칙 (모두 먼저 읽기)
 ├── CLAUDE.md              # @AGENTS.md
@@ -51,12 +51,49 @@ ticketmoa-repo/
 
 ## 처음 받은 사람
 
-```bash
-git clone <저장소 주소> && cd ticketmoa-repo
-node --test lib/test/*.test.js          # 공통 함수 테스트 (14개 통과해야 함)
+작업은 **Windows 로컬**에서 하고, 실행·검증은 **서버 `aio-t4`의 `~/aio-01-p4-team4`**에서 한다. SSH 키와 `aio-t4` 접속 설정은 팀에서 받은 `SETUP_PROMPT.md`로 먼저 끝낸다. 서버 주소·포트·비밀번호는 이 저장소 어디에도 적지 않는다.
+
+**1. 로컬에 받기 (PowerShell)**
+
+```powershell
+git clone https://github.com/ensk712-rgb/aio-01-p4-team4.git
+cd aio-01-p4-team4
+git switch -c feat/<이름>-<파일>        # 예: feat/jeongyejin-search
+node --test lib/test/*.test.js          # 공통 함수 테스트 (16개 통과해야 함)
+ssh -o BatchMode=yes aio-t4 "whoami"   # toor가 나오면 서버 접속 준비 끝
 ```
 
-n8n에서 손으로 할 것: Credential 3개(`OpenAI`, `ticketmoa-data-api`(X-Api-Key), `ticketmoa-team-key`(X-Team-Key)) 만들기, 워크플로우 활성화, `ticketmoa-index` 한 번 실행.
+**2. 서버에 반영하고 실행**
+
+```powershell
+scp -r workflows knowledge data cases config lib requests aio-t4:~/aio-01-p4-team4/
+ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py push workflows/*.json'"
+```
+
+- 서버 명령은 꼭 `bash -lc`로 감싼다 (없으면 `uv`를 못 찾는다). PowerShell에서 명령 안에 `$`가 있으면 `` `$ ``로 쓴다.
+- 오래 걸리는 시험은 서버 `tmux` 세션에서 돌린다. 서버 RAM이 2.6GB라 n8n과 같이 쓰므로 무거운 작업 전에 `free -h`를 본다.
+- 서버에서 파일을 직접 고치지 않는다. 다음 `scp` 때 로컬 파일로 덮어써진다.
+- 서버의 `~/n8n/day65-n8n`과 n8n 컨테이너는 건드리지 않는다. `.env`가 필요하면 `scp`로 따로 옮기고 git에는 올리지 않는다.
+
+**3. 서버 폴더는 하나뿐이다**
+
+서버 계정과 `~/aio-01-p4-team4` 폴더, n8n을 다섯 명이 같이 쓴다. 각자 아무 때나 `scp`하면 서로의 파일을 덮어쓰고 같은 웹훅 경로가 부딪친다. 그래서:
+
+- 자기 하위 워크플로우는 **자기 파일만** 올려서 시험한다 (`scp workflows/ticketmoa-search.json aio-t4:~/aio-01-p4-team4/workflows/`).
+- 공통 폴더(`knowledge/`, `data/`, `cases/`, `lib/`)는 PR이 `main`에 병합된 뒤 리드가 `main` 기준으로 올린다.
+- 반영 전에 팀 채팅에 "지금 올립니다"를 한 줄 남긴다.
+
+**4. PR**
+
+```powershell
+git add workflows/ticketmoa-search.json
+git commit -m "search: 권한 필터 뒤 검색"
+git push -u origin feat/<이름>-<파일>
+```
+
+GitHub에서 `main`으로 PR을 열면 리드가 검토하고 병합한다. 병합 뒤에는 `git switch main; git pull`로 최신을 받는다.
+
+**n8n에서 손으로 할 것**: Credential 3개(`OpenAI`, `ticketmoa-data-api`(X-Api-Key), `ticketmoa-team-key`(X-Team-Key)) 만들기, 워크플로우 활성화, `ticketmoa-index` 한 번 실행. 키 값은 n8n Credentials에만 둔다.
 
 ## 시험
 

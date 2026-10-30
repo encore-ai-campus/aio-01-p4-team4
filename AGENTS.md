@@ -61,14 +61,22 @@ route 값: "자동 답변" | "보완 질문" | "담당자 이관" | "권한 없�
 
 ## 7. 바꾸기 전과 후
 
-```bash
-git pull                                            # 바꾸기 전
+```powershell
+git pull                                            # 바꾸기 전 (Windows 로컬)
 # 내 파일만 고친다
-uv run tools/flow.py check workflows/<내 파일>.json  # 바꾼 뒤
-uv run tools/flow.py push workflows/<내 파일>.json
-uv run tools/flow.py test cases/common.json --webhook ticketmoa-support
-tscan staged
+scp workflows/<내 파일>.json aio-t4:~/aio-01-p4-team4/workflows/
+ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py check workflows/<내 파일>.json && uv run tools/flow.py push workflows/<내 파일>.json && uv run tools/flow.py test cases/common.json --webhook ticketmoa-support'"
 git commit -m "<무엇> · common N/14"
 ```
 
 `flow.py` 하위 명령 이름은 80일차 키트 README를 따른다. 공통 시나리오를 깨뜨렸으면 깨뜨린 사람이 고친다.
+
+## 8. 로컬과 서버
+
+1. 코드 탐색·수정·`node --test`는 Windows 로컬 클론에서 한다. git 작업도 로컬에서만 한다.
+2. 반영은 `scp`로 서버 `aio-t4`의 `~/aio-01-p4-team4`에 한다. 서버에서 파일을 직접 고치지 않는다 (다음 반영 때 덮어써진다).
+3. 서버 명령은 `ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && <명령>'"`로 실행한다. `bash -lc`가 없으면 `uv`, `claude`를 찾지 못한다. PowerShell에서 `$`는 `` `$ ``로 쓴다.
+4. 서버 폴더와 n8n은 팀 전체가 하나를 쓴다. 자기 파일만 `scp`하고, 공통 폴더(`knowledge/`, `data/`, `cases/`, `lib/`)는 리드가 병합된 `main` 기준으로 올린다.
+5. 서버는 Linux(Ubuntu), RAM 2.6GB를 n8n과 같이 쓴다. 오래 걸리는 작업은 `tmux`에서, 무거운 작업 전에는 `free -h`를 본다.
+6. 서버의 `~/n8n/day65-n8n`과 n8n 컨테이너는 요청 없이 건드리지 않는다.
+7. 서버 주소·포트·비밀번호·키·`.env` 값은 이 저장소에 적지 않는다. `.env`는 `scp`로 따로 옮긴다.
