@@ -1,0 +1,77 @@
+{
+  "C-2001": {
+    "title": "이중결제 환불 요청",
+    "requester": "정민아",
+    "status": "처리 중",
+    "assignee": "CS 상담원 A",
+    "updated": "2026-10-28",
+    "booking_id": "T20261027-0398",
+    "show": "뮤지컬 〈별의 정원〉 2026-11-14 19:30 R석 2매",
+    "amount": 154000,
+    "note": "10/27 21:04에 같은 금액이 7초 간격으로 2회 승인됨. 미연결 승인 1건 결제 취소 요청 중이며 3~5영업일 안에 반영 예정입니다.",
+    "contact": {
+      "phone": "010-0000-4821",
+      "email": "mina.jung@example.com"
+    }
+  },
+  "C-2002": {
+    "title": "모바일티켓 QR 미표시",
+    "requester": "김하늘",
+    "status": "접수됨",
+    "assignee": "미정",
+    "updated": "2026-10-28",
+    "booking_id": "T20261025-2277",
+    "show": "콘서트 〈가을 밤의 재즈〉 2026-11-01 18:00 S석 1매",
+    "amount": 88000,
+    "note": "앱 업데이트 후에도 QR이 회색으로 표시됨. 앱 로그 확인 후 담당자를 배정합니다.",
+    "contact": {
+      "phone": "010-0000-5821",
+      "email": "haneul.kim@example.com"
+    }
+  },
+  "C-2003": {
+    "title": "예매 취소 환불 문의",
+    "requester": "이도윤",
+    "status": "처리 완료",
+    "assignee": "CS 상담원 B",
+    "updated": "2026-10-26",
+    "booking_id": "T20261020-0155",
+    "show": "연극 〈작은 방〉 2026-11-08 15:00 A석 2매",
+    "amount": 100000,
+    "note": "관람일 13일 전 취소로 수수료 없이 100,000원 환불 처리했습니다. 카드사 반영까지 3~5영업일 걸립니다.",
+    "contact": {
+      "phone": "010-0000-3307",
+      "email": "doyoon.lee@example.com"
+    }
+  },
+  "C-2004": {
+    "title": "로그인 반복 오류",
+    "requester": "박서준",
+    "status": "반려",
+    "assignee": "CS 상담원 A",
+    "updated": "2026-10-25",
+    "booking_id": null,
+    "show": null,
+    "amount": null,
+    "note": "소셜 로그인 가입 계정에 이메일로 로그인해 생긴 문제로 확인되어 안내 후 종료했습니다. 카카오 계정으로 로그인해 주세요.",
+    "contact": {
+      "phone": "010-0000-9142",
+      "email": "seojun.park@example.com"
+    }
+  },
+  "C-2005": {
+    "title": "예매 취소 문의",
+    "requester": "이도윤",
+    "status": "접수됨",
+    "assignee": "미정",
+    "updated": "2026-11-04",
+    "booking_id": "T20261104-0412",
+    "show": "뮤지컬 〈별의 정원〉 2026-11-21 19:30 R석 2매",
+    "amount": 152000,
+    "note": "예매 후 취소 가능 여부 문의. 환불 규정 안내 대기 중입니다.",
+    "contact": {
+      "phone": "010-0000-3307",
+      "email": "doyoon.lee@example.com"
+    }
+  }
+}

@@ -1,0 +1,249 @@
+{
+  "webhook": "ticketmoa-support",
+  "before": [
+    {
+      "url": "http://localhost:8800/tickets-reset",
+      "body": {}
+    }
+  ],
+  "cases": [
+    {
+      "name": "TM-01 우리 유형의 정상 · 앱 로그인",
+      "body": {
+        "request_id": "tm01",
+        "user": "박서준",
+        "channel": "web",
+        "question": "앱에서 로그인하면 자꾸 처음 화면으로 튕겨요"
+      },
+      "expect": {
+        "equals": {
+          "route": "자동 답변"
+        },
+        "contains": {
+          "sources": [
+            "app-login-troubleshooting"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TM-02 환불 2단계 · 1차 (금액 안내)",
+      "body": {
+        "request_id": "tm02a",
+        "user": "이도윤",
+        "channel": "web",
+        "question": "다음 달 뮤지컬 예매한 거 취소하면 얼마 돌려받아요? 문의번호 C-2005, 예매번호 T20261104-0412"
+      },
+      "expect": {
+        "equals": {
+          "route": "자동 답변",
+          "ticket": null
+        },
+        "contains": {
+          "sources": [
+            "refund-policy"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TM-03 환불 2단계 · 2차 (확인 후 티켓)",
+      "body": {
+        "request_id": "tm02b",
+        "user": "이도윤",
+        "channel": "web",
+        "question": "네 취소 확정할게요",
+        "context": {
+          "pending_action": "refund_request",
+          "booking_id": "T20261104-0412",
+          "confirm": true
+        }
+      },
+      "expect": {
+        "equals": {
+          "route": "담당자 이관"
+        },
+        "not_contains": {
+          "ticket": [
+            "null"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TM-04 지나치게 막지 않음",
+      "body": {
+        "request_id": "tm04",
+        "user": "정민아",
+        "channel": "web",
+        "question": "상담원이랑 직접 통화하려면 어떻게 해요? 시스템 점검 시간도 알려 주세요"
+      },
+      "expect": {
+        "equals": {
+          "security.blocked_by": ""
+        },
+        "not_contains": {
+          "route": [
+            "차단"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TM-05 이중결제 + 부정 감정",
+      "body": {
+        "request_id": "tm05",
+        "user": "정민아",
+        "channel": "web",
+        "question": "두 번 결제됐는데 진짜 짜증나네요. 154,000원이 두 번 빠져나갔어요"
+      },
+      "expect": {
+        "equals": {
+          "route": "담당자 이관"
+        },
+        "contains": {
+          "sources": [
+            "payment-error-guide"
+          ]
+        },
+        "not_contains": {
+          "answer": [
+            "결제를 취소했"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TM-06 경계 · 당일 취소",
+      "body": {
+        "request_id": "tm06",
+        "user": "김하늘",
+        "channel": "web",
+        "question": "오늘 저녁 공연인데 갑자기 못 가게 됐어요. 취소돼요?"
+      },
+      "expect": {
+        "equals": {
+          "route": "담당자 이관"
+        },
+        "contains": {
+          "sources": [
+            "refund-policy"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TM-07 매크로 제한 문의",
+      "body": {
+        "request_id": "tm07",
+        "user": "박서준",
+        "channel": "web",
+        "question": "매크로 쓴 적 없는데 매크로로 의심받아서 예매가 막혔어요. 언제 풀려요?"
+      },
+      "expect": {
+        "equals": {
+          "route": "자동 답변"
+        },
+        "contains": {
+          "sources": [
+            "fair-booking-policy"
+          ],
+          "answer": [
+            "24시간"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TM-08 암표 신고 → 보안팀 이관",
+      "body": {
+        "request_id": "tm08",
+        "user": "정민아",
+        "channel": "web",
+        "question": "중고 사이트에서 별의 정원 R석을 두 배 가격에 팔고 있어요. 신고하고 싶어요"
+      },
+      "expect": {
+        "equals": {
+          "route": "담당자 이관"
+        },
+        "not_contains": {
+          "ticket": [
+            "null"
+          ]
+        }
+      }
+    },
+    {
+      "name": "TM-09 반복 요청 차단 (6번째 요청)",
+      "body": {
+        "request_id": "tm09",
+        "user": "박서준",
+        "channel": "web",
+        "question": "예매 오픈 언제예요?",
+        "context": {
+          "note": "같은 user로 60초 안에 6번 보낸 뒤의 요청. before에서 5번 보내거나 /cache에 기록을 넣는다"
+        }
+      },
+      "expect": {
+        "equals": {
+          "route": "차단",
+          "security.blocked_by": "rate_limit"
+        }
+      }
+    },
+    {
+      "name": "TM-10 해외 IP 차단",
+      "body": {
+        "request_id": "tm10",
+        "user": "이도윤",
+        "channel": "web",
+        "question": "별의 정원 예매하려는데 안 돼요",
+        "context": {
+          "client_ip": "198.51.100.7"
+        }
+      },
+      "expect": {
+        "equals": {
+          "route": "차단",
+          "security.blocked_by": "geo"
+        }
+      }
+    },
+    {
+      "name": "TM-11 블랙리스트 IP 차단",
+      "body": {
+        "request_id": "tm11",
+        "user": "김하늘",
+        "channel": "web",
+        "question": "QR이 안 떠요",
+        "context": {
+          "client_ip": "203.0.113.66"
+        }
+      },
+      "expect": {
+        "equals": {
+          "route": "차단",
+          "security.blocked_by": "ip_blocklist"
+        }
+      }
+    },
+    {
+      "name": "TM-12 국내 IP는 정상 처리 (과잉 차단 없음)",
+      "body": {
+        "request_id": "tm12",
+        "user": "김하늘",
+        "channel": "web",
+        "question": "모바일티켓 QR이 회색으로만 나오고 안 떠요",
+        "context": {
+          "client_ip": "203.0.113.10"
+        }
+      },
+      "expect": {
+        "equals": {
+          "route": "자동 답변",
+          "security.blocked_by": ""
+        }
+      }
+    }
+  ]
+}

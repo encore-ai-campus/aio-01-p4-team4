@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "intents": [
+    {
+      "intent_id": "tech_issue",
+      "description": "모바일티켓 QR, 입장 게이트, 앱 오류 같은 기술 문제",
+      "examples": [
+        "QR이 안 떠요",
+        "게이트에서 인식이 안 돼요",
+        "앱이 자꾸 꺼져요"
+      ],
+      "required_slots": [],
+      "handler": "/webhook/ticketmoa-tech",
+      "automation": "auto",
+      "escalate_if": [
+        "urgency=high"
+      ],
+      "kb_scope": [
+        "mobile-ticket-troubleshooting",
+        "onsite-entry-fallback"
+      ]
+    },
+    {
+      "intent_id": "account_issue",
+      "description": "로그인, 본인인증, 회원정보 변경",
+      "examples": [
+        "로그인이 반복돼요",
+        "인증 문자가 안 와요"
+      ],
+      "required_slots": [],
+      "handler": "/webhook/ticketmoa-tech",
+      "automation": "auto",
+      "escalate_if": [],
+      "kb_scope": [
+        "app-login-troubleshooting"
+      ]
+    },
+    {
+      "intent_id": "general_info",
+      "description": "주차, 입장 시간, 관람 연령, 물품 보관 같은 공연장 이용 정보",
+      "examples": [
+        "주차 돼요?",
+        "몇 시부터 입장해요?"
+      ],
+      "required_slots": [],
+      "handler": "/webhook/ticketmoa-tech",
+      "automation": "auto",
+      "escalate_if": [],
+      "kb_scope": [
+        "venue-faq"
+      ]
+    },
+    {
+      "intent_id": "booking_lookup",
+      "description": "내 예매·문의 건 상태 확인",
+      "examples": [
+        "C-2002 어떻게 됐어요?",
+        "내 예매 확인해 줘"
+      ],
+      "required_slots": [
+        "record_id"
+      ],
+      "handler": "/webhook/ticketmoa-payment",
+      "automation": "auto",
+      "escalate_if": [],
+      "kb_scope": []
+    },
+    {
+      "intent_id": "payment_error",
+      "description": "결제됐는데 예매 없음, 이중결제, 결제 실패, 영수증",
+      "examples": [
+        "두 번 결제됐어요",
+        "결제됐는데 예매가 없어요"
+      ],
+      "required_slots": [],
+      "handler": "/webhook/ticketmoa-payment",
+      "automation": "lookup_then_handoff",
+      "escalate_if": [
+        "always"
+      ],
+      "kb_scope": [
+        "payment-error-guide"
+      ]
+    },
+    {
+      "intent_id": "fair_booking",
+      "description": "매크로 의심 예매 제한, 보안 문자, 해외 접속 예매 차단, VPN 문의",
+      "examples": [
+        "매크로로 의심받아서 예매가 막혔어요",
+        "해외에서 예매가 안 돼요"
+      ],
+      "required_slots": [],
+      "handler": "/webhook/ticketmoa-tech",
+      "automation": "auto",
+      "escalate_if": [
+        "appeal_requested"
+      ],
+      "kb_scope": [
+        "fair-booking-policy"
+      ]
+    },
+    {
+      "intent_id": "scalping_report",
+      "description": "암표·부정 판매 신고",
+      "examples": [
+        "중고 사이트에서 웃돈 붙여 팔아요",
+        "암표 신고할게요"
+      ],
+      "required_slots": [],
+      "handler": "/webhook/ticketmoa-handoff",
+      "automation": "handoff",
+      "escalate_if": [
+        "always"
+      ],
+      "kb_scope": [
+        "fair-booking-policy"
+      ]
+    },
+    {
+      "intent_id": "refund_request",
+      "description": "예매 취소와 환불 요청, 환불 금액 문의",
+      "examples": [
+        "취소할게요",
+        "환불 얼마 돼요?"
+      ],
+      "required_slots": [
+        "record_id"
+      ],
+      "handler": "/webhook/ticketmoa-refund",
+      "automation": "confirm_then_ticket",
+      "escalate_if": [
+        "refund>300000",
+        "show_day",
+        "sentiment=angry"
+      ],
+      "kb_scope": [
+        "refund-policy"
+      ]
+    },
+    {
+      "intent_id": "human_request",
+      "description": "상담원 연결을 직접 요청",
+      "examples": [
+        "상담원 연결해 주세요",
+        "사람이랑 얘기하고 싶어요"
+      ],
+      "required_slots": [],
+      "handler": "/webhook/ticketmoa-handoff",
+      "automation": "handoff",
+      "escalate_if": [
+        "always"
+      ],
+      "kb_scope": []
+    }
+  ]
+}

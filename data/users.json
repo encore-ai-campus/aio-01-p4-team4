@@ -1,0 +1,7 @@
+[
+  {"name": "김하늘", "dept": "고객", "grade": "일반", "access_level": "all"},
+  {"name": "이도윤", "dept": "고객", "grade": "일반", "access_level": "all"},
+  {"name": "박서준", "dept": "고객", "grade": "일반", "access_level": "all"},
+  {"name": "정민아", "dept": "고객", "grade": "VIP", "access_level": "all"},
+  {"name": "최현우", "dept": "현장운영팀", "grade": "스태프", "access_level": "staff"}
+]

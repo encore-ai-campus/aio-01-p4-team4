@@ -1,0 +1,11 @@
+{
+  "_note": "가상 IP 정책 (시연용). IP는 문서·시험용으로 예약된 대역(RFC 5737)만 써서 실제 사용자와 겹치지 않는다.",
+  "geo": [
+    {"prefix": "203.0.113.", "country": "KR"},
+    {"prefix": "198.51.100.", "country": "US"},
+    {"prefix": "192.0.2.", "country": "CN"}
+  ],
+  "allowed_countries": ["KR"],
+  "blocklist": ["203.0.113.66", "203.0.113.99"],
+  "blocklist_reason": {"203.0.113.66": "macro_detected", "203.0.113.99": "scalping_reported"}
+}
