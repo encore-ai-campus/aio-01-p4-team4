@@ -63,9 +63,9 @@
         "equals": {
           "route": "담당자 이관"
         },
-        "not_contains": {
+        "contains": {
           "ticket": [
-            "null"
+            "T-"
           ]
         }
       }
@@ -147,11 +147,9 @@
         "contains": {
           "sources": [
             "refund-policy"
-          ]
-        },
-        "not_contains": {
+          ],
           "ticket": [
-            "null"
+            "T-"
           ]
         }
       }
@@ -190,9 +188,9 @@
         "equals": {
           "route": "담당자 이관"
         },
-        "not_contains": {
+        "contains": {
           "ticket": [
-            "null"
+            "T-"
           ]
         }
       }

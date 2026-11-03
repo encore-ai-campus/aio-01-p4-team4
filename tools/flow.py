@@ -10,6 +10,9 @@
   FLOW_WEBHOOK_KEY=<팀 키> uv run tools/flow.py test cases/common.json --webhook ticketmoa-support
   FLOW_PY=<다른 flow.py 경로>  (기본: ~/aio-01d4-stu/Last3Mon/78/tools/flow.py)
 
+78일차 check는 OpenAI(openAiCourse0001) 말고 다른 Credential을 막는다. 팀 키 Credential은
+tools/register-team-key.sh로 고정 id ticketmoaTeamKey1에 넣고, 여기서 그 id를 허용한다.
+
 키 값은 저장소·문서에 쓰지 않는다. 셸에서만 넣는다.
 """
 import importlib.util
@@ -40,4 +43,6 @@ spec = importlib.util.spec_from_file_location("course_flow", FLOW_PY)
 flow = importlib.util.module_from_spec(spec)
 sys.modules["course_flow"] = flow
 spec.loader.exec_module(flow)
+# 팀 웹훅 Header Auth Credential(tools/register-team-key.sh가 만드는 고정 id)을 check·doctor가 받게 한다.
+flow.COURSE_CREDENTIALS["ticketmoaTeamKey1"] = "ticketmoa-team-key"
 sys.exit(flow.main())
