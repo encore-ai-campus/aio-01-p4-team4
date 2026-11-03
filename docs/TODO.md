@@ -27,7 +27,7 @@
 
 | 교시 | 할 일 | 담당 | 끝 표시 |
 | --- | --- | --- | --- |
-| 1 | 80일차 키트의 계약·`common.json`과 우리 초안 대조 | 모두 | 칸 이름 차이 목록 |
+| 1 | 78일차 데이터 API 복사본 켜기, `flow.py doctor` (`docs/PROMPTS.md` 0단계) | 모두 | 모두 `ready` |
 | 2 | **주제 제안서 강사 승인 (10:30)**, 팀 헌장, 비공개 팀 저장소 만들기·초대, `AGENTS.md`, `flow.py doctor` | A | `docs/TOPIC.md`, `docs/TEAM-CHARTER.md`, 모두 `ready` |
 | 3 | 초안을 저장소에 넣기 (`knowledge/`, `data/`, `cases/`), 데이터 API가 팀 데이터를 읽게 설정 | C·D | `GET /tickets/C-2002?requester=김하늘` 200, 남의 건 403 |
 | 4 | 워크플로우 설계서 1~3절 (업무 시나리오·전체 흐름·흐름도·역할 표) | A·B | 설계서 1~3절 |
@@ -106,4 +106,3 @@ A와 B가 같은 파일을 고치지 않도록 Supervisor·검증 Agent는 본�
 
 - [ ] 본인 확인: `user`만으로 할지, 예매번호 뒷자리 확인을 더할지
 - [ ] Supervisor 1단계 vs 대분류 → 세부 2단계
-- [ ] 키트의 계약 칸 이름 (`duplicate`, `ticket.priority`, `llm_calls`) 확인 후 `cases/` 맞추기

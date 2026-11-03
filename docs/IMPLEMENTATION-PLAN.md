@@ -126,4 +126,4 @@ git add workflows/ticketmoa-<내파일>.json && git commit -m "무엇 · common 
 
 다른 사람 작업을 내 n8n에서 보려면 `git pull` 후 `uv run tools/flow.py push workflows/*.json`, 색인은 `ticketmoa-index`를 한 번 다시 돌린다.
 
-> `flow.py`의 정확한 하위 명령 이름은 80일차 키트의 README로 확인한다 (위는 72·73일차 기준).
+> `flow.py`는 `Last3Mon/78/tools/flow.py`를 쓴다.

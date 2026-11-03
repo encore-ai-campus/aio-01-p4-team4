@@ -32,7 +32,7 @@
 
 기본 주제의 `tickets.json`과 같은 칸(`title, requester, status, assignee, updated, note, contact`)에 `booking_id, show, amount`를 더했다. 상태는 처리 중·접수됨·처리 완료·반려, C-2001~C-2004는 주인이 모두 다르다. C-2005(이도윤)는 환불 2단계 시나리오(TM-02·03)용 예매 건이다. 예매번호 `T날짜-번호`의 날짜는 예매일이다. 연락처는 `010-0000-xxxx`, `@example.com`.
 
-> 확인할 것: 80일차에 받는 단위 프로젝트판 데이터 API가 팀 데이터 폴더를 어떤 파일 이름·칸으로 읽는지 키트 안내를 보고 맞춘다. 칸 이름이 다르면 이 파일만 고치면 된다.
+> 연습 환경: 78일차 데이터 API 복사본에서 `users.json`은 `employees.json`, `records.json`은 `tickets.json` 이름으로 넣는다 (`docs/PROMPTS.md` 0단계).
 
 ## 아직 안 한 것
 

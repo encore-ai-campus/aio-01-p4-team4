@@ -11,33 +11,23 @@
 
 ---
 
-## 공통 · 0단계 · 지금 바로 (80 키트 없이)
+## 공통 · 0단계 · 연습 환경 (모두 같은 방법으로)
 
-80 키트가 나오기 전에는 **73일차 실습 키트(`Last3Mon/73`)의 데이터 API와 `flow.py`를 빌려 쓴다.** 73일차 데이터 API는 `data/employees.json`(이름·부서)과 `data/tickets.json`(접수 건)을 읽는데, 우리 `users.json`·`records.json`이 같은 칸 모양이라 파일만 바꿔 넣으면 된다.
+**78일차 실습 키트(`Last3Mon/78`)의 데이터 API와 `flow.py`를 쓴다.** 78일차 데이터 API에는 `/tickets`, `/alerts`, `/dlq`, `/logs`, `/cache`, 장애 스위치(`/admin/fault`)가 모두 있다. 데이터 API는 `data/employees.json`(이름·부서)과 `data/tickets.json`(접수 건)을 읽는데, 우리 `users.json`·`records.json`이 같은 칸 모양이라 파일만 바꿔 넣으면 된다.
 
 ```
 AGENTS.md를 읽고 요약해 줘. 그다음 연습 환경을 만들어 줘.
-1. ~/aio-01d4-stu/Last3Mon/73/data-api 폴더를 ~/ticketmoa-data-api 로 복사한다 (원본은 건드리지 않는다).
+1. ~/aio-01d4-stu/Last3Mon/78/data-api 폴더를 ~/ticketmoa-data-api 로 복사한다 (원본은 건드리지 않는다).
 2. 복사본의 data/employees.json을 우리 data/users.json으로, data/tickets.json을 우리 data/records.json으로 바꾼다.
-3. 복사본 데이터 API를 73일차와 같은 방법으로 켜고(README 참고), 아래를 확인해서 결과만 표로 알려 줘.
+3. 복사본 데이터 API를 78일차와 같은 방법으로 켜고(README 참고), 아래를 확인해서 결과만 표로 알려 줘.
    - GET /employees/김하늘 → 200
    - GET /tickets/C-2002?requester=김하늘 → 200, requester=박서준 → 403
-   - POST /tickets, POST /alerts, /admin/fault 가 있는지 (없는 경로는 "없음"으로)
-4. 시험은 ~/aio-01d4-stu/Last3Mon/73/tools/flow.py 로 돌린다: uv run tools/flow.py test <우리 저장소>/cases/common.json --webhook ticketmoa-support
+   - POST /tickets, POST /alerts, GET /dlq, /admin/fault 가 있는지 (없는 경로는 "없음"으로)
+4. 시험은 ~/aio-01d4-stu/Last3Mon/78/tools/flow.py 로 돌린다: uv run tools/flow.py test <우리 저장소>/cases/common.json --webhook ticketmoa-support
 ```
 
-- 73일차 데이터 API에 없는 기능(예: `POST /dlq`, 팀 데이터의 `X-Api-Key`)은 그 시나리오만 80 키트를 받은 뒤 확인한다. 나머지는 지금 만들 수 있다.
-- 73일차 데이터 API를 켜 둔 채로 복사본을 켜면 포트(8800)가 겹친다. 하나만 켠다.
-
-## 공통 · 0단계 · 80 키트를 받은 뒤 (11/04~11/05)
-
-```
-~/aio-01d4-stu/Last3Mon/80 키트를 받았다. 고치지는 말고 결과만 알려 줘.
-1. uv run tools/flow.py doctor 결과
-2. 80 키트의 cases/common.json 판정 칸과 우리 cases/common.json 판정 칸 비교 (칸 이름 차이만 표로)
-3. 80 키트 데이터 API가 팀 데이터(users.json, records.json)를 읽는 방법 (키트 README)
-4. 73일차 데이터 API 복사본(~/ticketmoa-data-api)과 달라서 우리 워크플로우를 고쳐야 하는 곳
-```
+- 원래 실습 데이터 API를 켜 둔 채로 복사본을 켜면 포트(8800)가 겹친다. 하나만 켠다.
+- 채점 기준 시나리오는 우리 `cases/common.json`이다. 기대 결과(expect)는 고치지 않는다.
 
 ---
 

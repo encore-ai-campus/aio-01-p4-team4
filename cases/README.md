@@ -40,11 +40,10 @@
 
 TM-09~12는 가산 기능이다. 필수 범위가 먼저 통과한 뒤 돌린다. IP는 문서·시험용 예약 대역(RFC 5737)만 쓰는 **가상 값**이며, 요청 `context.client_ip`로 넣는다 (실제 요청은 모두 localhost라 진짜 IP로는 시연할 수 없다).
 
-## 80일차 키트를 받은 뒤 확인할 것
+## 판정 칸 이름
 
-판정 칸 이름은 73일차 형식을 따랐지만, 아래 셋은 단위 프로젝트판 계약에서 실제 칸 이름을 확인하고 맞춘다 (판정을 약하게 바꾸는 것은 안 됨).
+판정 칸 이름은 78일차 `flow.py` 형식을 따른다. 아래 셋은 우리 계약에서 이렇게 정했다 (판정을 약하게 바꾸는 것은 안 됨).
 
-- WF-09: `duplicate`가 `ticket` 안에 있는지 다른 칸에 있는지
-- WF-12: 우선순위가 `ticket.priority`인지
-- WF-08: LLM 호출 수가 `agents` 안의 `llm_calls`인지
-- 기본 주제의 `Last3Mon/80/cases/common.json`과 판정 칸이 같은지 한 줄씩 대조 (80일차 8교시 강사 확인 전)
+- WF-09: 중복이면 `ticket.duplicate`가 `true`
+- WF-12: 우선순위는 `ticket.priority`
+- WF-08: LLM 호출 수는 `agents.llm_calls`

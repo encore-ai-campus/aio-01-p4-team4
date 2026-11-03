@@ -69,7 +69,7 @@ ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py check workflo
 git commit -m "<무엇> · common N/14"
 ```
 
-`flow.py` 하위 명령 이름은 80일차 키트 README를 따른다. 공통 시나리오를 깨뜨렸으면 깨뜨린 사람이 고친다.
+`flow.py`는 `Last3Mon/78/tools/flow.py`를 쓴다. 공통 시나리오를 깨뜨렸으면 깨뜨린 사람이 고친다.
 
 ## 8. 로컬과 서버
 
