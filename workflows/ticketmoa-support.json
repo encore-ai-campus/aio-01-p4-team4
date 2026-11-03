@@ -9,13 +9,20 @@
         "httpMethod": "POST",
         "path": "ticketmoa-support",
         "responseMode": "responseNode",
-        "options": {}
+        "options": {},
+        "authentication": "headerAuth"
       },
       "webhookId": "ef6ab493-5873-5bea-bffd-d8987ab01105",
       "position": [
         0,
         0
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaTeamKey1",
+          "name": "ticketmoa-team-key"
+        }
+      }
     },
     {
       "name": "Valid?",
@@ -460,7 +467,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ request_id: $('Question webhook').first().json.body.request_id, user: $('Question webhook').first().json.body.user, record_id: $('Plan route').first().json.slots.record_id }) }}",
         "options": {
-          "timeout": 5000
+          "timeout": 2500
         }
       },
       "onError": "continueErrorOutput"
@@ -592,7 +599,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ request_id: $('Question webhook').first().json.body.request_id, user: $('Question webhook').first().json.body.user, record_id: $('Plan route').first().json.slots.record_id }) }}",
         "options": {
-          "timeout": 5000
+          "timeout": 2500
         }
       },
       "onError": "continueErrorOutput"
@@ -667,9 +674,9 @@
         "url": "http://localhost:5678/webhook/ticketmoa-handoff",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ request_id: $('Question webhook').first().json.body.request_id, user: $('Question webhook').first().json.body.user, summary: $json.summary, category: $json.category, priority: $json.priority }) }}",
+        "jsonBody": "={{ JSON.stringify({ request_id: $('Question webhook').first().json.body.request_id, user: $('Question webhook').first().json.body.user, summary: $json.summary, category: $json.category, priority: $json.priority, deadline_ms: Math.max(500, 5500 - (Date.now() - $('Load registry').first().json.t0)) }) }}",
         "options": {
-          "timeout": 5000
+          "timeout": "={{ Math.max(500, 5500 - (Date.now() - $('Load registry').first().json.t0)) }}"
         }
       },
       "onError": "continueErrorOutput"
