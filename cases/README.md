@@ -21,7 +21,7 @@
 | WF-12 | 김하늘 | 공연 10분 전 QR + C-2002 확인 | 긴급 이관(high), sources ⊃ `onsite-entry-fallback`, 답에 현장 발권·접수 상태 |
 | WF-13 | 김하늘·홍길동 | 빈 질문 / 없는 사용자 / 501자 | 400 `invalid request` |
 
-## 팀 시나리오 (`team.json`, 12개)
+## 팀 시나리오 (`team.json`, 13개)
 
 | ID | 종류 (03 문서 5절) | 내용 | 판정 |
 | --- | --- | --- | --- |
@@ -31,9 +31,10 @@
 | TM-04 | 지나치게 막지 않음 | 상담원 연락 방법·점검 시간 | 차단 아님 |
 | TM-05 | 우리가 더한 지식 문서 | 이중결제 + 부정 감정 | `담당자 이관`, `payment-error-guide`, "결제를 취소했다"고 말하지 않음 |
 | TM-06 | 경계·애매함 | 오늘 공연 취소 | `담당자 이관` (당일 취소 불가 규정) |
+| TM-13 | 우리 설계의 예외 | 환불액 30만원 초과 (C-2006, 352,000원) | `담당자 이관`, `refund-policy`, ticket 있음 |
 | TM-07 | 우리가 더한 지식 문서 | 매크로 의심으로 예매 제한됨 | `자동 답변`, `fair-booking-policy`, 답에 "24시간" |
 | TM-08 | 우리 설계의 예외 | 암표 신고 | `담당자 이관`, ticket 있음 |
-| TM-09 | 우리 설계의 예외 (가산) | 같은 사용자 60초에 6번째 요청 | `차단`, `blocked_by: rate_limit` |
+| TM-09 | 우리 설계의 예외 (가산) | 같은 사용자 60초에 6번째 요청 (`before`에서 `/cache-clear` 뒤 5번 먼저 보냄) | `차단`, `blocked_by: rate_limit` |
 | TM-10 | 우리 설계의 예외 (가산) | 가상 해외 IP `198.51.100.7` | `차단`, `blocked_by: geo` |
 | TM-11 | 우리 설계의 예외 (가산) | 블랙리스트 IP `203.0.113.66` | `차단`, `blocked_by: ip_blocklist` |
 | TM-12 | 지나치게 막지 않음 | 국내 가상 IP `203.0.113.10`의 QR 문의 | `자동 답변` (차단 아님) |
@@ -47,3 +48,15 @@ TM-09~12는 가산 기능이다. 필수 범위가 먼저 통과한 뒤 돌린다
 - WF-09: 중복이면 `ticket.duplicate`가 `true`
 - WF-12: 우선순위는 `ticket.priority`
 - WF-08: LLM 호출 수는 `agents.llm_calls`
+
+## 시험 방법 (78 `flow.py`, `Last3Mon/78`에서)
+
+```bash
+uv run tools/flow.py test <저장소>/cases/common.json --webhook ticketmoa-support --repeat 3
+uv run tools/flow.py test <저장소>/cases/team.json --repeat 3
+uv run tools/flow.py bench ticketmoa-support <저장소>/requests/wf01.json -n 10   # p50 · p95
+```
+
+- WF-10은 `before`의 `{"llm": "down"}`이 Credential `OpenAI (.env)`의 키를 깨뜨린다. 워크플로우가 다른 Credential을 쓰면 LLM이 안 꺼져 시험이 거짓 통과한다.
+- TM-09는 `박서준`을 60초 동안 막는다. 같은 사용자를 쓰는 TM-07이 앞에 있어야 하고, `after`에서 캐시를 비운다. 중복 요청 기록(WF-09)도 같이 지워지므로 공통 시나리오와 섞어 돌리지 않는다.
+- 보고서 JSON은 `runs/`에 날짜를 붙여 복사한다.

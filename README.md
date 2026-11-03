@@ -44,7 +44,7 @@ aio-01-p4-team4/
 ├── config/ip-policy.json  # 가상 IP 국가·블랙리스트 (가산, TM-10~12)
 ├── knowledge/             # 지식 문서 8개 (staff-entry-manual만 관리자 전용)
 ├── data/                  # users.json 5명, records.json 5건 (가짜 데이터)
-├── cases/                 # common.json(공통 14유형), team.json(팀 12개, TM-09~12는 가산)
+├── cases/                 # common.json(공통 14유형), team.json(팀 13개, TM-09~12는 가산)
 ├── requests/              # 시연·bench용 요청 파일
 └── runs/                  # flow.py test·bench 보고서 (결과서 증거)
 ```
@@ -93,7 +93,7 @@ git push -u origin feat/<이름>-<파일>
 
 GitHub에서 `main`으로 PR을 열면 리드가 검토하고 병합한다. 병합 뒤에는 `git switch main; git pull`로 최신을 받는다.
 
-**n8n에서 손으로 할 것**: Credential 3개(`OpenAI`, `ticketmoa-data-api`(X-Api-Key), `ticketmoa-team-key`(X-Team-Key)) 만들기, 워크플로우 활성화, `ticketmoa-index` 한 번 실행. 키 값은 n8n Credentials에만 둔다.
+**n8n에서 손으로 할 것**: Credential 3개(`OpenAI (.env)`(id `openAiCourse0001`, `Last3Mon/65/n8n/register-credentials.sh`로 등록), `ticketmoa-data-api`(X-Api-Key), `ticketmoa-team-key`(X-Team-Key)) 만들기, 워크플로우 활성화, `ticketmoa-index` 한 번 실행. OpenAI Credential은 새로 만들지 말고 등록 스크립트가 만든 것을 고른다 (WF-10 시험이 이 Credential의 키를 잠깐 깨뜨려 확인한다). 키 값은 n8n Credentials에만 둔다.
 
 ## 시험
 

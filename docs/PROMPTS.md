@@ -92,10 +92,11 @@ WF-01, WF-02, WF-02b를 돌려 결과를 알려 줘.
 ```
 ticketmoa-refund를 만들어 줘. knowledge/refund-policy.md의 수수료 표를 Code 노드 규칙으로 옮긴다.
 - context.confirm이 없으면: 예매 조회 → 환불 예정 금액 계산 → route "자동 답변", "확정하시겠어요?" 안내, ticket null
-- 30만원 초과이거나 관람 당일이면: 바로 route "담당자 이관"
+- 금액은 lib/common.js의 calcRefund로 계산한다. needsApproval(30만원 초과)이거나 관람 당일이면: 바로 route "담당자 이관" (티켓 category "refund", sources에 refund-policy)
+- 1차 대기 상태는 /cache에 `pending:<user>:<booking_id>`로 저장한다. booking_id는 조회한 예매 기록의 값을 그대로 쓴다 (공연일로 만들지 않는다)
 - context.confirm이 true면: /webhook/ticketmoa-handoff로 category "refund" 티켓 생성 → route "담당자 이관"
 - 취소를 직접 실행하는 노드는 만들지 않는다
-cases/team.json의 TM-02, TM-03, TM-06을 돌려 줘.
+cases/team.json의 TM-02, TM-03, TM-06, TM-13을 돌려 줘.
 ```
 
 ---

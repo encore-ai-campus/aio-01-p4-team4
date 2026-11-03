@@ -18,7 +18,7 @@
 | 역할 | 맡는 파일 | 맡는 데이터·문서 | 책임지는 시나리오 |
 | --- | --- | --- | --- |
 | **A 리드·통합**<br>최두나 | `ticketmoa-support` (본체: Webhook, 입력 검사, 주입 차단, 라우팅, 응답) | 레지스트리 JSON, 주제 제안서, 헌장, README, 데일리, 발표 | WF-08, WF-13, 전체 통합 |
-| **B 오케스트레이션**<br>최강현 | `ticketmoa-agents` (Supervisor 분류, 보완 질문, 검증 Agent), `ticketmoa-refund` | 분류 프롬프트, 워크플로우 설계서 2~4절 | WF-02, 02b, TM-02, 03, 06 |
+| **B 오케스트레이션**<br>최강현 | `ticketmoa-agents` (Supervisor 분류, 보완 질문, 검증 Agent), `ticketmoa-refund` | 분류 프롬프트, 워크플로우 설계서 2~4절 | WF-02, 02b, TM-02, 03, 06, 13 |
 | **C RAG**<br>정예진 | `ticketmoa-index`, `ticketmoa-search`, `ticketmoa-tech` | `knowledge/` 8개, RAG 설계서 전체 | WF-01, 03, 05, 12, TM-01, 07, 08 |
 | **D 연동·안정성**<br>심환석 | `ticketmoa-payment`, `ticketmoa-handoff`, `ticketmoa-errors` | `data/users.json`, `records.json`, 워크플로우 설계서 5~7절 | WF-04, 06, 07, 09, 10, 11, TM-05, (가산) TM-09~12 |
 | **E 시험·품질**<br>김인혜 | (워크플로우 없음) | `cases/`, `requests/`, `runs/`, 실행 결과서 | 모든 시나리오 실행·기록, 81일차부터 D의 Error Workflow 같이 보기 |

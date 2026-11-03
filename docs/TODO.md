@@ -11,7 +11,7 @@
 - [~] 주제 제안서 `TOPIC.md` (팀 이름: 티켓모아)
 - [~] 지식 문서 8개 `knowledge/` (관리자 전용 `staff-entry-manual` 포함)
 - [~] `data/users.json` 5명, `data/records.json` 5건 (C-2001~C-2005)
-- [~] `cases/common.json` 14유형 17케이스, `cases/team.json` 12개 (TM-09~12 가산)
+- [~] `cases/common.json` 14유형 17케이스, `cases/team.json` 13개 (TM-09~12 가산)
 
 ## 1. 80일차 전 (지금 ~ 11/04)
 

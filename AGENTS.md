@@ -49,11 +49,12 @@ route 값: "자동 답변" | "보완 질문" | "담당자 이관" | "권한 없�
 - 재시도는 429·5xx·timeout만 한다. 401·403은 재시도하지 않는다.
 - 티켓 생성 `key`에는 `request_id`를 넣는다 (중복 방지).
 - Code 노드의 공통 처리(입력 검사, 주입 차단, 가림, 응답 조립, 재시도 판단, 환불 계산, 로그)는 **`lib/common.js`의 함수를 그대로 복사해 쓴다.** 노드 안에서 새로 짜지 않는다. 함수를 고쳐야 하면 `lib/common.js`를 고치고 `node --test lib/test/*.test.js`를 통과시킨다.
+- OpenAI 노드는 모두 Credential `OpenAI (.env)`를 쓴다. 다른 이름으로 새로 만들면 `flow.py llm down`(WF-10)이 그 노드를 못 끈다.
 - 환불·결제 취소를 에이전트가 직접 실행하지 않는다. 고객 확인(`context.confirm=true`) 뒤 티켓으로 넘긴다.
 
 ## 6. 절대 하지 않는 것
 
-- API 키·토큰을 워크플로우 JSON, 문서, 코드, 커밋에 넣는 것. 키는 n8n Credential에만 있다 (이름: `OpenAI`, `ticketmoa-data-api`(X-Api-Key), `ticketmoa-team-key`(X-Team-Key))
+- API 키·토큰을 워크플로우 JSON, 문서, 코드, 커밋에 넣는 것. 키는 n8n Credential에만 있다 (이름: `OpenAI (.env)`(id `openAiCourse0001`, `Last3Mon/65/n8n/register-credentials.sh`로 등록), `ticketmoa-data-api`(X-Api-Key), `ticketmoa-team-key`(X-Team-Key))
 - 실제 사람의 이름·연락처를 쓰는 것. 가짜 데이터는 `010-0000-xxxx`, `@example.com`
 - 응답·로그에 연락처 원문을 남기는 것 (가린 개수는 `security.masked`)
 - `cases/common.json`의 기대 결과를 결과에 맞춰 고치는 것
