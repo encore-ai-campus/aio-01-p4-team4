@@ -40,6 +40,7 @@ aio-01-p4-team4/
 │   ├── common.js          # 공통 함수 원본 (Code 노드에 복사해서 씀)
 │   ├── README.md          # 함수 목록·누가 어디서 쓰나
 │   └── test/common.test.js
+├── tools/flow.py          # 78일차 flow.py를 부르고 팀 웹훅에 X-Team-Key를 붙임
 ├── config/registry.json   # 업무 레지스트리 (Supervisor 프롬프트 재료)
 ├── config/ip-policy.json  # 가상 IP 국가·블랙리스트 (가산, TM-10~12)
 ├── knowledge/             # 지식 문서 8개 (staff-entry-manual만 관리자 전용)
@@ -66,7 +67,7 @@ ssh -o BatchMode=yes aio-t4 "whoami"   # toor가 나오면 서버 접속 준비 
 **2. 서버에 반영하고 실행**
 
 ```powershell
-scp -r workflows knowledge data cases config lib requests aio-t4:~/aio-01-p4-team4/
+scp -r workflows knowledge data cases config lib requests tools aio-t4:~/aio-01-p4-team4/
 ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py push workflows/*.json'"
 ```
 
@@ -99,8 +100,8 @@ GitHub에서 `main`으로 PR을 열면 리드가 검토하고 병합한다. 병�
 
 ```bash
 uv run tools/flow.py push workflows/*.json
-uv run tools/flow.py test cases/common.json --webhook ticketmoa-support -v
-uv run tools/flow.py test cases/team.json -v
+FLOW_WEBHOOK_KEY=<팀 키> uv run tools/flow.py test cases/common.json --webhook ticketmoa-support -v
+FLOW_WEBHOOK_KEY=<팀 키> uv run tools/flow.py test cases/team.json -v
 ```
 
 ## 시연 순서 (발표)

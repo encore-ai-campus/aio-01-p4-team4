@@ -126,4 +126,4 @@ git add workflows/ticketmoa-<내파일>.json && git commit -m "무엇 · common 
 
 다른 사람 작업을 내 n8n에서 보려면 `git pull` 후 `uv run tools/flow.py push workflows/*.json`, 색인은 `ticketmoa-index`를 한 번 다시 돌린다.
 
-> `flow.py`는 `Last3Mon/78/tools/flow.py`를 쓴다.
+> `flow.py`는 저장소의 `tools/flow.py`를 쓴다 (78일차 `flow.py` + `X-Team-Key`). 키는 `FLOW_WEBHOOK_KEY` 환경 변수로만.
