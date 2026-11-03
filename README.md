@@ -105,5 +105,7 @@ uv run tools/flow.py test cases/team.json -v
 
 ## 시연 순서 (발표)
 
+조합 A: 팀 VM에서 `flow.py call ticketmoa-support requests/<파일>.json`으로 요청을 보내고 n8n 실행 화면을 함께 보여 준다. 웹 화면(가산)이 준비되면 같은 요청을 화면에서 보낸다. 웹 화면이 안 되면 그대로 `flow.py`로 시연한다.
+
 1. WF-01 QR 문의 → 분류·검색·검증·근거  2. WF-02 보완 질문  3. WF-12 공연 10분 전 QR → 대체 입장 먼저 + 현장 알림
 4. TM-02·03 환불 2단계  5. WF-04 티켓 API 장애 → DLQ·알림  6. `/logs`와 티켓 목록  7. 결과 표·실패 사례
