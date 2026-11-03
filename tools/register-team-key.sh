@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # 팀 웹훅 Header Auth Credential을 고정 id로 n8n에 넣는다 (팀원 모두 같은 id라야 JSON이 그대로 돈다).
-#   TEAM_KEY=<팀 키> bash tools/register-team-key.sh
+#   set -a; . ./.env; set +a; bash tools/register-team-key.sh   (.env의 TM_TEAM_KEY, 없으면 입력받음)
 #   N8N_CONTAINER=<이름>  (기본 day65-n8n-n8n-1)
 # 키 값은 저장소·문서에 쓰지 않는다. 셸에서만 넣는다.
 set -euo pipefail
-key="${TEAM_KEY:-}"
+key="${TM_TEAM_KEY:-${TEAM_KEY:-}}"
 if [ -z "$key" ]; then read -r -s -p "팀 키: " key; echo; fi
-[ -n "$key" ] || { echo "TEAM_KEY가 비어 있다." >&2; exit 1; }
+[ -n "$key" ] || { echo "TM_TEAM_KEY가 비어 있다." >&2; exit 1; }
 case "$key" in *\"*|*\\*) echo "키에 \" 나 \\ 는 쓸 수 없다." >&2; exit 1;; esac
 
 credentials=$(printf '[{"id":"ticketmoaTeamKey1","name":"ticketmoa-team-key","type":"httpHeaderAuth","data":{"name":"X-Team-Key","value":"%s"}}]' "$key")

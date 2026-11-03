@@ -70,7 +70,7 @@ ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py check workflo
 git commit -m "<무엇> · common N/14"
 ```
 
-`flow.py`는 저장소의 `tools/flow.py`(78일차 `flow.py`를 부르고 `FLOW_WEBHOOK_KEY`를 `X-Team-Key`로 붙임)를 저장소 뿌리에서 쓴다. 78 원본이 다른 곳에 있으면 `FLOW_PY`로 경로를 준다. 공통 시나리오를 깨뜨렸으면 깨뜨린 사람이 고친다.
+`flow.py`는 저장소의 `tools/flow.py`(78일차 `flow.py`를 부르고 `.env`의 `TM_TEAM_KEY`를 `X-Team-Key`로 붙임)를 저장소 뿌리에서 쓴다. 78 원본이 다른 곳에 있으면 `FLOW_PY`로 경로를 준다. 공통 시나리오를 깨뜨렸으면 깨뜨린 사람이 고친다.
 
 ## 8. 로컬과 서버
 

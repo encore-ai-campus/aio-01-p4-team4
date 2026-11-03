@@ -5,9 +5,10 @@
 """78일차 flow.py를 그대로 부르되, 팀 웹훅 호출에 X-Team-Key 머리글을 붙인다.
 
 78일차 flow.py는 Header Auth 키를 보내지 않아서, 팀 웹훅에 Header Auth를 걸면 call·test·bench가
-모두 401이 된다. 단위 프로젝트판 flow.py와 같은 환경 변수 이름(FLOW_WEBHOOK_KEY)을 쓴다.
+모두 403이 된다. 팀 키는 환경 변수 TM_TEAM_KEY로 준다 (.env.example과 같은 이름).
+옛 이름 FLOW_WEBHOOK_KEY도 당분간 받는다.
 
-  FLOW_WEBHOOK_KEY=<팀 키> uv run tools/flow.py test cases/common.json --webhook ticketmoa-support
+  uv run --env-file .env tools/flow.py test cases/common.json --webhook ticketmoa-support
   FLOW_PY=<다른 flow.py 경로>  (기본: ~/aio-01d4-stu/Last3Mon/78/tools/flow.py)
 
 78일차 check는 OpenAI(openAiCourse0001) 말고 다른 Credential을 막는다. 팀 키 Credential은
@@ -22,7 +23,7 @@ import urllib.request
 from pathlib import Path
 
 FLOW_PY = Path(os.environ.get("FLOW_PY", "~/aio-01d4-stu/Last3Mon/78/tools/flow.py")).expanduser()
-KEY = os.environ.get("FLOW_WEBHOOK_KEY", "")
+KEY = os.environ.get("TM_TEAM_KEY") or os.environ.get("FLOW_WEBHOOK_KEY", "")
 
 if not FLOW_PY.exists():
     sys.exit(f"flow.py not found: {FLOW_PY} (set FLOW_PY)")

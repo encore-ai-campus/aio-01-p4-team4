@@ -100,8 +100,8 @@ GitHub에서 `main`으로 PR을 열면 리드가 검토하고 병합한다. 병�
 
 ```bash
 uv run tools/flow.py push workflows/*.json
-FLOW_WEBHOOK_KEY=<팀 키> uv run tools/flow.py test cases/common.json --webhook ticketmoa-support -v
-FLOW_WEBHOOK_KEY=<팀 키> uv run tools/flow.py test cases/team.json -v
+uv run --env-file .env tools/flow.py test cases/common.json --webhook ticketmoa-support -v
+uv run --env-file .env tools/flow.py test cases/team.json -v
 ```
 
 - **push 뒤 10초쯤 기다렸다가 시험한다.** `push`는 n8n을 다시 켜는데, 직후 몇 초 동안은 이전 버전이 응답해서 결과가 틀리게 나온다.
@@ -127,18 +127,18 @@ curl -s -X POST http://localhost:8800/logs-reset     # 시험 전에 비우기
 
 ### Header Auth (팀 키)
 
-본체 웹훅은 Header Auth(`X-Team-Key`)로 막혀 있다. **키 없이 부르거나 틀린 키로 부르면 403**(`Authorization data is wrong!`)이 맞다 (n8n Header Auth는 401이 아니라 403을 돌려준다). 팀 키는 `openssl rand -hex 16`처럼 영문·숫자로 만든다 (한글이 섞이면 헤더로 보낼 수 없어 맞는 키도 403이 된다). 키 값은 저장소·문서·채팅에 쓰지 않고 셸에서만 넣는다.
+본체 웹훅은 Header Auth(`X-Team-Key`)로 막혀 있다. **키 없이 부르거나 틀린 키로 부르면 403**(`Authorization data is wrong!`)이 맞다 (n8n Header Auth는 401이 아니라 403을 돌려준다). 팀 키는 `openssl rand -hex 16`처럼 영문·숫자로 만든다 (한글이 섞이면 헤더로 보낼 수 없어 맞는 키도 403이 된다). 키 값은 저장소·문서·채팅에 쓰지 않는다. `cp .env.example .env && chmod 600 .env`로 만든 `.env`의 `TM_TEAM_KEY`에만 넣는다 (`.env`는 git에 올라가지 않는다). 시험(`tools/flow.py`)과 Credential 등록(`tools/register-team-key.sh`)이 모두 이 한 이름을 읽는다.
 
 1. 최신 `main`을 받는다: `git pull origin main` (`tools/register-team-key.sh`, 팀 키 id를 허용하는 `tools/flow.py`가 들어 있다).
 2. 각자 노트북(n8n이 있는 곳)에서 한 번 실행해 팀 키 Credential을 고정 id `ticketmoaTeamKey1`로 넣는다:
    ```bash
-   TEAM_KEY=<팀 키> bash tools/register-team-key.sh
+   set -a; . ./.env; set +a; bash tools/register-team-key.sh
    ```
 3. 확인:
    ```bash
    uv run tools/flow.py check workflows/ticketmoa-support.json
    uv run tools/flow.py push workflows/ticketmoa-support.json
-   FLOW_WEBHOOK_KEY=<팀 키> uv run tools/flow.py test cases/common.json --webhook ticketmoa-support
+   uv run --env-file .env tools/flow.py test cases/common.json --webhook ticketmoa-support
    ```
 
 `Question webhook` 노드는 `"authentication": "headerAuth"`와 `"credentials": {"httpHeaderAuth": {"id": "ticketmoaTeamKey1", "name": "ticketmoa-team-key"}}`를 쓴다. 다른 id로 Credential을 새로 만들면 다른 팀원 n8n에서 JSON이 돌지 않는다.
