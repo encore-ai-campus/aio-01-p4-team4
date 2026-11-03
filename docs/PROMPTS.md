@@ -51,7 +51,7 @@ ticketmoa-support에서 가짜 분류를 지우고, HTTP Request로 /webhook/tic
 분류 결과에 따라 Switch로 나눠 줘: confidence < 0.7 또는 missing이 있으면 보완 질문, intents에 따라 ticketmoa-tech(기술 장애·앱·일반 정보·부정 예매 문의 fair_booking) / ticketmoa-refund(환불) / ticketmoa-payment(결제 오류·예매 조회), 이관 조건이면(암표 신고 scalping_report 포함) ticketmoa-handoff.
 기술 문의와 예매 조회가 함께 있으면 ticketmoa-search와 ticketmoa-payment를 두 갈래로 부르고 Merge로 합쳐 줘 (병렬).
 하위 웹훅 호출은 ~/aio-01d4-stu/Last3Mon/79/reference/ 의 "다른 내 웹훅 부르기" 예제가 있으면 그 HTTP Request 설정(timeout, 오류 출력)을 따라 해 줘.
-하위 웹훅이 주고받는 모양은 docs/WORKFLOW-DESIGN.md 3절 표를 따른다. 공통 시나리오 전부 돌려서 통과 수를 알려 줘.
+하위 웹훅이 주고받는 모양은 docs/IMPLEMENTATION-PLAN.md 1단계 하위 웹훅 표를 따른다. 공통 시나리오 전부 돌려서 통과 수를 알려 줘.
 ```
 
 **3단계 · 실행 기록 (81일차 7교시)**
