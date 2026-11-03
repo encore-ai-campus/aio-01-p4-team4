@@ -5,7 +5,7 @@
 - 팀: 티켓모아 · 최두나(리드·통합) · 최강현(오케스트레이션) · 정예진(RAG) · 심환석(연동·안정성) · 김인혜(시험·품질)
 - 기간: 2026-11-05 ~ 2026-11-09 (제출 11/09 13:50)
 - 스택: n8n 2.42.6, OpenAI gpt-4.1-mini, text-embedding-3-large, In-Memory Vector Store, 연습용 데이터 API
-- 입구: `POST /webhook/ticketmoa-support` (Header `X-Team-Key`)
+- 입구: `POST /webhook/ticketmoa-support` (Header `X-Team-Key`, 지금은 꺼 둠 → [Header Auth](#header-auth-지금은-꺼-둠))
 
 ## 디렉터리
 
@@ -103,6 +103,38 @@ uv run tools/flow.py push workflows/*.json
 FLOW_WEBHOOK_KEY=<팀 키> uv run tools/flow.py test cases/common.json --webhook ticketmoa-support -v
 FLOW_WEBHOOK_KEY=<팀 키> uv run tools/flow.py test cases/team.json -v
 ```
+
+- **push 뒤 10초쯤 기다렸다가 시험한다.** `push`는 n8n을 다시 켜는데, 직후 몇 초 동안은 이전 버전이 응답해서 결과가 틀리게 나온다.
+- **하위 웹훅이 없거나 멈추면 본체는 `담당자 이관`으로 답한다** (timeout 5초, fail-closed). 그래서 내 하위 웹훅을 아직 올리지 않았어도 본체 시험은 500 없이 돈다.
+- **WF-02b·WF-03의 `not_contains ticket ["null"]`은 78일차 flow.py가 null을 빈 글자로 바꿔서 null 티켓을 잡지 못한다.** 통과해도 결과 보고서(`runs/*.json`)에서 `ticket`이 실제로 있는지 직접 본다.
+- 시험 도중 바뀐 장애 스위치·OpenAI 키는 시험이 끝나면 되돌아간다. 중간에 멈췄으면 `uv run tools/flow.py fault all ok`, `uv run tools/flow.py llm up`.
+
+### 실행 기록 보기
+
+본체는 응답 직전에 데이터 API `POST /logs`로 한 줄을 남긴다 (기록이 실패해도 응답은 그대로 나간다). 질문 원문·답변·사용자 이름·연락처는 남기지 않는다.
+
+```bash
+curl -s 'http://localhost:8800/logs?source=live'     # 오늘 남은 기록
+curl -s -X POST http://localhost:8800/logs-reset     # 시험 전에 비우기
+```
+
+| 칸 | 내용 |
+| --- | --- |
+| `request_id`, `route`, `intents` | 요청 번호, 최종 경로, 분류 결과 |
+| `steps` | 하위 웹훅별 걸린 시간 ms (`agents_ms`, `search_ms`, `payment_ms`, `tech_ms`, `refund_ms`, `handoff_ms`) |
+| `llm_calls`, `has_ticket`, `ticket` | LLM 호출 수, 티켓 여부, 티켓 번호 |
+| `blocked_by`, `masked` | 차단한 곳(`rule`), 가린 연락처 수 |
+| `status`, `duration_ms`, `started_at` | `success` · `error`(하위 웹훅 실패로 이관) · `rejected`(400), 전체 시간, 한국 시간 (77일차 보고서가 읽는 칸) |
+
+### Header Auth (지금은 꺼 둠)
+
+본체 웹훅의 Header Auth(`X-Team-Key`)는 **당분간 꺼 둔다** (리드 결정, 2026-11-03). `tools/flow.py`가 시험 요청에 키를 붙여 주지만, `flow.py check`·`push`는 OpenAI(`openAiCourse0001`) 말고 다른 Credential이 붙은 워크플로우를 오류로 막아서 올릴 수가 없기 때문이다. 꺼져 있어도 `FLOW_WEBHOOK_KEY`를 넣고 시험해도 된다 (키는 무시된다).
+
+다시 켜려면 셋이 모두 필요하다:
+
+1. n8n에 Credential `ticketmoa-team-key`(Header Auth, 이름 `X-Team-Key`)를 **고정 id**로 만든다 (팀원마다 id가 같아야 JSON이 그대로 돈다).
+2. `tools/flow.py`가 그 id를 `check`에서 허용하게 한다 (`flow.COURSE_CREDENTIALS`에 id를 더한다).
+3. `ticketmoa-support`의 `Question webhook`에 `authentication: headerAuth`와 그 Credential을 다시 붙이고 `check` → `push` → `test`.
 
 ## 시연 순서 (발표)
 
