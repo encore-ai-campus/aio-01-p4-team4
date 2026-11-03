@@ -49,14 +49,15 @@ TM-09~12는 가산 기능이다. 필수 범위가 먼저 통과한 뒤 돌린다
 - WF-12: 우선순위는 `ticket.priority`
 - WF-08: LLM 호출 수는 `agents.llm_calls`
 
-## 시험 방법 (78 `flow.py`, `Last3Mon/78`에서)
+## 시험 방법 (저장소 뿌리에서 `tools/flow.py`)
 
 ```bash
-uv run tools/flow.py test <저장소>/cases/common.json --webhook ticketmoa-support --repeat 3
-uv run tools/flow.py test <저장소>/cases/team.json --repeat 3
-uv run tools/flow.py bench ticketmoa-support <저장소>/requests/wf01.json -n 10   # p50 · p95
+FLOW_WEBHOOK_KEY=<팀 키> uv run tools/flow.py test cases/common.json --webhook ticketmoa-support --repeat 3
+FLOW_WEBHOOK_KEY=<팀 키> uv run tools/flow.py test cases/team.json --repeat 3
+FLOW_WEBHOOK_KEY=<팀 키> uv run tools/flow.py bench ticketmoa-support requests/wf01.json -n 10   # p50 · p95
 ```
 
 - WF-10은 `before`의 `{"llm": "down"}`이 Credential `OpenAI (.env)`의 키를 깨뜨린다. 워크플로우가 다른 Credential을 쓰면 LLM이 안 꺼져 시험이 거짓 통과한다.
 - TM-09는 `박서준`을 60초 동안 막는다. 같은 사용자를 쓰는 TM-07이 앞에 있어야 하고, `after`에서 캐시를 비운다. 중복 요청 기록(WF-09)도 같이 지워지므로 공통 시나리오와 섞어 돌리지 않는다.
 - 보고서 JSON은 `runs/`에 날짜를 붙여 복사한다.
+- `tools/flow.py`는 78일차 `flow.py`를 부르면서 팀 웹훅에 `X-Team-Key`를 붙이는 포장이다. 78 원본으로 돌리면 Header Auth 때문에 모두 401이 난다.
