@@ -15,11 +15,18 @@
         "httpMethod": "POST",
         "path": "ticketmoa-handoff",
         "responseMode": "responseNode",
-        "options": {}
+        "options": {},
+        "authentication": "headerAuth"
       },
       "notes": "【역할】 내부 이관 요청을 받는다.\n【입력】 {request_id, user, summary, category, priority, alert, deadline_ms}.\n【처리】 팀 키가 있어야 호출할 수 있다. 없으면 누구나 티켓을 만들 수 있기 때문이다.\n【출력】 요청 항목 1개.",
       "notesInFlow": false,
-      "webhookId": "84b3972b-3ef6-7907-2d4b-ba7e4c98af13"
+      "webhookId": "84b3972b-3ef6-7907-2d4b-ba7e4c98af13",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaTeamKey1",
+          "name": "ticketmoa-team-key"
+        }
+      }
     },
     {
       "id": "1c3d4d63-80c7-31a3-5e51-07448bb8b233",
