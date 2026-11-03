@@ -27,7 +27,7 @@
 
 | 교시 | 할 일 | 담당 | 끝 표시 |
 | --- | --- | --- | --- |
-| 1 | `git pull`로 `Last3Mon/80` 키트 받기, 키트의 계약·`common.json`과 우리 초안 대조 | 모두 | 칸 이름 차이 목록 |
+| 1 | 80일차 키트의 계약·`common.json`과 우리 초안 대조 | 모두 | 칸 이름 차이 목록 |
 | 2 | **주제 제안서 강사 승인 (10:30)**, 팀 헌장, 비공개 팀 저장소 만들기·초대, `AGENTS.md`, `flow.py doctor` | A | `docs/TOPIC.md`, `docs/TEAM-CHARTER.md`, 모두 `ready` |
 | 3 | 초안을 저장소에 넣기 (`knowledge/`, `data/`, `cases/`), 데이터 API가 팀 데이터를 읽게 설정 | C·D | `GET /tickets/C-2002?requester=김하늘` 200, 남의 건 403 |
 | 4 | 워크플로우 설계서 1~3절 (업무 시나리오·전체 흐름·흐름도·역할 표) | A·B | 설계서 1~3절 |
