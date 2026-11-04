@@ -330,7 +330,7 @@
         -75
       ],
       "parameters": {
-        "jsCode": "function readHttp(j) {\n  if (j && typeof j.statusCode === \"number\") {\n    const body = j.body && typeof j.body === \"object\" ? j.body : {};\n    return { ok: j.statusCode >= 200 && j.statusCode < 300 && !body.error, status: j.statusCode, body, errorCode: \"\" };\n  }\n  const text = j && j.error ? (typeof j.error === \"string\" ? j.error : JSON.stringify(j.error)) : \"no_response\";\n  return { ok: false, status: null, body: {}, errorCode: text.slice(0, 300) };\n}\nconst st = $('티켓 판정').last().json;\nconst r = readHttp($json);\nconst list = r.ok && Array.isArray(r.body.tickets) ? r.body.tickets : [];\nconst row = list.find(t => t.key === st.request_id && t.ticket_id === st.ticket.id);\nconst unverified = !r.ok || !Array.isArray(r.body.tickets) || !row;\nconst foreign = !unverified && row.requester !== st.user;\nreturn [{ json: { ...st, foreign, unverified, stop: foreign || unverified, true_owner: row ? row.requester : st.user } }];"
+        "jsCode": "function readHttp(j) {\n  if (j && typeof j.statusCode === \"number\") {\n    const body = j.body && typeof j.body === \"object\" ? j.body : {};\n    return { ok: j.statusCode >= 200 && j.statusCode < 300 && !body.error, status: j.statusCode, body, errorCode: \"\" };\n  }\n  const text = j && j.error ? (typeof j.error === \"string\" ? j.error : JSON.stringify(j.error)) : \"no_response\";\n  return { ok: false, status: null, body: {}, errorCode: text.slice(0, 300) };\n}\nconst st = $('티켓 판정').last().json;\nconst r = readHttp($json);\nconst list = r.ok && Array.isArray(r.body.tickets) ? r.body.tickets : [];\nconst row = list.find(t => t.key === st.request_id && t.ticket_id === st.ticket.id);\nconst unverified = !r.ok || !Array.isArray(r.body.tickets) || !row;\nconst foreign = !unverified && row.requester !== st.user;\nreturn [{ json: { ...st, foreign, unverified, stop: foreign || unverified, true_owner: foreign ? row.requester : null } }];"
       },
       "notes": "【역할】 돌아온 티켓이 이 사용자의 것인지 판단한다.\n【입력】 중복 주인 조회 응답, 티켓 판정.\n【처리】 확인하지 못한 경우(unverified)와 남의 티켓(foreign)을 구분한다. 둘 다 번호를 내주지 않는다.\n【출력】 {foreign, unverified, stop, true_owner, ticket, ...}.",
       "notesInFlow": false
@@ -355,7 +355,7 @@
           "conditions": [
             {
               "id": "c1",
-              "leftValue": "={{ $json.stop }}",
+              "leftValue": "={{ $json.foreign }}",
               "rightValue": "",
               "operator": {
                 "type": "boolean",
@@ -368,7 +368,7 @@
         },
         "options": {}
       },
-      "notes": "【역할】 남의 티켓이거나 확인할 수 없으면 번호를 내주지 않는다.\n【입력】 stop.\n【출력】 참: 소유 기록 복구. 거짓: 긴급 건 판단.",
+      "notes": "【역할】 주인이 확인된 남의 티켓이면 캐시의 주인 기록을 실제 주인으로 되돌린다.\n【분기】 참: 소유 기록 복구 / 거짓: 확인 못 함? 으로.",
       "notesInFlow": false
     },
     {
@@ -806,6 +806,42 @@
       },
       "notes": "【역할】 이관 결과를 돌려준다.\n【입력】 이관 결과 조립.\n【출력】 HTTP 200 JSON. 티켓 실패도 200이다 (WF-04).",
       "notesInFlow": false
+    },
+    {
+      "id": "3e706fb5-6035-5062-9580-db541578314c",
+      "name": "확인 못 함?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3220,
+        85
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.unverified }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "notes": "【역할】 중복 티켓의 주인을 확인하지 못했으면 캐시를 건드리지 않고 번호 없이 끝낸다 (fail-closed).\n【분기】 참: 이관 결과 조립 / 거짓: 긴급 건?",
+      "notesInFlow": false
     }
   ],
   "connections": {
@@ -979,7 +1015,7 @@
         ],
         [
           {
-            "node": "긴급 건?",
+            "node": "확인 못 함?",
             "type": "main",
             "index": 0
           }
@@ -1247,6 +1283,24 @@
         [
           {
             "node": "이관 결과 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "확인 못 함?": {
+      "main": [
+        [
+          {
+            "node": "이관 결과 조립",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "긴급 건?",
             "type": "main",
             "index": 0
           }
