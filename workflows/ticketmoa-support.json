@@ -207,6 +207,8 @@
       "parameters": {
         "method": "POST",
         "url": "http://localhost:5678/webhook/ticketmoa-agents",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ request_id: $('Question webhook').first().json.body.request_id, user: $('Question webhook').first().json.body.user, question: $('Question webhook').first().json.body.question, attempt: $('Question webhook').first().json.body.attempt ?? 1, context: $('Question webhook').first().json.body.context ?? {}, registry: $json.registry }) }}",
@@ -214,14 +216,20 @@
           "timeout": 5000
         }
       },
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaTeamKey1",
+          "name": "ticketmoa-team-key"
+        }
+      }
     },
     {
       "name": "Plan route",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "parameters": {
-        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst ROUTES = {\n  AUTO: '자동 답변',\n  CLARIFY: '보완 질문',\n  HANDOFF: '담당자 이관',\n  FORBIDDEN: '권한 없음',\n  BLOCKED: '차단',\n};\n\nconst MAX_ATTEMPT = 3;           // 3회째 보완 질문 대신 이관\n\nconst CONFIDENCE_MIN = 0.7;      // 미만이면 보완 질문\n\nfunction parseAgentJson(raw, required, fallback) {\n  const fb = { ok: false, value: fallback || {} };\n  let obj = raw;\n  if (typeof raw === 'string') {\n    const s = raw.replace(/```(?:json)?/gi, '');\n    const start = s.indexOf('{');\n    const end = s.lastIndexOf('}');\n    if (start < 0 || end <= start) return fb;\n    try { obj = JSON.parse(s.slice(start, end + 1)); } catch (e) { return fb; }\n  }\n  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return fb;\n  for (const k of required || []) if (!(k in obj)) return fb;\n  return { ok: true, value: obj };\n}\n\nfunction decideRoute(cls, req) {\n  const c = cls || {};\n  const attempt = (req && req.attempt) || 1;\n  const intents = c.intents || [];\n  if (intents.includes('human_request')) return { next: 'handoff', reason: 'customer_asked_human' };\n  if (c.sentiment === 'angry') return { next: 'handoff', reason: 'strong_negative_sentiment' };\n  const unsure = !intents.length || (c.confidence || 0) < CONFIDENCE_MIN || (c.missing || []).length > 0;\n  if (unsure) {\n    if (attempt >= MAX_ATTEMPT) return { next: 'handoff', reason: 'clarify_limit_reached' };\n    return { next: 'clarify', reason: 'low_confidence_or_missing' };\n  }\n  return { next: 'handler', reason: '' };\n}\n// ↑ lib/common.js 복사 끝\n\nfunction errText(e) {\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return String(e.message || e.description || JSON.stringify(e)).slice(0, 200);\n}\n// ticketmoa-agents 분류 결과로 갈 곳을 정한다 (규칙만, LLM 없음). 못 읽으면 이관 (fail-closed).\nconst body = $('Question webhook').first().json.body || {};\nconst registry = $('Load registry').first().json.registry;\nconst byId = Object.fromEntries(registry.intents.map((i) => [i.intent_id, i]));\nconst q = String(body.question || '');\nconst raw = $json || {};\nconst agentOut = typeof raw.output === 'string' && !('intents' in raw) ? raw.output : raw;\nconst parsed = raw.error ? { ok: false, value: {} } : parseAgentJson(agentOut, ['intents', 'confidence'], {});\nconst cls = parsed.value;\nconst ent = cls.entities && typeof cls.entities === 'object' ? cls.entities : {};\nconst pick = (re) => ((q.match(re) || [])[0] || '').toUpperCase() || null;\nconst slots = {\n  record_id: ent.record_id || ent.ticket_id || pick(/\\bC-\\d{4}\\b/i),\n  booking_id: ent.booking_id || pick(/\\bT\\d{8}-\\d{4}\\b/i),\n};\nconst intents = (Array.isArray(cls.intents) ? cls.intents : []).map(String).filter((i) => byId[i]);\nconst urgency = cls.urgency === 'high' ? 'high' : 'normal';\nconst base = {\n  intents, slots, urgency, priority: urgency === 'high' ? 'high' : 'normal',\n  category: intents[0] || 'unknown',\n  confidence: typeof cls.confidence === 'number' ? cls.confidence : null,\n  sentiment: cls.sentiment || '',\n  used: ['ticketmoa-agents'],\n  steps: { agents_ms: Date.now() - $('Load registry').first().json.t0 },\n  t_routed: Date.now(),\n  llm_calls: parsed.ok ? (typeof raw.llm_calls === 'number' ? raw.llm_calls : 1) : 0,\n};\nif (!parsed.ok) {\n  return [{ json: { ...base, next: 'handoff', reason: raw.error ? 'agents_failed' : 'agents_unreadable', agents_error: errText(raw.error), missing: [], escalate: false } }];\n}\n// 레지스트리 required_slots가 비어 있으면 missing에 더한다 (환불은 예매 번호도 인정)\nconst missing = (Array.isArray(cls.missing) ? cls.missing : []).map(String);\nfor (const id of intents) for (const s of byId[id].required_slots || []) {\n  const have = s === 'record_id' ? slots.record_id || (id === 'refund_request' && slots.booking_id) : slots[s];\n  if (!have && !missing.includes(s)) missing.push(s);\n}\nconst d = decideRoute({ ...cls, intents, missing }, { attempt: Number(body.attempt) || 1 });\nlet next = d.next;\nlet reason = d.reason;\nconst hook = (id) => String(byId[id].handler || '').replace('/webhook/', '');\nconst hooks = intents.map(hook);\nif (next === 'handler') {\n  if (intents.some((i) => byId[i].automation === 'handoff')) { next = 'handoff'; reason = 'registry_handoff'; }\n  else if (hooks.includes('ticketmoa-tech') && intents.includes('booking_lookup')) next = 'tech_lookup';\n  else next = { 'ticketmoa-tech': 'tech', 'ticketmoa-refund': 'refund', 'ticketmoa-payment': 'payment' }[hooks[0]] || 'handoff';\n}\n// 레지스트리 escalate_if: 처리는 하되 끝나면 이관 (티켓 생성)\nconst escalate = intents.some((i) => (byId[i].escalate_if || []).some((r) =>\n  r === 'always' || (r === 'urgency=high' && urgency === 'high') ||\n  (r === 'sentiment=angry' && cls.sentiment === 'angry') || (r === 'appeal_requested' && ent.appeal_requested === true)));\nreturn [{ json: { ...base, next, reason, missing, escalate } }];\n"
+        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst ROUTES = {\n  AUTO: '자동 답변',\n  CLARIFY: '보완 질문',\n  HANDOFF: '담당자 이관',\n  FORBIDDEN: '권한 없음',\n  BLOCKED: '차단',\n};\n\nconst MAX_ATTEMPT = 3;           // 3회째 보완 질문 대신 이관\n\nconst CONFIDENCE_MIN = 0.7;      // 미만이면 보완 질문\n\nfunction parseAgentJson(raw, required, fallback) {\n  const fb = { ok: false, value: fallback || {} };\n  let obj = raw;\n  if (typeof raw === 'string') {\n    const s = raw.replace(/```(?:json)?/gi, '');\n    const start = s.indexOf('{');\n    const end = s.lastIndexOf('}');\n    if (start < 0 || end <= start) return fb;\n    try { obj = JSON.parse(s.slice(start, end + 1)); } catch (e) { return fb; }\n  }\n  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return fb;\n  for (const k of required || []) if (!(k in obj)) return fb;\n  return { ok: true, value: obj };\n}\n\nfunction decideRoute(cls, req) {\n  const c = cls || {};\n  const attempt = (req && req.attempt) || 1;\n  const intents = c.intents || [];\n  if (intents.includes('human_request')) return { next: 'handoff', reason: 'customer_asked_human' };\n  if (c.sentiment === 'angry') return { next: 'handoff', reason: 'strong_negative_sentiment' };\n  const unsure = !intents.length || (c.confidence || 0) < CONFIDENCE_MIN || (c.missing || []).length > 0;\n  if (unsure) {\n    if (attempt >= MAX_ATTEMPT) return { next: 'handoff', reason: 'clarify_limit_reached' };\n    return { next: 'clarify', reason: 'low_confidence_or_missing' };\n  }\n  return { next: 'handler', reason: '' };\n}\n// ↑ lib/common.js 복사 끝\n\nfunction errText(e) {\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return String(e.message || e.description || JSON.stringify(e)).slice(0, 200);\n}\n// ticketmoa-agents 분류 결과로 갈 곳을 정한다 (규칙만, LLM 없음). 못 읽으면 이관 (fail-closed).\nconst body = $('Question webhook').first().json.body || {};\nconst registry = $('Load registry').first().json.registry;\nconst byId = Object.fromEntries(registry.intents.map((i) => [i.intent_id, i]));\nconst q = String(body.question || '');\nconst raw = $json || {};\nconst agentOut = typeof raw.output === 'string' && !('intents' in raw) ? raw.output : raw;\nconst parsed = raw.error ? { ok: false, value: {} } : parseAgentJson(agentOut, ['intents', 'confidence'], {});\nconst cls = parsed.value;\nconst ent = cls.entities && typeof cls.entities === 'object' ? cls.entities : {};\nconst pick = (re) => ((q.match(re) || [])[0] || '').toUpperCase() || null;\nconst slots = {\n  record_id: ent.record_id || ent.ticket_id || pick(/\\bC-\\d{4}\\b/i),\n  booking_id: ent.booking_id || pick(/\\bT\\d{8}-\\d{4}\\b/i),\n};\nconst intents = (Array.isArray(cls.intents) ? cls.intents : []).map(String).filter((i) => byId[i]);\nconst urgency = cls.urgency === 'high' ? 'high' : 'normal';\nconst base = {\n  intents, slots, urgency, priority: urgency === 'high' ? 'high' : 'normal',\n  category: intents[0] || 'unknown',\n  confidence: typeof cls.confidence === 'number' ? cls.confidence : null,\n  sentiment: cls.sentiment || '',\n  used: ['ticketmoa-agents'],\n  steps: { agents_ms: Date.now() - $('Load registry').first().json.t0 },\n  t_routed: Date.now(),\n  llm_calls: parsed.ok ? (typeof raw.llm_calls === 'number' ? raw.llm_calls : 1) : 0,\n};\n// 환불 2차 확인은 분류 없이 ticketmoa-refund로 보낸다 (Refund confirm?에서 바로 온다). 확정 여부는 refund 규칙이 판단한다.\nconst ctx = body.context && typeof body.context === 'object' ? body.context : {};\nif (ctx.pending_action === 'refund_request' && typeof ctx.confirm === 'boolean') {\n  const confirmSlots = { ...slots, booking_id: String(ctx.booking_id || '').toUpperCase() || slots.booking_id };\n  return [{ json: { ...base, intents: ['refund_request'], slots: confirmSlots, category: 'refund_request', used: [], llm_calls: 0, next: 'refund', reason: '', missing: [], escalate: false } }];\n}\nif (!parsed.ok) {\n  return [{ json: { ...base, next: 'handoff', reason: raw.error ? 'agents_failed' : 'agents_unreadable', agents_error: errText(raw.error), missing: [], escalate: false } }];\n}\n// 레지스트리 required_slots가 비어 있으면 missing에 더한다 (환불은 예매 번호도 인정)\nconst missing = (Array.isArray(cls.missing) ? cls.missing : []).map(String);\nfor (const id of intents) for (const s of byId[id].required_slots || []) {\n  const have = s === 'record_id' ? slots.record_id || (id === 'refund_request' && slots.booking_id) : slots[s];\n  if (!have && !missing.includes(s)) missing.push(s);\n}\n// 뜻은 분명한데 등록 업무가 없는 문의는 되묻지 않는다: 검색과 tech로 보내고, 근거가 없으면 tech가 이관한다 (WF-03)\nconst unmatchedClear = intents.length === 0 && cls.clarity === 'clear' && typeof cls.confidence === 'number' && cls.confidence >= CONFIDENCE_MIN;\nconst d = decideRoute({ ...cls, intents: unmatchedClear ? ['__unmatched'] : intents, missing }, { attempt: Number(body.attempt) || 1 });\nlet next = d.next;\nlet reason = d.reason;\nconst hook = (id) => String(byId[id].handler || '').replace('/webhook/', '');\nconst hooks = intents.map(hook);\nif (next === 'handler') {\n  if (intents.some((i) => byId[i].automation === 'handoff')) { next = 'handoff'; reason = 'registry_handoff'; }\n  else if (hooks.includes('ticketmoa-tech') && intents.includes('booking_lookup')) next = 'tech_lookup';\n  else if (unmatchedClear) next = 'tech';\n  else next = { 'ticketmoa-tech': 'tech', 'ticketmoa-refund': 'refund', 'ticketmoa-payment': 'payment' }[hooks[0]] || 'handoff';\n}\n// 당일 취소는 규정상 자동 처리하지 않는다: 환불 규정을 찾아 근거와 함께 이관한다 (TM-06)\nconst signals = cls.signals && typeof cls.signals === 'object' ? cls.signals : {};\nif (intents.includes('refund_request') && signals.show_day === true && next !== 'handoff') { next = 'show_day'; reason = 'show_day_cancel'; }\n// 레지스트리 escalate_if: 처리는 하되 끝나면 이관 (티켓 생성)\nconst escalate = intents.some((i) => (byId[i].escalate_if || []).some((r) =>\n  r === 'always' || (r === 'urgency=high' && urgency === 'high') ||\n  (r === 'sentiment=angry' && cls.sentiment === 'angry') || (r === 'appeal_requested' && ent.appeal_requested === true)));\nreturn [{ json: { ...base, category: next === 'show_day' ? 'refund_exception' : base.category, next, reason, missing, escalate } }];\n"
       },
       "position": [
         1760,
@@ -382,6 +390,30 @@
               },
               "renameOutput": true,
               "outputKey": "payment"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "r-show_day",
+                    "leftValue": "={{ $json.next }}",
+                    "rightValue": "show_day",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "show_day"
             }
           ]
         },
@@ -463,6 +495,8 @@
       "parameters": {
         "method": "POST",
         "url": "http://localhost:5678/webhook/ticketmoa-payment",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ request_id: $('Question webhook').first().json.body.request_id, user: $('Question webhook').first().json.body.user, record_id: $('Plan route').first().json.slots.record_id }) }}",
@@ -470,7 +504,13 @@
           "timeout": 2500
         }
       },
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaTeamKey1",
+          "name": "ticketmoa-team-key"
+        }
+      }
     },
     {
       "name": "Search done ∥",
@@ -563,14 +603,22 @@
       "parameters": {
         "method": "POST",
         "url": "http://localhost:5678/webhook/ticketmoa-refund",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ request_id: $('Question webhook').first().json.body.request_id, user: $('Question webhook').first().json.body.user, booking_id: $('Plan route').first().json.slots.booking_id || $('Plan route').first().json.slots.record_id, context: $('Question webhook').first().json.body.context ?? {} }) }}",
+        "jsonBody": "={{ JSON.stringify({ request_id: $('Question webhook').first().json.body.request_id, user: $('Question webhook').first().json.body.user, question: $('Question webhook').first().json.body.question, access_level: ($('Check input').first().json.user || {}).access_level || 'all', record_id: $('Plan route').first().json.slots.record_id || '', booking_id: $('Plan route').first().json.slots.booking_id || '', context: $('Question webhook').first().json.body.context ?? {}, deadline_ms: 4800 }) }}",
         "options": {
           "timeout": 5000
         }
       },
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaTeamKey1",
+          "name": "ticketmoa-team-key"
+        }
+      }
     },
     {
       "name": "Collect refund",
@@ -595,6 +643,8 @@
       "parameters": {
         "method": "POST",
         "url": "http://localhost:5678/webhook/ticketmoa-payment",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ request_id: $('Question webhook').first().json.body.request_id, user: $('Question webhook').first().json.body.user, record_id: $('Plan route').first().json.slots.record_id }) }}",
@@ -602,7 +652,13 @@
           "timeout": 2500
         }
       },
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaTeamKey1",
+          "name": "ticketmoa-team-key"
+        }
+      }
     },
     {
       "name": "Collect payment",
@@ -654,7 +710,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "parameters": {
-        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nfunction maskPII(text) {\n  let masked = 0;\n  let out = String(text == null ? '' : text);\n  out = out.replace(/\\b(01[016789])[-.\\s]?(\\d{3,4})[-.\\s]?(\\d{4})\\b/g, (_, a, _b, c) => { masked++; return `${a}-****-${c}`; });\n  out = out.replace(/\\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b/g, (_, first, domain) => { masked++; return `${first}***@${domain}`; });\n  return { text: out, masked };\n}\n// ↑ lib/common.js 복사 끝\n\n// ticketmoa-handoff에 넘길 3줄 요약 (연락처는 가린다)\nconst d = $json;\nconst plan = $('Plan route').first().json;\nconst body = $('Question webhook').first().json.body || {};\nconst q = maskPII(String(body.question || '')).text.slice(0, 200);\nconst summary = [\n  `요청: ${q}`,\n  `분류: ${plan.intents.join(', ') || '미분류'} (확신도 ${plan.confidence ?? '-'}, 감정 ${plan.sentiment || '-'}, 긴급도 ${plan.urgency})`,\n  `처리: ${d.route} · 이유 ${d.reason || '-'} · 문의 번호 ${plan.slots.record_id || '-'}`,\n].join('\\n');\nreturn [{ json: { ...d, summary, category: plan.category, priority: plan.priority, t_handoff: Date.now() } }];\n"
+        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nfunction maskPII(text) {\n  let masked = 0;\n  let out = String(text == null ? '' : text);\n  out = out.replace(/\\b(01[016789])[-.\\s]?(\\d{3,4})[-.\\s]?(\\d{4})\\b/g, (_, a, _b, c) => { masked++; return `${a}-****-${c}`; });\n  out = out.replace(/\\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b/g, (_, first, domain) => { masked++; return `${first}***@${domain}`; });\n  return { text: out, masked };\n}\n// ↑ lib/common.js 복사 끝\n\n// ticketmoa-handoff에 넘길 3줄 요약 (연락처는 가린다)\nconst d = $json;\nconst plan = $('Plan route').first().json;\nconst body = $('Question webhook').first().json.body || {};\nconst q = maskPII(String(body.question || '')).text.slice(0, 200);\nconst summary = [\n  `요청: ${q}`,\n  `분류: ${plan.intents.join(', ') || '미분류'} (확신도 ${plan.confidence ?? '-'}, 감정 ${plan.sentiment || '-'}, 긴급도 ${plan.urgency})`,\n  `처리: ${d.route} · 이유 ${d.reason || '-'} · 문의 번호 ${plan.slots.record_id || '-'}`,\n].join('\\n');\n// 긴급 건은 ticketmoa-handoff가 alert 값을 받아야 현장 알림을 보낸다 (WF-12). tech가 만든 알림이 있으면 그것을 쓴다.\nconst techAlert = (d.agents_extra || {}).alert;\nconst alert = techAlert && typeof techAlert === 'object' ? techAlert\n  : (plan.urgency === 'high' ? { channel: 'venue-staff', priority: 'high', record_id: plan.slots.record_id || null, message: '공연 직전 입장 문제 문의' } : null);\nreturn [{ json: { ...d, summary, category: plan.category, priority: plan.priority, alert, t_handoff: Date.now() } }];\n"
       },
       "position": [
         3740,
@@ -672,21 +728,29 @@
       "parameters": {
         "method": "POST",
         "url": "http://localhost:5678/webhook/ticketmoa-handoff",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ request_id: $('Question webhook').first().json.body.request_id, user: $('Question webhook').first().json.body.user, summary: $json.summary, category: $json.category, priority: $json.priority, deadline_ms: Math.max(500, 5500 - (Date.now() - $('Load registry').first().json.t0)) }) }}",
+        "jsonBody": "={{ JSON.stringify({ request_id: $('Question webhook').first().json.body.request_id, user: $('Question webhook').first().json.body.user, summary: $json.summary, category: $json.category, priority: $json.priority, alert: $json.alert, deadline_ms: Math.max(500, 5500 - (Date.now() - $('Load registry').first().json.t0)) }) }}",
         "options": {
           "timeout": "={{ Math.max(500, 5500 - (Date.now() - $('Load registry').first().json.t0)) }}"
         }
       },
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaTeamKey1",
+          "name": "ticketmoa-team-key"
+        }
+      }
     },
     {
       "name": "Collect ticket",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "parameters": {
-        "jsCode": "function errText(e) {\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return String(e.message || e.description || JSON.stringify(e)).slice(0, 200);\n}\nconst d = $('Handoff input').first().json;\nconst h = $json || {};\nlet ticket = null;\nif (!h.error && h.ticket && typeof h.ticket === 'object') {\n  ticket = { ...h.ticket, priority: h.ticket.priority ?? d.priority, duplicate: Boolean(h.duplicate) };\n}\nconst id = ticket && (ticket.id || ticket.ticket_id || ticket.key);\nconst tail = ticket\n  ? `상담원 연결을 접수했습니다${id ? ` (접수 번호 ${id})` : ''}.`\n  : '상담원 연결 요청을 받아 두었습니다. 접수 번호는 확인되는 대로 안내드립니다.';\nconst extra = { ...(d.agents_extra || {}), handoff: { dlq: h.dlq ?? null, alert: h.alert ?? null } };\nif (h.error) extra.handoff.error = errText(h.error);\nconst { summary, category, priority, t_handoff, ...rest } = d;\nconst steps = { ...(d.steps || {}), handoff_ms: Date.now() - t_handoff };\nreturn [{ json: { ...rest, ticket, answer: `${d.answer}\\n\\n${tail}`, used: [...d.used, 'ticketmoa-handoff'], agents_extra: extra, steps } }];\n"
+        "jsCode": "function errText(e) {\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return String(e.message || e.description || JSON.stringify(e)).slice(0, 200);\n}\nconst d = $('Handoff input').first().json;\nconst h = $json || {};\nlet ticket = null;\nif (!h.error && h.ticket && typeof h.ticket === 'object') {\n  ticket = { ...h.ticket, priority: h.ticket.priority ?? d.priority, duplicate: Boolean(h.duplicate) };\n}\nconst id = ticket && (ticket.id || ticket.ticket_id || ticket.key);\nconst tail = ticket\n  ? `상담원 연결을 접수했습니다${id ? ` (접수 번호 ${id})` : ''}.`\n  : '상담원 연결 요청을 받아 두었습니다. 접수 번호는 확인되는 대로 안내드립니다.';\nconst extra = { ...(d.agents_extra || {}), handoff: { dlq: h.dlq ?? null, alert: h.alert ?? null } };\nif (h.error) extra.handoff.error = errText(h.error);\nconst { summary, category, priority, alert, t_handoff, ...rest } = d;\nconst steps = { ...(d.steps || {}), handoff_ms: Date.now() - t_handoff };\nreturn [{ json: { ...rest, ticket, answer: `${d.answer}\\n\\n${tail}`, used: [...d.used, 'ticketmoa-handoff'], agents_extra: extra, steps } }];\n"
       },
       "position": [
         4180,
@@ -710,7 +774,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "parameters": {
-        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nfunction buildLog(req, res, extra) {\n  const e = extra || {};\n  return {\n    request_id: (req && req.request_id) || '',\n    channel: (req && req.channel) || '',\n    attempt: (req && req.attempt) || 1,\n    route: res.route,\n    intents: e.intents || [],\n    sources: (res.sources || []).map(s => `${s.doc}#${s.section}`),\n    top_scores: e.top_scores || (res.sources || []).map(s => s.score),\n    ticket: res.ticket ? (res.ticket.id || res.ticket.key || true) : null,\n    retries: e.retries || 0,\n    blocked_by: res.security.blocked_by,\n    masked: res.security.masked,\n    timings: res.timings,\n    started_at: e.started_at || '',\n    finished_at: new Date().toISOString(),\n  };\n}\n// ↑ lib/common.js 복사 끝\n\n// 모든 응답이 여기를 지난다: 응답 본문은 그대로 두고, /logs에 남길 한 줄을 만든다.\n// 남기는 것: request_id, route, intents, 하위 웹훅별 시간(steps), llm_calls, ticket 여부, blocked_by (+ 77 보고서가 읽는 status, duration_ms, started_at, tag)\n// 남기지 않는 것: 질문 원문, 답변, 사용자 이름, 연락처\nconst tryJson = (name) => { try { return $(name).first().json; } catch (e) { return null; } };\nconst body = (tryJson('Question webhook') || {}).body || {};\nconst plan = tryJson('Plan route');\nconst started = (tryJson('Check input') || {}).started_at ?? null;\nconst now = Date.now();\nconst invalid = $json.valid === false;\nconst response = invalid ? $json.error : $json;\nconst res = invalid\n  ? { route: null, sources: [], ticket: null, security: { blocked_by: '', masked: 0 }, timings: {} }\n  : response;\nconst { total_ms, ...steps } = res.timings || {};\nconst agents = res.agents || {};\nconst errMsg = [agents.error, agents.search_error, (agents.handoff || {}).error].find(Boolean) || null;\nconst kst = (t) => new Date(t + 9 * 3600000).toISOString().slice(0, 19); // 데이터 API와 같은 한국 시간 형식\nconst log = {\n  workflow: 'ticketmoa-support',\n  execution_id: Number($execution.id),\n  ...buildLog(body, res, { intents: plan ? plan.intents : [], started_at: kst(started ?? now) }),\n  status: invalid ? 'rejected' : (/_failed$/.test(String(res.reason || '')) || errMsg ? 'error' : 'success'),\n  error_message: errMsg ? String(errMsg).slice(0, 120) : null,\n  codes: invalid ? $json.codes : undefined,\n  duration_ms: started ? now - started : null,\n  steps,\n  llm_calls: agents.llm_calls ?? 0,\n  has_ticket: Boolean(res.ticket),\n  tag: typeof body.tag === 'string' ? body.tag : '',\n};\nreturn [{ json: { log, response, status_code: invalid ? 400 : 200 } }];\n"
+        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst CHANNELS = ['web', 'app', 'phone', 'kiosk', 'email', 'other'];\n\n/** 승인 목록에 없는 값은 가리지 않고 통째로 other로 바꾼다. 가린 것이 아니므로 security.masked에 세지 않는다. */\nfunction normalizeChannel(channel) {\n  return typeof channel === 'string' && CHANNELS.includes(channel) ? channel : 'other';\n}\n\n/**\n * POST /logs에 보낼 기록. 질문 원문·답변·연락처는 넣지 않는다.\n * @param {object} req   요청 본문\n * @param {object} res   buildResponse 결과\n * @param {object} [extra]  {intents, retries, top_scores, started_at}\n */\nfunction buildLog(req, res, extra) {\n  const e = extra || {};\n  return {\n    request_id: (req && req.request_id) || '',\n    channel: normalizeChannel(req && req.channel),\n    attempt: (req && req.attempt) || 1,\n    route: res.route,\n    intents: e.intents || [],\n    sources: (res.sources || []).map(s => `${s.doc}#${s.section}`),\n    top_scores: e.top_scores || (res.sources || []).map(s => s.score),\n    ticket: res.ticket ? (res.ticket.id || res.ticket.key || true) : null,\n    retries: e.retries || 0,\n    blocked_by: res.security.blocked_by,\n    masked: res.security.masked,\n    timings: res.timings,\n    started_at: e.started_at || '',\n    finished_at: new Date().toISOString(),\n  };\n}\n// ↑ lib/common.js 복사 끝\n\n// 모든 응답이 여기를 지난다: 응답 본문은 그대로 두고, /logs에 남길 한 줄을 만든다.\n// 남기는 것: request_id, route, intents, 하위 웹훅별 시간(steps), llm_calls, ticket 여부, blocked_by (+ 77 보고서가 읽는 status, duration_ms, started_at, tag)\n// 남기지 않는 것: 질문 원문, 답변, 사용자 이름, 연락처\nconst tryJson = (name) => { try { return $(name).first().json; } catch (e) { return null; } };\nconst body = (tryJson('Question webhook') || {}).body || {};\nconst plan = tryJson('Plan route');\nconst started = (tryJson('Check input') || {}).started_at ?? null;\nconst now = Date.now();\nconst invalid = $json.valid === false;\nconst response = invalid ? $json.error : $json;\nconst res = invalid\n  ? { route: null, sources: [], ticket: null, security: { blocked_by: '', masked: 0 }, timings: {} }\n  : response;\nconst { total_ms, ...steps } = res.timings || {};\nconst agents = res.agents || {};\nconst errMsg = [agents.error, agents.search_error, (agents.handoff || {}).error].find(Boolean) || null;\nconst kst = (t) => new Date(t + 9 * 3600000).toISOString().slice(0, 19); // 데이터 API와 같은 한국 시간 형식\nconst log = {\n  workflow: 'ticketmoa-support',\n  execution_id: Number($execution.id),\n  ...buildLog(body, res, { intents: plan ? plan.intents : [], started_at: kst(started ?? now) }),\n  status: invalid ? 'rejected' : (/_failed$/.test(String(res.reason || '')) || errMsg ? 'error' : 'success'),\n  error_message: errMsg ? String(errMsg).slice(0, 120) : null,\n  codes: invalid ? $json.codes : undefined,\n  duration_ms: started ? now - started : null,\n  steps,\n  llm_calls: agents.llm_calls ?? 0,\n  has_ticket: Boolean(res.ticket),\n  tag: typeof body.tag === 'string' ? body.tag : '',\n};\nreturn [{ json: { log, response, status_code: invalid ? 400 : 200 } }];\n"
       },
       "position": [
         4620,
@@ -775,6 +839,79 @@
         5060,
         0
       ]
+    },
+    {
+      "name": "Refund confirm?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ ($('Question webhook').first().json.body.context || {}).pending_action === 'refund_request' && typeof ($('Question webhook').first().json.body.context || {}).confirm === 'boolean' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Call search (show day)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        520
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/ticketmoa-search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: '관람 당일 취소 환불 규정 ' + $('Question webhook').first().json.body.question, access_level: ($('Check input').first().json.user || {}).access_level || 'all', scope: ['refund-policy'], top_k: 2 }) }}",
+        "options": {
+          "timeout": 2000
+        }
+      },
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaTeamKey1",
+          "name": "ticketmoa-team-key"
+        }
+      }
+    },
+    {
+      "name": "Show day answer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        520
+      ],
+      "parameters": {
+        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst ROUTES = {\n  AUTO: '자동 답변',\n  CLARIFY: '보완 질문',\n  HANDOFF: '담당자 이관',\n  FORBIDDEN: '권한 없음',\n  BLOCKED: '차단',\n};\n// ↑ lib/common.js 복사 끝\n\n// 검색이 실패해도 이관은 그대로 간다 (근거만 빠진다)\nconst plan = $('Plan route').first().json;\nconst r = $json || {};\nconst hits = !r.error && Array.isArray(r.hits) ? r.hits : [];\nreturn [{ json: { route: ROUTES.HANDOFF, answer: '관람 당일 취소는 규정상 자동으로 처리하지 않아 상담원에게 넘깁니다.', sources: hits, needs_handoff: true,\n  reason: 'show_day_cancel', masked: 0, used: [...plan.used, 'ticketmoa-search'], llm_calls: plan.llm_calls,\n  agents_extra: r.error ? { search_error: String(r.error.message || r.error).slice(0, 200) } : {},\n  steps: { ...plan.steps, search_ms: Date.now() - plan.t_routed } } }];\n"
+      }
     }
   ],
   "connections": {
@@ -891,7 +1028,7 @@
       "main": [
         [
           {
-            "node": "Call agents",
+            "node": "Refund confirm?",
             "type": "main",
             "index": 0
           }
@@ -972,6 +1109,13 @@
         [
           {
             "node": "Call payment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call search (show day)",
             "type": "main",
             "index": 0
           }
@@ -1295,6 +1439,53 @@
         [
           {
             "node": "Send result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refund confirm?": {
+      "main": [
+        [
+          {
+            "node": "Plan route",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call agents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call search (show day)": {
+      "main": [
+        [
+          {
+            "node": "Show day answer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Show day answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Show day answer": {
+      "main": [
+        [
+          {
+            "node": "Needs handoff?",
             "type": "main",
             "index": 0
           }
