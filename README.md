@@ -5,7 +5,7 @@
 - 팀: 티켓모아 · 최두나(리드·통합) · 최강현(오케스트레이션) · 정예진(RAG) · 심환석(연동·안정성) · 김인혜(시험·품질)
 - 기간: 2026-11-05 ~ 2026-11-09 (제출 11/09 14:50, `main` 마지막 커밋)
 - 스택: n8n 2.42.6, OpenAI gpt-4.1-mini, text-embedding-3-large, In-Memory Vector Store, 연습용 데이터 API
-- 입구: `POST /webhook/ticketmoa-support` (Header `X-Team-Key`)
+- 입구: `POST /webhook/ticketmoa-support` (Header `X-Team-Key` → [Header Auth](#header-auth-팀-키))
 
 ## 디렉터리
 
@@ -100,9 +100,48 @@ GitHub에서 `main`으로 PR을 열면 리드가 검토하고 병합한다. 병�
 
 ```bash
 uv run tools/flow.py push workflows/*.json
-FLOW_WEBHOOK_KEY=<팀 키> uv run tools/flow.py test cases/common.json --webhook ticketmoa-support -v
-FLOW_WEBHOOK_KEY=<팀 키> uv run tools/flow.py test cases/team.json -v
+uv run --env-file .env tools/flow.py test cases/common.json --webhook ticketmoa-support -v
+uv run --env-file .env tools/flow.py test cases/team.json -v
 ```
+
+- **push 뒤 10초쯤 기다렸다가 시험한다.** `push`는 n8n을 다시 켜는데, 직후 몇 초 동안은 이전 버전이 응답해서 결과가 틀리게 나온다.
+- **하위 웹훅이 없거나 멈추면 본체는 `담당자 이관`으로 답한다** (fail-closed. 하위 웹훅 timeout 5초, 예매 조회는 2.5초, 이관은 남은 시간 예산 `5.5초 - 쓴 시간`으로 끊고 같은 값을 `deadline_ms`로 넘긴다). 그래서 내 하위 웹훅을 아직 올리지 않았어도 본체 시험은 500 없이 돈다.
+- 시험 도중 바뀐 장애 스위치·OpenAI 키는 시험이 끝나면 되돌아간다. 중간에 멈췄으면 `uv run tools/flow.py fault all ok`, `uv run tools/flow.py llm up`.
+
+### 실행 기록 보기
+
+본체는 응답 직전에 데이터 API `POST /logs`로 한 줄을 남긴다 (기록이 실패해도 응답은 그대로 나간다). 질문 원문·답변·사용자 이름·연락처는 남기지 않는다.
+
+```bash
+curl -s 'http://localhost:8800/logs?source=live'     # 오늘 남은 기록
+curl -s -X POST http://localhost:8800/logs-reset     # 시험 전에 비우기
+```
+
+| 칸 | 내용 |
+| --- | --- |
+| `request_id`, `route`, `intents` | 요청 번호, 최종 경로, 분류 결과 |
+| `steps` | 하위 웹훅별 걸린 시간 ms (`agents_ms`, `search_ms`, `payment_ms`, `tech_ms`, `refund_ms`, `handoff_ms`) |
+| `llm_calls`, `has_ticket`, `ticket` | LLM 호출 수, 티켓 여부, 티켓 번호 |
+| `blocked_by`, `masked` | 차단한 곳(`rule`), 가린 연락처 수 |
+| `status`, `duration_ms`, `started_at` | `success` · `error`(하위 웹훅 실패로 이관) · `rejected`(400), 전체 시간, 한국 시간 (77일차 보고서가 읽는 칸) |
+
+### Header Auth (팀 키)
+
+본체 웹훅은 Header Auth(`X-Team-Key`)로 막혀 있다. **키 없이 부르거나 틀린 키로 부르면 403**(`Authorization data is wrong!`)이 맞다 (n8n Header Auth는 401이 아니라 403을 돌려준다). 팀 키는 `openssl rand -hex 16`처럼 영문·숫자로 만든다 (한글이 섞이면 헤더로 보낼 수 없어 맞는 키도 403이 된다). 키 값은 저장소·문서·채팅에 쓰지 않는다. `cp .env.example .env && chmod 600 .env`로 만든 `.env`의 `TM_TEAM_KEY`에만 넣는다 (`.env`는 git에 올라가지 않는다). 시험(`tools/flow.py`)과 Credential 등록(`tools/register-team-key.sh`)이 모두 이 한 이름을 읽는다.
+
+1. 최신 `main`을 받는다: `git pull origin main` (`tools/register-team-key.sh`, 팀 키 id를 허용하는 `tools/flow.py`가 들어 있다).
+2. 각자 노트북(n8n이 있는 곳)에서 한 번 실행해 팀 키 Credential을 고정 id `ticketmoaTeamKey1`로 넣는다:
+   ```bash
+   set -a; . ./.env; set +a; bash tools/register-team-key.sh
+   ```
+3. 확인:
+   ```bash
+   uv run tools/flow.py check workflows/ticketmoa-support.json
+   uv run tools/flow.py push workflows/ticketmoa-support.json
+   uv run --env-file .env tools/flow.py test cases/common.json --webhook ticketmoa-support
+   ```
+
+`Question webhook` 노드는 `"authentication": "headerAuth"`와 `"credentials": {"httpHeaderAuth": {"id": "ticketmoaTeamKey1", "name": "ticketmoa-team-key"}}`를 쓴다. 다른 id로 Credential을 새로 만들면 다른 팀원 n8n에서 JSON이 돌지 않는다.
 
 ## 시연 순서 (발표)
 
