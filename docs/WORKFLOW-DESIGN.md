@@ -218,7 +218,7 @@ n8n 안에서 되도는 루프는 만들지 않는다. 보완 질문은 요청 �
 - [x] `LLM 필요?`에 `attempt < 3` 조건 추가 (작업 지시서 B-2, 결함 F-003) · 2026-11-04, 노드 코드 실행으로 확인, n8n 실행은 서버 반영 뒤
 - [ ] 서버 반영 뒤 n8n 실행 화면에서 분류·검증 입출력 예시 복사 (개인정보 가림)
 - [ ] tflow로 흐름도와 실제 연결 비교
-- [ ] 하위 웹훅 표(IMPLEMENTATION-PLAN)에 `ticketmoa-agents-verify` 행 추가 (A 승인)
+- [x] 하위 웹훅 표(IMPLEMENTATION-PLAN)에 `ticketmoa-agents-verify` 행과 search `scope` 추가 (A 승인, 2026-11-04)
 - [ ] 구조도 이미지(`images/orchestration.*`)를 실제 본체 흐름으로 다시 만들기
 - [ ] tech 파일이 올라오면 노드 이름과 검증 호출을 이 문서에 맞추기
 
