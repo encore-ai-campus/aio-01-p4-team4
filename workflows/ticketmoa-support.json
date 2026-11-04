@@ -455,6 +455,8 @@
       "parameters": {
         "method": "POST",
         "url": "http://localhost:5678/webhook/ticketmoa-search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ query: $('Question webhook').first().json.body.question, access_level: ($('Check input').first().json.user || {}).access_level || 'all', top_k: 4 }) }}",
@@ -462,7 +464,13 @@
           "timeout": 5000
         }
       },
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaTeamKey1",
+          "name": "ticketmoa-team-key"
+        }
+      }
     },
     {
       "name": "Call search ∥",
@@ -475,6 +483,8 @@
       "parameters": {
         "method": "POST",
         "url": "http://localhost:5678/webhook/ticketmoa-search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ query: $('Question webhook').first().json.body.question, access_level: ($('Check input').first().json.user || {}).access_level || 'all', top_k: 4 }) }}",
@@ -482,7 +492,13 @@
           "timeout": 5000
         }
       },
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaTeamKey1",
+          "name": "ticketmoa-team-key"
+        }
+      }
     },
     {
       "name": "Call payment ∥",
@@ -571,21 +587,29 @@
       "parameters": {
         "method": "POST",
         "url": "http://localhost:5678/webhook/ticketmoa-tech",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ request_id: $('Question webhook').first().json.body.request_id, user: $('Question webhook').first().json.body.user, question: $('Question webhook').first().json.body.question, urgency: $('Plan route').first().json.urgency, hits: $json.hits }) }}",
+        "jsonBody": "={{ JSON.stringify({ request_id: $('Question webhook').first().json.body.request_id, user: $('Question webhook').first().json.body.user, question: $('Question webhook').first().json.body.question, access_level: ($('Check input').first().json.user || {}).access_level || 'all', urgency: $('Plan route').first().json.urgency, hits: $json.hits }) }}",
         "options": {
           "timeout": 5000
         }
       },
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaTeamKey1",
+          "name": "ticketmoa-team-key"
+        }
+      }
     },
     {
       "name": "Collect tech",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "parameters": {
-        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst ROUTES = {\n  AUTO: '자동 답변',\n  CLARIFY: '보완 질문',\n  HANDOFF: '담당자 이관',\n  FORBIDDEN: '권한 없음',\n  BLOCKED: '차단',\n};\n\nfunction maskPII(text) {\n  let masked = 0;\n  let out = String(text == null ? '' : text);\n  out = out.replace(/\\b(01[016789])[-.\\s]?(\\d{3,4})[-.\\s]?(\\d{4})\\b/g, (_, a, _b, c) => { masked++; return `${a}-****-${c}`; });\n  out = out.replace(/\\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b/g, (_, first, domain) => { masked++; return `${first}***@${domain}`; });\n  return { text: out, masked };\n}\n\nfunction maskDeep(value) {\n  let masked = 0;\n  const walk = v => {\n    if (typeof v === 'string') { const r = maskPII(v); masked += r.masked; return r.text; }\n    if (Array.isArray(v)) return v.map(walk);\n    if (v && typeof v === 'object') { const o = {}; for (const k of Object.keys(v)) o[k] = walk(v[k]); return o; }\n    return v;\n  };\n  return { value: walk(value), masked };\n}\n// ↑ lib/common.js 복사 끝\n\nconst isRoute = (r) => Object.values(ROUTES).includes(r);\nconst num = (v, d) => (typeof v === 'number' && isFinite(v) ? v : d);\n// 예매·문의 조회 결과(ticketmoa-payment)를 고객 답으로 바꾼다. 연락처는 가리고 가린 개수를 센다.\nfunction describeLookup(p, plan) {\n  const id = (plan.slots || {}).record_id || '';\n  if (!p || p.error) return { route: ROUTES.HANDOFF, text: `${id ? `문의 ${id}` : '예매·문의'} 정보를 지금 확인하지 못했습니다.`, masked: 0, reason: 'payment_failed', record: null };\n  if (p.forbidden === true || Number(p.status) === 403) return { route: ROUTES.FORBIDDEN, text: '본인 명의의 예매·문의 건만 확인할 수 있습니다. 예매하신 계정으로 다시 문의해 주세요.', masked: 0, reason: 'not_owner', record: null };\n  const rec = p.record && typeof p.record === 'object' ? p.record : null;\n  if (!rec) return { route: ROUTES.CLARIFY, text: `${id ? `문의 ${id}` : '입력하신 번호'}를 찾지 못했습니다. 번호를 다시 확인해 주세요.`, masked: 0, reason: 'record_not_found', record: null };\n  const m = maskDeep(rec);\n  const r = m.value;\n  const preMasked = (JSON.stringify(rec).match(/\\d{3}-\\*{4}-\\d{4}|\\*\\*\\*@/g) || []).length; // 하위 웹훅이 이미 가린 것\n  const parts = [`문의 ${r.ticket_id || id}(${r.title || '제목 없음'})는 현재 '${r.status || '확인 중'}' 상태입니다.`];\n  if (r.note) parts.push(String(r.note));\n  const q = String(($('Question webhook').first().json.body || {}).question || '');\n  if (r.contact && /연락처|전화|이메일|메일/.test(q)) parts.push(`등록된 연락처: ${[r.contact.phone, r.contact.email].filter(Boolean).join(', ')}`);\n  return { route: ROUTES.AUTO, text: parts.join(' '), masked: m.masked + preMasked, reason: '', record: r };\n}\nfunction errText(e) {\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return String(e.message || e.description || JSON.stringify(e)).slice(0, 200);\n}\nconst plan = $('Plan route').first().json;\nconst ti = $('Tech input').first().json;\nconst r = $json || {};\nconst used = [...plan.used, 'ticketmoa-search', 'ticketmoa-tech'];\nlet llm = plan.llm_calls;\nlet route; let answer; let sources = []; let reason = ''; let masked = 0;\nconst extra = {};\nif (ti.search_error) extra.search_error = ti.search_error;\nif (r.error || typeof r.answer !== 'string' || !r.answer.trim()) {\n  route = ROUTES.HANDOFF; answer = '지금은 안내를 준비하지 못해 담당자에게 넘깁니다.'; reason = 'tech_failed';\n  if (r.error) extra.error = errText(r.error);\n} else {\n  route = isRoute(r.route) ? r.route : ROUTES.AUTO; answer = r.answer; reason = r.reason || '';\n  sources = Array.isArray(r.sources) ? r.sources : [];\n  llm += num(r.llm_calls, 1);\n  if (r.alert !== undefined) extra.alert = r.alert;\n}\nif (ti.lookup) {\n  used.push('ticketmoa-payment');\n  const l = describeLookup(ti.lookup, plan);\n  answer += '\\n\\n' + l.text; masked += l.masked;\n  const rank = [ROUTES.AUTO, ROUTES.CLARIFY, ROUTES.FORBIDDEN, ROUTES.HANDOFF];\n  if (rank.indexOf(l.route) > rank.indexOf(route)) route = l.route;\n  if (l.reason && !reason) reason = l.reason;\n}\nconst needs = route === ROUTES.HANDOFF || plan.escalate;\nif (needs) { route = ROUTES.HANDOFF; if (!reason) reason = plan.escalate ? 'registry_escalate' : 'tech_handoff'; }\nconst steps = { ...plan.steps, ...ti.steps, tech_ms: Date.now() - ti.t_tech };\nreturn [{ json: { route, answer, sources, needs_handoff: needs, reason, masked, used, llm_calls: llm, agents_extra: extra, steps } }];\n"
+        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst ROUTES = {\n  AUTO: '자동 답변',\n  CLARIFY: '보완 질문',\n  HANDOFF: '담당자 이관',\n  FORBIDDEN: '권한 없음',\n  BLOCKED: '차단',\n};\n\nfunction maskPII(text) {\n  let masked = 0;\n  let out = String(text == null ? '' : text);\n  out = out.replace(/\\b(01[016789])[-.\\s]?(\\d{3,4})[-.\\s]?(\\d{4})\\b/g, (_, a, _b, c) => { masked++; return `${a}-****-${c}`; });\n  out = out.replace(/\\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b/g, (_, first, domain) => { masked++; return `${first}***@${domain}`; });\n  return { text: out, masked };\n}\n\nfunction maskDeep(value) {\n  let masked = 0;\n  const walk = v => {\n    if (typeof v === 'string') { const r = maskPII(v); masked += r.masked; return r.text; }\n    if (Array.isArray(v)) return v.map(walk);\n    if (v && typeof v === 'object') { const o = {}; for (const k of Object.keys(v)) o[k] = walk(v[k]); return o; }\n    return v;\n  };\n  return { value: walk(value), masked };\n}\n// ↑ lib/common.js 복사 끝\n\nconst isRoute = (r) => Object.values(ROUTES).includes(r);\nconst num = (v, d) => (typeof v === 'number' && isFinite(v) ? v : d);\n// 예매·문의 조회 결과(ticketmoa-payment)를 고객 답으로 바꾼다. 연락처는 가리고 가린 개수를 센다.\nfunction describeLookup(p, plan) {\n  const id = (plan.slots || {}).record_id || '';\n  if (!p || p.error) return { route: ROUTES.HANDOFF, text: `${id ? `문의 ${id}` : '예매·문의'} 정보를 지금 확인하지 못했습니다.`, masked: 0, reason: 'payment_failed', record: null };\n  if (p.forbidden === true || Number(p.status) === 403) return { route: ROUTES.FORBIDDEN, text: '본인 명의의 예매·문의 건만 확인할 수 있습니다. 예매하신 계정으로 다시 문의해 주세요.', masked: 0, reason: 'not_owner', record: null };\n  const rec = p.record && typeof p.record === 'object' ? p.record : null;\n  if (!rec) return { route: ROUTES.CLARIFY, text: `${id ? `문의 ${id}` : '입력하신 번호'}를 찾지 못했습니다. 번호를 다시 확인해 주세요.`, masked: 0, reason: 'record_not_found', record: null };\n  const m = maskDeep(rec);\n  const r = m.value;\n  const preMasked = (JSON.stringify(rec).match(/\\d{3}-\\*{4}-\\d{4}|\\*\\*\\*@/g) || []).length; // 하위 웹훅이 이미 가린 것\n  const parts = [`문의 ${r.ticket_id || id}(${r.title || '제목 없음'})는 현재 '${r.status || '확인 중'}' 상태입니다.`];\n  if (r.note) parts.push(String(r.note));\n  const q = String(($('Question webhook').first().json.body || {}).question || '');\n  if (r.contact && /연락처|전화|이메일|메일/.test(q)) parts.push(`등록된 연락처: ${[r.contact.phone, r.contact.email].filter(Boolean).join(', ')}`);\n  return { route: ROUTES.AUTO, text: parts.join(' '), masked: m.masked + preMasked, reason: '', record: r };\n}\nfunction errText(e) {\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return String(e.message || e.description || JSON.stringify(e)).slice(0, 200);\n}\nconst plan = $('Plan route').first().json;\nconst ti = $('Tech input').first().json;\nconst r = $json || {};\nconst used = [...plan.used, 'ticketmoa-search', 'ticketmoa-tech'];\nlet llm = plan.llm_calls;\nlet route; let answer; let sources = []; let reason = ''; let masked = 0;\nconst extra = {};\nif (ti.search_error) extra.search_error = ti.search_error;\nif (r.error || typeof r.answer !== 'string' || !r.answer.trim()) {\n  route = ROUTES.HANDOFF; answer = '지금은 안내를 준비하지 못해 담당자에게 넘깁니다.'; reason = (!r.error && r.reason) || 'tech_failed';\n  if (r.error) extra.error = errText(r.error);\n} else {\n  route = isRoute(r.route) ? r.route : ROUTES.AUTO; answer = r.answer; reason = r.reason || '';\n  sources = Array.isArray(r.sources) ? r.sources : [];\n  llm += num(r.llm_calls, 1);\n  if (r.alert !== undefined) extra.alert = r.alert;\n}\nif (ti.lookup) {\n  used.push('ticketmoa-payment');\n  const l = describeLookup(ti.lookup, plan);\n  answer += '\\n\\n' + l.text; masked += l.masked;\n  const rank = [ROUTES.AUTO, ROUTES.CLARIFY, ROUTES.FORBIDDEN, ROUTES.HANDOFF];\n  if (rank.indexOf(l.route) > rank.indexOf(route)) route = l.route;\n  if (l.reason && !reason) reason = l.reason;\n}\nconst needs = route === ROUTES.HANDOFF || plan.escalate;\nif (needs) { route = ROUTES.HANDOFF; if (!reason) reason = plan.escalate ? 'registry_escalate' : 'tech_handoff'; }\nconst steps = { ...plan.steps, ...ti.steps, tech_ms: Date.now() - ti.t_tech };\nreturn [{ json: { route, answer, sources, needs_handoff: needs, reason, masked, used, llm_calls: llm, agents_extra: extra, steps } }];\n"
       },
       "position": [
         3300,
