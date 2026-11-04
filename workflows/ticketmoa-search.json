@@ -1,0 +1,416 @@
+{
+  "name": "ticketmoa-search",
+  "nodes": [
+    {
+      "name": "검색 요청 수신",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ticketmoa-search",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaTeamKey1",
+          "name": "ticketmoa-team-key"
+        }
+      }
+    },
+    {
+      "name": "검색 준비",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const b = $input.first()?.json?.body ?? {};\nconst access_level = b.access_level === 'staff' ? 'staff' : 'all';\nconst scope = Array.isArray(b.scope) ? [...new Set(b.scope.map(String).map(x => x.trim()).filter(Boolean))] : [];\nreturn [{ json: {\n  query: String(b.query ?? '').trim().slice(0, 700),\n  access_level,\n  search_staff: access_level === 'staff',\n  top_k: Math.min(Math.max(Number(b.top_k) || 3, 1), 8),\n  scope,\n} }];"
+      }
+    },
+    {
+      "name": "질문 있음?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        600,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.query.length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "일반 저장소 검색",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        900,
+        -75
+      ],
+      "parameters": {
+        "mode": "load",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "list",
+          "value": "ticketmoa_kb_v1_all",
+          "cachedResultName": "ticketmoa_kb_v1_all"
+        },
+        "prompt": "={{ $json.query }}",
+        "topK": 100,
+        "includeDocumentMetadata": true
+      },
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "name": "일반 검색 임베딩",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        900,
+        225
+      ],
+      "parameters": {
+        "model": "text-embedding-3-large",
+        "options": {}
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "openAiCourse0001",
+          "name": "OpenAI (.env)"
+        }
+      }
+    },
+    {
+      "name": "스태프 저장소 검색",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        1800,
+        0
+      ],
+      "parameters": {
+        "mode": "load",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "list",
+          "value": "ticketmoa_kb_v1_staff",
+          "cachedResultName": "ticketmoa_kb_v1_staff"
+        },
+        "prompt": "={{ $('검색 준비').first().json.query }}",
+        "topK": 100,
+        "includeDocumentMetadata": true
+      },
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "name": "스태프 검색 임베딩",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1800,
+        150
+      ],
+      "parameters": {
+        "model": "text-embedding-3-large",
+        "options": {}
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "openAiCourse0001",
+          "name": "OpenAI (.env)"
+        }
+      }
+    },
+    {
+      "name": "일반 결과 정리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\nconst items = $input.all();\nconst failed = items.some(i => i.json.error);\nconst raw = items.filter(i => i.json.document).map(i => ({\n  doc: i.json.document.metadata?.doc,\n  section: i.json.document.metadata?.section,\n  score: Math.round((i.json.score ?? 0) * 1000) / 1000,\n  text: i.json.document.pageContent ?? '',\n}));\nreturn [{ json: { failed, raw } }];"
+      }
+    },
+    {
+      "name": "스태프 권한?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1500,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $('검색 준비').first().json.search_staff }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "스태프 결과 정리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\nconst items = $input.all();\nconst failed = items.some(i => i.json.error);\nconst raw = items.filter(i => i.json.document).map(i => ({\n  doc: i.json.document.metadata?.doc,\n  section: i.json.document.metadata?.section,\n  score: Math.round((i.json.score ?? 0) * 1000) / 1000,\n  text: i.json.document.pageContent ?? '',\n}));\nreturn [{ json: { failed, raw } }];"
+      }
+    },
+    {
+      "name": "검색 결과 조립",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const p = $('검색 준비').first().json;\nconst a = $('일반 결과 정리').first().json;\nconst s = $('스태프 결과 정리').isExecuted ? $('스태프 결과 정리').first().json : { failed: false, raw: [] };\nconst scope = p.scope.length ? new Set(p.scope) : null;\nconst indexed = a.raw.length > 0 || (p.search_staff && s.raw.length > 0);\nconst hits = [...a.raw, ...(p.search_staff ? s.raw : [])]\n  .filter(h => h.doc && (!scope || scope.has(h.doc)))\n  .sort((x, y) => y.score - x.score)\n  .filter((h, i, all) => all.findIndex(x => x.doc === h.doc && x.section === h.section) === i)\n  .slice(0, p.top_k);\nconst out = { hits, top_score: hits.length ? hits[0].score : 0, indexed };\nif (a.failed || (p.search_staff && s.failed)) out.error = 'search_failed';\nelse if (!indexed) out.error = 'index_unavailable';\nif (p.search_staff) out.staff_indexed = s.raw.length > 0;\nreturn [{ json: out }];"
+      }
+    },
+    {
+      "name": "빈 질문 결과",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        75
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { hits: [], top_score: 0, indexed: null, error: 'empty_query' } }];"
+      }
+    },
+    {
+      "name": "검색 결과 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2700,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "일반 검색 임베딩": {
+      "ai_embedding": [
+        [
+          {
+            "node": "일반 저장소 검색",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "스태프 검색 임베딩": {
+      "ai_embedding": [
+        [
+          {
+            "node": "스태프 저장소 검색",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "검색 요청 수신": {
+      "main": [
+        [
+          {
+            "node": "검색 준비",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "검색 준비": {
+      "main": [
+        [
+          {
+            "node": "질문 있음?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "질문 있음?": {
+      "main": [
+        [
+          {
+            "node": "일반 저장소 검색",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "빈 질문 결과",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "일반 저장소 검색": {
+      "main": [
+        [
+          {
+            "node": "일반 결과 정리",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "일반 결과 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "일반 결과 정리": {
+      "main": [
+        [
+          {
+            "node": "스태프 권한?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "스태프 권한?": {
+      "main": [
+        [
+          {
+            "node": "스태프 저장소 검색",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "검색 결과 조립",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "스태프 저장소 검색": {
+      "main": [
+        [
+          {
+            "node": "스태프 결과 정리",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "스태프 결과 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "스태프 결과 정리": {
+      "main": [
+        [
+          {
+            "node": "검색 결과 조립",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "검색 결과 조립": {
+      "main": [
+        [
+          {
+            "node": "검색 결과 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "빈 질문 결과": {
+      "main": [
+        [
+          {
+            "node": "검색 결과 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
