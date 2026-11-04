@@ -78,7 +78,7 @@
 | 7 검증 | 근거 · 정책 · 개인정보 다시 확인 | AI | tech (C, 구현 예정) → **agents-verify** `검증 프롬프트 조립` → `검증 Agent` → `검증 결과 검사` | 셋 다 true여야 통과 |
 | 8 갈림길 · 기록 | 답 또는 이관, 기록 남기기, 응답 | 규칙 | support `Needs handoff?` → `Handoff input` → `Call handoff` → `Collect ticket` → `Build response` → `Log record` → `POST /logs` → `Rejected?` → `Send result`. DLQ와 알림은 handoff가 처리 | 기록에 질문 원문·연락처 없음 |
 
-환불은 4단계에서 갈라져 `ticketmoa-refund`로 간다. 1차 요청은 금액만 안내하고(ticket null), 2차 요청은 `Refund confirm?`이 `context.pending_action`과 boolean `context.confirm`을 확인해 분류 LLM 없이 바로 보낸다. 같은 사용자·같은 예매·30분 안의 견적이고 `confirm === true`일 때만 환불 요청 티켓을 만든다. 실제 취소는 상담원이 한다. 당일 취소 문의(`signals.show_day`)는 `Call search (show day)` → `Show day answer`로 규정 근거를 찾아 이관한다.
+환불은 4단계에서 갈라져 `ticketmoa-refund`로 간다. 1차 요청은 금액만 안내하고(ticket null), 2차 요청은 `Refund confirm?`이 `context.pending_action`과 boolean `context.confirm`을 확인해 분류 LLM 없이 바로 보낸다. 같은 사용자·같은 예매·30분 안의 견적이고 `confirm === true`일 때만 환불 요청 티켓을 만든다. 실제 취소는 상담원이 한다. 당일 취소 문의(`signals.show_day`)는 `Call search (evidence)` → `Evidence handoff answer`로 규정 근거를 찾아 이관한다. 강한 불만 문의도 같은 경로로 해당 업무 문서(레지스트리 `kb_scope`)를 찾아 이관한다.
 
 ## 3. 흐름도 · 워크플로우 파일 표
 
@@ -115,7 +115,7 @@ flowchart TD
   H -- tech_lookup --> S2["Call payment ∥"]
   H -- refund --> R["Call refund<br/>ticketmoa-refund"]
   H -- payment --> PM["Call payment<br/>ticketmoa-payment"]
-  H -- show_day --> SD["Call search (show day)"]
+  H -- evidence_handoff --> SD["Call search (evidence)"]
   S1 --> SD1["Search done ∥"]
   S2 --> SD2["Payment done ∥"]
   SD1 --> M["Merge search + lookup"]
@@ -126,7 +126,7 @@ flowchart TD
   T --> CT["Collect tech"]
   R --> CR["Collect refund"]
   PM --> CP["Collect payment"]
-  SD --> SA["Show day answer"]
+  SD --> SA["Evidence handoff answer"]
   H1 --> K{"Needs handoff?"}
   H2 --> K
   CT --> K
@@ -158,7 +158,7 @@ tech 안의 검증(`ticketmoa-agents-verify` 호출)은 tech 파일이 올라온
 | 〃 | `/webhook/ticketmoa-agents-verify` | 검증 Agent | B | tech (C, 구현 예정) |
 | `ticketmoa-refund.json` | `/webhook/ticketmoa-refund` | 환불 2단계 확인 | B | support `Call refund` 5초 |
 | `ticketmoa-index.json` | `/webhook/ticketmoa-index` | 색인 | C | 수동 |
-| `ticketmoa-search.json` | `/webhook/ticketmoa-search` | 권한 필터 후 검색 (파일 대기) | C | support `Call search`·`Call search ∥` 5초, `Call search (show day)` 2초, refund 2초 |
+| `ticketmoa-search.json` | `/webhook/ticketmoa-search` | 권한 필터 후 검색 (파일 대기) | C | support `Call search`·`Call search ∥` 5초, `Call search (evidence)` 2초, refund 2초 |
 | `ticketmoa-tech.json` | `/webhook/ticketmoa-tech` | 기술·앱·일반 답변, 대체 입장 (파일 대기) | C | support `Call tech` 5초 |
 | `ticketmoa-payment.json` | `/webhook/ticketmoa-payment` | 본인 건 조회, 남의 건 forbidden | D | support `Call payment`·`Call payment ∥` 2.5초, refund 4초 |
 | `ticketmoa-handoff.json` | `/webhook/ticketmoa-handoff` | 요약 티켓 · 알림 · DLQ | D | support `Call handoff` 최대 5.5초에서 경과 시간을 뺀 값 (최소 0.5초), refund 5초 |
@@ -186,7 +186,7 @@ support에서 `Call handoff`만 요청 시작부터 지난 시간을 빼서 시�
 | 분기 노드 | 조건 | 갈래 | 기준값 |
 | --- | --- | --- | --- |
 | support `Refund confirm?` | `pending_action = refund_request`이고 `context.confirm`이 boolean이면 분류 없이 `Plan route`로, 아니면 `Call agents`로 | 2갈래 | — |
-| support `Plan route` (decideRoute) → `Route` | human_request · angry → 이관 / 뜻은 분명한데 등록 업무 없음 → tech / intents 없음 · 확신도 미달 · missing → 보완 질문 / attempt ≥ 3 → 이관 / 환불 + 당일 신호 → show_day / 그 외 → 업무별 처리 | clarify · handoff · tech · tech_lookup · refund · payment · show_day 7갈래 | 확신도 0.7, 최대 3회 |
+| support `Plan route` (decideRoute) → `Route` | human_request → 이관 / angry → 관련 문서가 있으면 evidence_handoff, 없으면 이관 / 뜻은 분명한데 등록 업무 없음 → tech / intents 없음 · 확신도 미달 · missing → 보완 질문 / attempt ≥ 3 → 이관 / 환불 + 당일 신호 → evidence_handoff / 그 외 → 업무별 처리 | clarify · handoff · tech · tech_lookup · refund · payment · evidence_handoff 7갈래 | 확신도 0.7, 최대 3회 |
 | agents `LLM 필요?` | `!statusOnly && attempt < 3`이면 Supervisor, 아니면 `규칙 분류 결과` (상태만 묻는 문의 → booking_lookup, attempt ≥ 3 → intents [] · confidence 0 · `rule_attempt_limit`) | 2갈래 | 최대 3회, LLM 0회 |
 | refund `단계 분기` | `pending_action = refund_request`이고 `context.confirm`이 boolean이면 confirm, 아니면 quote | 2갈래 | — |
 | refund `조회 결과 분기` | ok / forbidden / not_found / error | 4갈래 | payment 4초 |
