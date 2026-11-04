@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "scope": "ticketmoa-refund 2단계 확인 (B 최강현). 온톨로지 증강 생성(OAG) 방식: LLM이 아니라 이 객체·행동 정의가 실행 가능 여부를 정한다.",
+  "trust": {
+    "trusted": ["data/users.json (신원·access_level)", "data/records.json via ticketmoa-payment (소유자·금액·공연일)", "/cache pending (서버가 쓴 견적)", "lib/common.js calcRefund"],
+    "untrusted": ["question", "context (confirm 제외 모든 칸)", "LLM 출력", "기록의 note 같은 자유 글"]
+  },
+  "objects": {
+    "Customer": { "key": "user", "source": "users.json", "props": ["name", "access_level"] },
+    "Booking": { "key": "booking_id", "source": "records.json", "props": ["requester", "amount", "show", "status"], "links": { "ownedBy": "Customer" } },
+    "RefundQuote": { "key": "pending:<user>:<booking_id>", "source": "/cache", "props": ["owner", "booking_id", "record_id", "refund", "fee", "rule", "quoted_at", "expires_at", "status"], "links": { "quotes": "Booking", "for": "Customer" }, "states": ["pending", "confirmed", "cancelled"] },
+    "RefundTicket": { "key": "ticket_id", "source": "POST /tickets via ticketmoa-handoff", "links": { "fulfills": "RefundQuote" } }
+  },
+  "actions": {
+    "QuoteRefund": {
+      "actor": "rule (Code 노드)",
+      "preconditions": ["Booking.ownedBy == request.user", "calcRefund.allowed", "!calcRefund.needsApproval"],
+      "effects": ["RefundQuote(status=pending, ttl=30분)"],
+      "else": { "not_owner": "권한 없음", "after_deadline": "담당자 이관", "over_limit": "담당자 이관" }
+    },
+    "ConfirmRefund": {
+      "actor": "rule (Code 노드). LLM은 이 행동을 시작하거나 승인할 수 없다",
+      "preconditions": ["context.confirm === true", "RefundQuote exists for (request.user, context.booking_id)", "RefundQuote.owner == request.user", "RefundQuote.status == pending", "now <= RefundQuote.expires_at", "Booking.ownedBy == request.user (재조회)", "calcRefund(재계산).refund == RefundQuote.refund"],
+      "effects": ["RefundTicket(category=refund)", "RefundQuote.status = confirmed"],
+      "else": { "no_quote": "보완 질문 (티켓 없음)", "amount_changed": "다시 안내 (티켓 없음)", "already_confirmed": "기존 티켓 번호" }
+    },
+    "CancelQuote": { "actor": "rule", "preconditions": ["context.confirm === false", "RefundQuote bound to request.user"], "effects": ["RefundQuote.status = cancelled"] }
+  },
+  "forbidden_actions": ["실제 예매 취소", "결제 취소", "context 값으로 금액·신원·승인 결정"]
+}

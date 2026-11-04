@@ -1,0 +1,22 @@
+[
+  {
+    "id": "F-006",
+    "title": "index · search · tech의 OpenAI 노드가 OpenAI (.env)가 아닌 Credential을 씀",
+    "scope": "hwanseok-mvp 판 workflows/ticketmoa-index.json, ticketmoa-search.json, ticketmoa-tech.json (담당 C 정예진)",
+    "found_by": "security/tools/check-workflows.cjs (정적 점검 66/69)",
+    "observed": "일반·스태프 저장 임베딩, 일반·스태프 검색 임베딩, 작성 모델이 id ticketmoaOpenAi01 사용",
+    "impact": "WF-10(llm down)이 OpenAI (.env) 키만 깨뜨리므로 이 노드들은 계속 동작 → 거짓 통과. B 파일(F-002)과 같은 원인",
+    "remediation_proposal": "Credential을 id openAiCourse0001 / 이름 OpenAI (.env)로 바꾸기. C에게 부탁",
+    "status": "열림 · C에게 전달 필요"
+  },
+  {
+    "id": "F-007",
+    "title": "주입 규칙이 띄어쓰기 분해 · Base64 · 다국어 주입을 못 막음",
+    "scope": "lib/common.js detectInjection (담당 A)",
+    "found_by": "promptfoo promptfooconfig.public.yaml PUB-PI-05, PUB-PI-06, PUB-ML-01",
+    "observed": "세 문장 모두 차단되지 않고 분류로 넘어감. 계약 모형에서는 티켓·금액 변화 없이 통과",
+    "impact": "낮음~중간. 돈·권한은 규칙이 정하므로 실행 피해는 없으나, LLM까지 지시가 들어가 비용과 답변 흔들림이 생김",
+    "remediation_proposal": "검사 전 정규화(공백 제거 비교, Base64로 보이는 덩어리 디코딩 뒤 재검사), 영어 외 주요 언어 패턴 추가 또는 PyRIT 변환기로 찾은 변형을 회귀 사례로 고정. A에게 부탁",
+    "status": "열림 · A에게 전달 필요"
+  }
+]

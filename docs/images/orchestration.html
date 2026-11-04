@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ko" data-theme="light"><head><meta charset="utf-8"><title>티켓모아 AI 오케스트레이션 구조도</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 강의 가이드 8쪽 표기법. 가로 레인 4줄(걸러내기·분류·답 만들기·환불), 청록 = AI, 흰 상자 = 규칙, 아래 칩 = 비상구 */
+:root{
+  --bg:#f5f7f8; --surface:#ffffff; --ink:#18212b; --muted:#5a6673; --line:#d9e0e5;
+  --ai:#0f8b8d; --ai-soft:#e2f4f3; --rule:#ffffff; --exit:#b8433a; --ok:#1f8a5b; --ext:#a8740f; --sec:#b8433a;
+  --f-body:"IBM Plex Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161b; --surface:#192028; --ink:#e6ebef; --muted:#9aa7b3; --line:#2b3540;
+  --ai:#4cc3c3; --ai-soft:#173638; --rule:#192028; --exit:#ef8279; --ok:#4fc490; --ext:#e0b04c; --sec:#ef8279; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161b; --surface:#192028; --ink:#e6ebef; --muted:#9aa7b3; --line:#2b3540;
+  --ai:#4cc3c3; --ai-soft:#173638; --rule:#192028; --exit:#ef8279; --ok:#4fc490; --ext:#e0b04c; --sec:#ef8279; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14.5px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 56px}
+.wrap{max-width:1180px;margin:0 auto}
+header{padding-block:36px 18px;display:grid;gap:10px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+h1{font-size:clamp(24px,3.6vw,34px);line-height:1.2;margin:0;text-wrap:balance}
+.lede{max-width:78ch;color:var(--muted);margin:0}
+h2{font-size:19px;margin:28px 0 8px;text-wrap:balance}
+.sub{color:var(--muted);margin:0 0 14px;max-width:80ch}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+code{background:var(--ai-soft);padding:1px 5px;border-radius:4px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted);margin:6px 0 4px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:5px;border:1.5px solid var(--line);background:var(--rule)}
+.legend i.ai{background:var(--ai-soft);border-color:var(--ai)}
+.legend i.ex{border-color:var(--exit);border-style:dashed}
+.legend i.ext{border-color:var(--ext)}
+.legend i.sec{border-color:var(--sec);border-width:2.5px}
+
+/* diagram */
+.diagram{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+.lanes{display:grid;gap:14px;min-width:1080px}
+.lane{display:grid;grid-template-columns:118px minmax(0,1fr);gap:12px;align-items:start}
+.lane-h{font-size:12.5px;font-weight:700;color:var(--muted);padding-top:10px;line-height:1.35}
+.lane-h small{display:block;font-weight:400;font-family:var(--f-mono);font-size:11px}
+.row{display:flex;align-items:flex-start;gap:0;flex-wrap:nowrap}
+.step{display:grid;gap:6px;justify-items:center;flex:0 0 auto}
+.n{border:1.5px solid var(--line);background:var(--rule);border-radius:8px;padding:7px 10px;font-size:12.5px;min-width:96px;max-width:150px;text-align:center;line-height:1.3}
+.n b{display:block;font-size:12.5px}
+.n span{display:block;font-family:var(--f-mono);font-size:10.5px;color:var(--muted)}
+.n.ai{background:var(--ai-soft);border-color:var(--ai)}
+.n.ai b{color:var(--ai)}
+.n.ext{border-color:var(--ext)}
+.n.sec{border-color:var(--sec);border-width:2.5px}
+.n.out{border-color:var(--ok);border-width:2px}
+.n.group{border-style:solid;border-color:var(--ai);padding:6px;display:flex;gap:6px;align-items:center;max-width:none;background:transparent}
+.n.group > .n{min-width:84px}
+.n.group .gl{writing-mode:vertical-rl;font-size:10.5px;font-family:var(--f-mono);color:var(--ai)}
+.ex{font-size:11px;color:var(--exit);border:1.2px dashed var(--exit);border-radius:999px;padding:1px 8px;white-space:nowrap;background:var(--surface)}
+.arr{align-self:flex-start;margin-top:12px;color:var(--muted);font-size:13px;padding:0 4px;flex:0 0 auto}
+.par{display:grid;gap:6px}
+.par .tag{font-size:10.5px;font-family:var(--f-mono);color:var(--muted);text-align:center}
+.split{font-size:11px;color:var(--muted);font-family:var(--f-mono);text-align:center;margin-top:-2px}
+.lane.refund{border-top:1px dashed var(--line);padding-top:12px}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.cards{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.cards{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:6px;align-content:start;min-width:0}
+.card.ai{border-color:var(--ai)}
+.card h3{margin:0;font-size:15px;display:flex;justify-content:space-between;gap:6px;align-items:baseline}
+.card h3 span{font-family:var(--f-mono);font-size:11px;color:var(--muted);font-weight:400}
+.card dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:3px 10px;margin:0;font-size:12.5px}
+.card dt{color:var(--muted)} .card dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;color:var(--muted);font-weight:600;background:var(--bg)}
+tr:last-child td{border-bottom:0}
+.nums{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.nums div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid}
+.nums b{font-size:19px;color:var(--ai);font-variant-numeric:tabular-nums}
+.nums span{font-size:12px;color:var(--muted)}
+.note{font-size:13px;color:var(--muted);border-left:3px solid var(--ai);padding:8px 12px;background:var(--surface);border-radius:0 6px 6px 0;margin:12px 0 0}
+footer{padding-top:22px;font-size:12px;color:var(--muted)}
+</style><style>@page{size:A3 landscape;margin:10mm}:root{color-scheme:light}body{padding:0 12px!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.diagram{overflow:visible}.card,.lane,tr{break-inside:avoid}</style></head><body>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">티켓모아 · 오케스트레이션 · B 최강현 · 2026-11-04</div>
+  <h1>티켓모아 AI 오케스트레이션 구조도</h1>
+  <p class="lede">강의 「기술지원자동화 전체 아키텍처」의 8단계 흐름(7쪽)과 n8n 흐름도(8쪽), AI 직원 역할(9쪽)을 티켓모아 워크플로우의 실제 노드 이름으로 옮겼습니다. 윗줄은 걸러내기, 아랫줄은 답 만들기입니다. 걸러진 요청은 AI를 부르기 전에 끝납니다.</p>
+  <div class="legend"><span><i class="ai"></i>AI (Agent, gpt-4.1-mini)</span><span><i></i>규칙 (Code · If · Switch)</span><span><i class="ext"></i>다른 웹훅 · 데이터 API 호출</span><span><i class="ex"></i>비상구 (여기서 끝남)</span><span><i class="sec"></i>B 보안 장치</span></div>
+</header>
+
+<div class="diagram" role="img" aria-label="티켓모아 오케스트레이션 흐름: 걸러내기, 분류, 답 만들기, 환불 2단계 네 줄">
+<div class="lanes">
+
+  <div class="lane">
+    <div class="lane-h">① 걸러내기<small>support · 단계 1~3</small></div>
+    <div class="row">
+      <div class="step"><div class="n"><b>문의 수신</b><span>Header Auth</span></div><div class="ex">401</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n"><b>입력 검사</b><span>입력 판정</span></div><div class="ex">400 · 500자</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n"><b>규칙 차단 판정</b><span>문지기 guard</span></div><div class="ex">차단 · LLM 0</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n ext"><b>중복 판정</b><span>/cache req:id</span></div><div class="ex">저장 응답 재생</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n ext"><b>반복 요청 판정</b><span>/cache ratelimit</span></div><div class="ex">차단</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n"><b>환불 확인 요청?</b><span>context.confirm</span></div><div class="split">예 → ④</div></div>
+    </div>
+  </div>
+
+  <div class="lane">
+    <div class="lane-h">② 분류<small>agents · 단계 4</small></div>
+    <div class="row">
+      <div class="step"><div class="n"><b>레지스트리 로드</b><span>intent 9개</span></div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n ext"><b>분류 호출</b><span>1~4초</span></div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n group"><span class="gl">ticketmoa-agents</span>
+        <div class="n"><b>규칙 신호 추출</b><span>&lt;question&gt;</span></div>
+        <div class="n sec"><b>LLM 필요?</b><span>attempt &lt; 3</span></div>
+        <div class="n ai"><b>Supervisor 분류</b><span>triage</span></div>
+        <div class="n"><b>분류 결과 검사</b><span>JSON · fail-closed</span></div>
+      </div><div class="ex">못 읽음 → 이관</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n"><b>다음 단계 분기</b><span>decideRoute 0.7</span></div><div class="ex">보완 질문 · 3회째 이관</div></div>
+    </div>
+  </div>
+
+  <div class="lane">
+    <div class="lane-h">③ 답 만들기<small>support · tech · 단계 5~8</small></div>
+    <div class="row">
+      <div class="step par"><div class="tag">두 갈래 동시에</div>
+        <div class="n ext"><b>지식 검색</b><span>search · RAG</span></div>
+        <div class="n ext"><b>본인 건 조회</b><span>payment · Tool</span></div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n"><b>두 갈래 합치기</b><span>Merge · 결과 합치기</span></div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n ai"><b>기술 처리</b><span>tech · writer</span></div><div class="ex">근거 없음 → 이관</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n ai"><b>검증 Agent</b><span>agents-verify</span></div><div class="ex">ok false → 이관</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n"><b>최종 경로 결정</b><span>티켓 필요?</span></div></div>
+      <div class="arr">→</div>
+      <div class="step par"><div class="n out"><b>응답 보내기</b><span>자동 답변 + sources</span></div>
+        <div class="n ext"><b>이관 호출</b><span>handoff → 티켓·알림</span></div><div class="ex">실패 → 비상 DLQ</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n ext"><b>실행 기록 저장</b><span>/logs · 개인정보 없음</span></div></div>
+    </div>
+  </div>
+
+  <div class="lane refund">
+    <div class="lane-h">④ 환불 1차<small>refund · B · 견적</small></div>
+    <div class="row">
+      <div class="step"><div class="n sec"><b>요청 단계 판정</b><span>ignored_context</span></div><div class="split">quote</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n ext"><b>예매 조회 호출</b><span>payment 4초</span></div><div class="ex">남의 건 → 권한 없음</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n ext"><b>환불 규정 검색</b><span>search 2초</span></div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n sec"><b>환불 금액 계산</b><span>owner · 30분</span></div><div class="ex">30만원↑ · 마감 → 이관</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n ext"><b>대기 상태 저장</b><span>/cache 견적</span></div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n out"><b>금액 안내 답</b><span>ticket null</span></div></div>
+    </div>
+  </div>
+
+  <div class="lane">
+    <div class="lane-h">④ 환불 2차<small>confirm === true</small></div>
+    <div class="row">
+      <div class="step"><div class="n sec"><b>요청 단계 판정</b><span>confirm</span></div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n ext"><b>대기 상태 읽기</b><span>/cache 견적</span></div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n sec"><b>확인 자격 판정</b><span>같은 user · 예매 · 만료 전</span></div><div class="ex">위조 · 가로채기 · 재사용 → 티켓 없음</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n ext"><b>확인 재조회</b><span>payment</span></div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n"><b>확인 재계산</b><span>금액 같아야</span></div><div class="ex">다르면 다시 안내</div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n ext"><b>환불 이관 호출</b><span>handoff 5초</span></div></div>
+      <div class="arr">→</div>
+      <div class="step"><div class="n out"><b>이관 답</b><span>확정 저장 · 티켓 1건</span></div></div>
+    </div>
+  </div>
+
+</div>
+</div>
+<p class="note">환불의 금액·한도·확정은 어느 AI에게도 맡기지 않습니다. 레인 ④에는 청록 상자가 없습니다. 환불 답은 규칙 문장이라 검증 Agent를 거치지 않습니다.</p>
+
+<h2>AI 직원 3명 + 문지기</h2>
+<p class="sub">한 명에게 다 시키지 않습니다. AI 결과는 JSON으로 받고 규칙(Code)이 읽습니다. 읽지 못하면 담당자 이관으로 보냅니다 (가이드 9쪽).</p>
+<div class="cards">
+  <div class="card ai"><h3>분류 triage <span>B</span></h3><dl>
+    <dt>노드</dt><dd>agents <code>Supervisor 분류</code></dd>
+    <dt>하는 일</dt><dd>업무 유형 · 긴급도 · 감정 · 빠진 정보</dd>
+    <dt>결과물</dt><dd class="mono">{intents, entities, sentiment, urgency, confidence, clarity, missing, clarify_question}</dd>
+    <dt>안 하는 일</dt><dd>답하지 않기</dd>
+    <dt>못 읽으면</dt><dd>intents [] · confidence 0 → 이관</dd></dl></div>
+  <div class="card ai"><h3>답변 writer <span>C</span></h3><dl>
+    <dt>노드</dt><dd>tech <code>기술 처리</code></dd>
+    <dt>하는 일</dt><dd>검색해 온 근거로만 답 쓰기, 긴급이면 대체 입장 먼저</dd>
+    <dt>결과물</dt><dd>답 + sources</dd>
+    <dt>안 하는 일</dt><dd>근거 밖 내용 · 약속</dd>
+    <dt>못 읽으면</dt><dd>이관</dd></dl></div>
+  <div class="card ai"><h3>검증 verifier <span>B</span></h3><dl>
+    <dt>노드</dt><dd>agents-verify <code>검증 Agent</code></dd>
+    <dt>하는 일</dt><dd>근거 안의 답인지, 정책, 개인정보</dd>
+    <dt>결과물</dt><dd class="mono">{relevant, grounded, policy_ok, issues} → {ok, issues}</dd>
+    <dt>안 하는 일</dt><dd>답을 새로 쓰지 않기</dd>
+    <dt>못 읽으면</dt><dd>ok false → 이관</dd></dl></div>
+  <div class="card"><h3>문지기 guard <span>A · 규칙</span></h3><dl>
+    <dt>노드</dt><dd>support <code>규칙 차단 판정</code></dd>
+    <dt>하는 일</dt><dd>주입 문구 판별 (가이드에선 선택)</dd>
+    <dt>결과물</dt><dd class="mono">{blocked, blocked_by, reason}</dd>
+    <dt>안 하는 일</dt><dd>답하지 않기</dd>
+    <dt>왜 규칙</dt><dd>LLM 0회, 결과가 늘 같음 (WF-08)</dd></dl></div>
+</div>
+
+<h2>워크플로우 파일과 담당</h2>
+<div class="scroll"><table>
+  <tr><th>웹훅</th><th>레인</th><th>하는 일</th><th>담당</th><th>시간 제한</th></tr>
+  <tr><td class="mono">ticketmoa-support</td><td>① ② ③</td><td>본체: 걸러내기, 라우팅, 병렬, 갈림길, 기록</td><td>A 최두나</td><td>—</td></tr>
+  <tr><td class="mono">ticketmoa-agents</td><td>②</td><td>분류</td><td>B 최강현</td><td>1~4초</td></tr>
+  <tr><td class="mono">ticketmoa-agents-verify</td><td>③</td><td>검증</td><td>B 최강현</td><td>0.5~2.5초</td></tr>
+  <tr><td class="mono">ticketmoa-refund</td><td>④</td><td>환불 2단계</td><td>B 최강현</td><td>1~5초</td></tr>
+  <tr><td class="mono">ticketmoa-search · index · tech</td><td>③</td><td>RAG 검색 · 색인 · 답변</td><td>C 정예진</td><td>검색 0.5~2초 · 기술 1~5초</td></tr>
+  <tr><td class="mono">ticketmoa-payment · handoff · errors</td><td>③ ④</td><td>본인 건 조회 · 이관 · Error Workflow</td><td>D 심환석</td><td>조회 3.5~4초 · 이관 1.5~5초</td></tr>
+</table></div>
+
+<h2>기준값</h2>
+<div class="nums">
+  <div><b>500자</b><span>입력 상한 (501자 → 400)</span></div>
+  <div><b>0.7</b><span>분류 확신도 기준</span></div>
+  <div><b>3회</b><span>보완 질문 상한, 3회째 LLM 없이 이관</span></div>
+  <div><b>30분</b><span>긴급 기준 · 환불 견적 유효</span></div>
+  <div><b>300,000원</b><span>환불 상담원 승인 기준</span></div>
+  <div><b>60초 5건</b><span>사용자별 요청 제한 (가산)</span></div>
+</div>
+<p class="note">본체 노드 이름은 <code>hwanseok-mvp</code> 브랜치 판 기준이고, A가 main에 병합할 때 맞춥니다. 같은 내용의 Mermaid 흐름도와 표는 <code>docs/WORKFLOW-DESIGN.md</code> 2~4절에 있습니다.</p>
+
+<footer>출처: 강의 기술지원자동화_전체아키텍처.pdf 7~9쪽 · workflows/ticketmoa-support(hwanseok-mvp) · ticketmoa-agents · ticketmoa-refund (hyun)</footer>
+</div>
+</body></html>
