@@ -78,7 +78,7 @@
 | 7 검증 | 근거 · 정책 · 개인정보 다시 확인 | AI | tech `검증 시간 있음?` → `검증 호출` → **agents-verify** `검증 프롬프트 조립` → `검증할 내용 있음?` → `검증 Agent` → `검증 결과 검사` → tech `답변 결정` | 셋 다 true여야 통과 |
 | 8 갈림길 · 기록 | 답 또는 이관, 기록 남기기, 응답 | 규칙 | support `Needs handoff?` → `Handoff input` → `Call handoff` → `Collect ticket` → `Build response` → `Log record` → `POST /logs` → `Rejected?` → `Send result`. DLQ와 알림은 handoff가 처리 | 기록에 질문 원문·연락처 없음 |
 
-환불은 4단계에서 갈라져 `ticketmoa-refund`로 간다. 1차 요청은 금액만 안내하고(ticket null), 2차 요청은 `Refund confirm?`이 `context.pending_action`과 boolean `context.confirm`을 확인해 분류 LLM 없이 바로 보낸다. 같은 사용자·같은 예매·30분 안의 견적이고 `confirm === true`일 때만 환불 요청 티켓을 만든다. 실제 취소는 상담원이 한다. 당일 취소 문의(`signals.show_day`)는 `Call search (evidence)` → `Evidence handoff answer`로 규정 근거를 찾아 이관한다. 강한 불만 문의도 같은 경로로 해당 업무 문서(레지스트리 `kb_scope`)를 찾아 이관한다.
+환불은 4단계에서 갈라져 `ticketmoa-refund`로 간다. 1차 요청은 금액만 안내하고(ticket null), 2차 요청은 `Refund confirm?`이 `context.pending_action`과 boolean `context.confirm`을 확인해 분류 LLM 없이 바로 보낸다. 같은 사용자·같은 예매·30분 안의 견적이고 `confirm === true`일 때만 환불 요청 티켓을 만든다. 실제 취소는 상담원이 한다. 당일 취소 문의(`signals.show_day`)는 `Call search (evidence)` → `Evidence handoff answer`로 규정 근거를 찾아 이관한다. 강한 불만 문의도 같은 경로로 해당 업무 문서(레지스트리 `kb_scope`)를 찾아 이관한다. 긴급 문의(`urgency=high`)는 `Call search`와 `Call search ∥`가 `scope`를 `onsite-entry-fallback`으로 좁혀, 검색 순위와 상관없이 대체 입장 근거를 받는다.
 
 ## 3. 흐름도 · 워크플로우 파일 표
 
@@ -305,8 +305,8 @@ n8n 안에서 되도는 루프는 만들지 않는다. 보완 질문은 요청 �
 | `Refund confirm?` 예 → `Plan route` | `{registry, t0}` (분류 없음) |
 | `Call agents` → `Plan route` | `{intents, entities, sentiment, urgency, confidence, clarity, missing, clarify_question, signals, llm_calls, by}` 또는 `{error}` |
 | `Plan route` → `Route` | `{intents, slots:{record_id, booking_id}, urgency, priority, category, confidence, sentiment, evidence, next, reason, missing, escalate, used, steps, t_routed, llm_calls}` |
-| `Route` tech → `Call search` | `{query, access_level, top_k:4}` |
-| `Route` tech_lookup → `Call search ∥` · `Call payment ∥` | `{query, access_level, top_k:4}` · `{request_id, user, record_id}` |
+| `Route` tech → `Call search` | `{query, access_level, top_k:4, scope(긴급일 때만)}` |
+| `Route` tech_lookup → `Call search ∥` · `Call payment ∥` | `{query, access_level, top_k:4, scope(긴급일 때만)}` · `{request_id, user, record_id}` |
 | `Search done ∥` · `Payment done ∥` → `Merge search + lookup` | 각 응답 + `_done_at` |
 | `Call search` · `Merge search + lookup` → `Tech input` | `{hits:[{doc, section, score, text}], top_score, indexed}`, 복합 문의는 조회 결과 추가 |
 | `Tech input` → `Call tech` | `{hits, search_error, lookup, steps, t_tech}`. 호출 본문은 `{request_id, user, question, access_level, urgency, hits}` |
