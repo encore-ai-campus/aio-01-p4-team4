@@ -1,0 +1,396 @@
+{
+  "webhook": "ticketmoa-support",
+  "request": {
+    "request_id": "wf12",
+    "user": "김하늘",
+    "channel": "web",
+    "question": "공연 10분 전인데 모바일티켓 QR이 안 떠요! 어제 문의한 C-2002도 어떻게 됐는지 확인해 주세요"
+  },
+  "n": 5,
+  "p50": 3.376,
+  "p95": 3.492,
+  "max": 3.492,
+  "failures": 0,
+  "runs": [
+    {
+      "run": 1,
+      "status": 200,
+      "seconds": 3.376,
+      "response": {
+        "request_id": "wf12",
+        "route": "담당자 이관",
+        "answer": "공연 시작이 임박했으니 입장 방법부터 안내합니다. 공연장 1층 현장 발권 창구에서 예매번호와 예매자 본인 신분증을 보여 주시면 종이 티켓을 받아 입장할 수 있습니다. 신분증이 없으면 공연장 직원에게 예매 확인 방법을 문의해 주세요.\n\n문의 C-2002(모바일티켓 QR 미표시)는 현재 '접수됨' 상태입니다. 앱 업데이트 후에도 QR이 회색으로 표시됨. 앱 로그 확인 후 담당자를 배정합니다.\n\n상담원 연결을 접수했습니다 (접수 번호 T-2008).",
+        "sources": [
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "2. 방법 1: 현장 발권 창구",
+            "score": 0.575
+          },
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "5. 현장 스태프 알림",
+            "score": 0.537
+          },
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "1. 원칙: 입장이 먼저",
+            "score": 0.52
+          },
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "6. 현장 본인 확인과 예외 상황",
+            "score": 0.503
+          }
+        ],
+        "ticket": {
+          "id": "T-2008",
+          "key": "wf12",
+          "category": "tech_issue",
+          "priority": "high",
+          "duplicate": false
+        },
+        "agents": {
+          "used": [
+            "ticketmoa-agents",
+            "ticketmoa-search",
+            "ticketmoa-tech",
+            "ticketmoa-payment",
+            "ticketmoa-handoff"
+          ],
+          "llm_calls": 3,
+          "intents": [
+            "tech_issue",
+            "booking_lookup"
+          ],
+          "confidence": 0.95,
+          "alert": {
+            "channel": "venue-staff",
+            "priority": "high"
+          },
+          "handoff": {
+            "dlq": false,
+            "alert": true
+          }
+        },
+        "security": {
+          "blocked_by": "",
+          "reason": "",
+          "masked": 2
+        },
+        "timings": {
+          "total_ms": 3251,
+          "agents_ms": 1385,
+          "search_ms": 366,
+          "payment_ms": 191,
+          "tech_ms": 1098,
+          "handoff_ms": 157
+        },
+        "reason": "urgent_entry"
+      }
+    },
+    {
+      "run": 2,
+      "status": 200,
+      "seconds": 3.259,
+      "response": {
+        "request_id": "wf12",
+        "route": "담당자 이관",
+        "answer": "공연 시작이 임박했으니 입장 방법부터 안내합니다. 공연장 1층 현장 발권 창구에서 예매번호와 예매자 본인 신분증을 보여 주시면 종이 티켓을 받아 입장할 수 있습니다. 신분증이 없으면 공연장 직원에게 예매 확인 방법을 문의해 주세요.\n\n문의 C-2002(모바일티켓 QR 미표시)는 현재 '접수됨' 상태입니다. 앱 업데이트 후에도 QR이 회색으로 표시됨. 앱 로그 확인 후 담당자를 배정합니다.\n\n상담원 연결을 접수했습니다 (접수 번호 T-2008).",
+        "sources": [
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "2. 방법 1: 현장 발권 창구",
+            "score": 0.575
+          },
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "5. 현장 스태프 알림",
+            "score": 0.537
+          },
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "1. 원칙: 입장이 먼저",
+            "score": 0.52
+          },
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "6. 현장 본인 확인과 예외 상황",
+            "score": 0.503
+          }
+        ],
+        "ticket": {
+          "id": "T-2008",
+          "key": "wf12",
+          "category": "tech_issue",
+          "priority": "high",
+          "duplicate": true
+        },
+        "agents": {
+          "used": [
+            "ticketmoa-agents",
+            "ticketmoa-search",
+            "ticketmoa-tech",
+            "ticketmoa-payment",
+            "ticketmoa-handoff"
+          ],
+          "llm_calls": 3,
+          "intents": [
+            "tech_issue",
+            "booking_lookup"
+          ],
+          "confidence": 0.95,
+          "alert": {
+            "channel": "venue-staff",
+            "priority": "high"
+          },
+          "handoff": {
+            "dlq": false,
+            "alert": true
+          }
+        },
+        "security": {
+          "blocked_by": "",
+          "reason": "",
+          "masked": 2
+        },
+        "timings": {
+          "total_ms": 3169,
+          "agents_ms": 1422,
+          "search_ms": 327,
+          "payment_ms": 142,
+          "tech_ms": 1019,
+          "handoff_ms": 201
+        },
+        "reason": "urgent_entry"
+      }
+    },
+    {
+      "run": 3,
+      "status": 200,
+      "seconds": 3.213,
+      "response": {
+        "request_id": "wf12",
+        "route": "담당자 이관",
+        "answer": "공연 시작이 임박했으니 입장 방법부터 안내합니다. 공연장 1층 현장 발권 창구에서 예매번호와 예매자 본인 신분증을 보여 주시면 종이 티켓을 받아 입장할 수 있습니다. 신분증이 없으면 공연장 직원에게 예매 확인 방법을 문의해 주세요.\n\n문의 C-2002(모바일티켓 QR 미표시)는 현재 '접수됨' 상태입니다. 앱 업데이트 후에도 QR이 회색으로 표시됨. 앱 로그 확인 후 담당자를 배정합니다.\n\n상담원 연결을 접수했습니다 (접수 번호 T-2008).",
+        "sources": [
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "2. 방법 1: 현장 발권 창구",
+            "score": 0.575
+          },
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "5. 현장 스태프 알림",
+            "score": 0.537
+          },
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "1. 원칙: 입장이 먼저",
+            "score": 0.52
+          },
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "6. 현장 본인 확인과 예외 상황",
+            "score": 0.503
+          }
+        ],
+        "ticket": {
+          "id": "T-2008",
+          "key": "wf12",
+          "category": "tech_issue",
+          "priority": "high",
+          "duplicate": true
+        },
+        "agents": {
+          "used": [
+            "ticketmoa-agents",
+            "ticketmoa-search",
+            "ticketmoa-tech",
+            "ticketmoa-payment",
+            "ticketmoa-handoff"
+          ],
+          "llm_calls": 3,
+          "intents": [
+            "tech_issue",
+            "booking_lookup"
+          ],
+          "confidence": 0.95,
+          "alert": {
+            "channel": "venue-staff",
+            "priority": "high"
+          },
+          "handoff": {
+            "dlq": false,
+            "alert": true
+          }
+        },
+        "security": {
+          "blocked_by": "",
+          "reason": "",
+          "masked": 2
+        },
+        "timings": {
+          "total_ms": 3054,
+          "agents_ms": 1186,
+          "search_ms": 432,
+          "payment_ms": 150,
+          "tech_ms": 1079,
+          "handoff_ms": 157
+        },
+        "reason": "urgent_entry"
+      }
+    },
+    {
+      "run": 4,
+      "status": 200,
+      "seconds": 3.492,
+      "response": {
+        "request_id": "wf12",
+        "route": "담당자 이관",
+        "answer": "공연 시작이 임박했으니 입장 방법부터 안내합니다. 공연장 1층 현장 발권 창구에서 예매번호와 예매자 본인 신분증을 보여 주시면 종이 티켓을 받아 입장할 수 있습니다. 신분증이 없으면 공연장 직원에게 예매 확인 방법을 문의해 주세요.\n\n문의 C-2002(모바일티켓 QR 미표시)는 현재 '접수됨' 상태입니다. 앱 업데이트 후에도 QR이 회색으로 표시됨. 앱 로그 확인 후 담당자를 배정합니다.\n\n상담원 연결을 접수했습니다 (접수 번호 T-2008).",
+        "sources": [
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "2. 방법 1: 현장 발권 창구",
+            "score": 0.575
+          },
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "5. 현장 스태프 알림",
+            "score": 0.537
+          },
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "1. 원칙: 입장이 먼저",
+            "score": 0.52
+          },
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "6. 현장 본인 확인과 예외 상황",
+            "score": 0.503
+          }
+        ],
+        "ticket": {
+          "id": "T-2008",
+          "key": "wf12",
+          "category": "tech_issue",
+          "priority": "high",
+          "duplicate": true
+        },
+        "agents": {
+          "used": [
+            "ticketmoa-agents",
+            "ticketmoa-search",
+            "ticketmoa-tech",
+            "ticketmoa-payment",
+            "ticketmoa-handoff"
+          ],
+          "llm_calls": 3,
+          "intents": [
+            "tech_issue",
+            "booking_lookup"
+          ],
+          "confidence": 0.95,
+          "alert": {
+            "channel": "venue-staff",
+            "priority": "high"
+          },
+          "handoff": {
+            "dlq": false,
+            "alert": true
+          }
+        },
+        "security": {
+          "blocked_by": "",
+          "reason": "",
+          "masked": 2
+        },
+        "timings": {
+          "total_ms": 3398,
+          "agents_ms": 1235,
+          "search_ms": 574,
+          "payment_ms": 138,
+          "tech_ms": 1111,
+          "handoff_ms": 278
+        },
+        "reason": "urgent_entry"
+      }
+    },
+    {
+      "run": 5,
+      "status": 200,
+      "seconds": 3.466,
+      "response": {
+        "request_id": "wf12",
+        "route": "담당자 이관",
+        "answer": "공연 시작이 임박했으니 입장 방법부터 안내합니다. 공연장 1층 현장 발권 창구에서 예매번호와 예매자 본인 신분증을 보여 주시면 종이 티켓을 받아 입장할 수 있습니다. 신분증이 없으면 공연장 직원에게 예매 확인 방법을 문의해 주세요.\n\n문의 C-2002(모바일티켓 QR 미표시)는 현재 '접수됨' 상태입니다. 앱 업데이트 후에도 QR이 회색으로 표시됨. 앱 로그 확인 후 담당자를 배정합니다.\n\n상담원 연결을 접수했습니다 (접수 번호 T-2008).",
+        "sources": [
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "2. 방법 1: 현장 발권 창구",
+            "score": 0.575
+          },
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "5. 현장 스태프 알림",
+            "score": 0.537
+          },
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "1. 원칙: 입장이 먼저",
+            "score": 0.52
+          },
+          {
+            "doc": "onsite-entry-fallback",
+            "section": "6. 현장 본인 확인과 예외 상황",
+            "score": 0.503
+          }
+        ],
+        "ticket": {
+          "id": "T-2008",
+          "key": "wf12",
+          "category": "tech_issue",
+          "priority": "high",
+          "duplicate": true
+        },
+        "agents": {
+          "used": [
+            "ticketmoa-agents",
+            "ticketmoa-search",
+            "ticketmoa-tech",
+            "ticketmoa-payment",
+            "ticketmoa-handoff"
+          ],
+          "llm_calls": 3,
+          "intents": [
+            "tech_issue",
+            "booking_lookup"
+          ],
+          "confidence": 0.95,
+          "alert": {
+            "channel": "venue-staff",
+            "priority": "high"
+          },
+          "handoff": {
+            "dlq": false,
+            "alert": true
+          }
+        },
+        "security": {
+          "blocked_by": "",
+          "reason": "",
+          "masked": 2
+        },
+        "timings": {
+          "total_ms": 3369,
+          "agents_ms": 1050,
+          "search_ms": 538,
+          "payment_ms": 163,
+          "tech_ms": 1394,
+          "handoff_ms": 167
+        },
+        "reason": "urgent_entry"
+      }
+    }
+  ]
+}
