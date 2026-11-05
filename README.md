@@ -97,6 +97,7 @@ flowchart TD
 | 팀 키 | 본체 웹훅은 Header Auth로 막혀 있고, 키가 없거나 틀리면 403 |
 | 권한 | 질문 글이 아니라 `user`로 조회한 `access_level`로 판단하고, 직원 문서는 검색 전에 거름 |
 | 근거 검증 | 검증 Agent가 근거·정책·개인정보를 확인하고, 통과하지 못하면 이관 |
+| 부정 사용 차단 | 가상 IP 정책과 반복 요청(같은 사용자·같은 질문 60초에 6번째)을 LLM 앞에서 차단. 기록 조회가 실패하면 막지 않고 통과 |
 | 개인정보 | 응답과 로그에서 연락처를 가리고 가린 개수는 `security.masked`에 표시 |
 | 장애 대응 | 하위 웹훅이 실패해도 HTTP 200 + `{"error"}`로 돌려주고, 본체가 이관으로 처리 |
 | 티켓 장애 | `ticket: null`로 답하고 DLQ와 알림을 남김 |
@@ -109,7 +110,7 @@ flowchart TD
 
 | 파일 | 웹훅 경로 | 노드 | 하는 일 | 담당 |
 | --- | --- | --- | --- | --- |
-| `ticketmoa-support` | `ticketmoa-support` | 40 | 본체: 입력 검사, 주입 차단, 라우팅, 병렬 호출, 응답 조립, 기록 | 최두나 |
+| `ticketmoa-support` | `ticketmoa-support` | 45 | 본체: 입력 검사, 주입·부정 사용 차단, 라우팅, 병렬 호출, 응답 조립, 기록 | 최두나 |
 | `ticketmoa-agents` | `ticketmoa-agents`, `ticketmoa-agents-verify` | 17 | Supervisor 분류, 보완 질문 판단, 답변 검증 | 최강현 |
 | `ticketmoa-refund` | `ticketmoa-refund` | 38 | 환불 금액 안내, 고객 확정 후 티켓 | 최강현 |
 | `ticketmoa-index` | `ticketmoa-index` | 12 | 지식 문서 검사, `##` 절 단위 청킹, 권한별 색인 | 정예진 |
@@ -129,6 +130,8 @@ flowchart TD
 | 팀 필수 시나리오 (TM-01~08, TM-13) 1회 | 9/9 |
 | 팀 가산 시나리오 1회 | TM-12 통과, TM-09~11 실패 (반복 요청·IP 차단 미연결) |
 | 정상 문의 `bench -n 5` | p50 5.45초, p95 6.00초, 실패 0/5 |
+
+이 표는 가산 차단과 `errorWorkflow`를 넣기 전 결과입니다. 넣은 뒤에는 **로컬 n8n**에서 팀 13/13, 공통 3회 49/51(WF-01 2회 실패)이었고, VM 시험은 남아 있습니다.
 
 시험 직전 단건 호출에서 WF-01이 `verification_failed`로 1건 이관됐고, 로컬 시험에서도 LLM 시간 제한으로 보이는 간헐 실패가 있었습니다. 로컬 결과는 `docs/EXECUTION-RESULT.md`에 있으며, VM 값과 섞지 않습니다.
 
