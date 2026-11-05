@@ -220,7 +220,7 @@ n8n 안에서 되도는 루프는 만들지 않는다. 보완 질문은 요청 �
 - 견적에 `owner`·`expires_at`을 넣고, 확정 때 사용자·예매·만료를 다시 본다 (`확인 자격 판정`).
 - context의 user·amount·role·approved는 쓰지 않고 `ignored_context`로 이름만 남긴다 (`요청 단계 판정`).
 - 분류·검증 모델은 Credential `OpenAI (.env)`만 쓴다 (WF-10).
-- refund의 하위 웹훅 호출에는 `ticketmoa-team-key`를 쓴다. data-api 호출은 다른 워크플로우처럼 Credential 없이 부른다 (연습용 data-api는 키를 검사하지 않음).
+- refund의 하위 웹훅 호출에는 `ticketmoa-team-key`를 쓴다. data-api 호출은 다른 워크플로우처럼 Credential `ticketmoa-data-api`(`X-Api-Key`)를 붙여 부른다 (연습용 data-api는 키를 검사하지 않음).
 - 검증: promptfoo 환불 공격 세트 10/10, 공격 대응 세트 16/17 (계약 모형 기준, `security/promptfoo/`).
 
 ### 4.6 실행 예시
@@ -302,7 +302,7 @@ WF-01 실패는 `push`와 재색인 직후 1회차에서 나왔다. 앞선 시�
 
 운영으로 옮길 때 함께 바꿀 것:
 
-- **인증:** 연습용 data-api는 키를 검사하지 않아서 data-api 호출에 Credential이 없다. 운영 시스템 호출에는 시스템별 Credential을 연결한다.
+- **인증:** data-api 호출 23곳에 Credential `ticketmoa-data-api`(`X-Api-Key`, id `ticketmoaDataApi1`)를 연결했다. 헤더가 실제로 나가는 것은 임시 워크플로우로 확인했다(2026-11-05, 로컬). 연습용 data-api는 키를 검사하지 않으므로, 틀린 키를 거절하는지는 이 환경에서 시험할 수 없다. 운영 시스템 호출에는 시스템별 Credential을 연결한다.
 - **색인:** 지금은 In-Memory Vector Store를 쓰고, n8n을 재시작한 뒤에는 `ticketmoa-index`를 다시 호출한다. 재시작 후 데이터가 유지되는지는 아직 확인하지 않았다.
 - **신원:** 지금은 요청의 `user` 칸을 신원으로 믿는다. 운영에는 서명된 세션 토큰이 필요하다.
 

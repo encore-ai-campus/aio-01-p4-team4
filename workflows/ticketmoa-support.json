@@ -140,13 +140,21 @@
         "url": "http://data-api:8800/employees",
         "options": {
           "timeout": 5000
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "position": [
         220,
         0
       ],
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaDataApi1",
+          "name": "ticketmoa-data-api"
+        }
+      }
     },
     {
       "name": "Check input",
@@ -822,14 +830,22 @@
         "method": "POST",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ items: [$json.log] }) }}"
+        "jsonBody": "={{ JSON.stringify({ items: [$json.log] }) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "position": [
         4840,
         0
       ],
       "id": "cc12c3ab-8643-571d-83f4-d27c09dd8e5a",
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaDataApi1",
+          "name": "ticketmoa-data-api"
+        }
+      }
     },
     {
       "name": "Rejected?",
@@ -961,7 +977,9 @@
               "neverError": true
             }
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "name": "Get rate",
       "type": "n8n-nodes-base.httpRequest",
@@ -971,7 +989,13 @@
         220
       ],
       "onError": "continueErrorOutput",
-      "id": "b56d0a9a-bbdb-59c8-970d-a8dbef085c56"
+      "id": "b56d0a9a-bbdb-59c8-970d-a8dbef085c56",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaDataApi1",
+          "name": "ticketmoa-data-api"
+        }
+      }
     },
     {
       "parameters": {
@@ -1035,7 +1059,9 @@
         "method": "POST",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ value: $json.recent, ttl: 120 }) }}"
+        "jsonBody": "={{ JSON.stringify({ value: $json.recent, ttl: 120 }) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "name": "Save rate",
       "type": "n8n-nodes-base.httpRequest",
@@ -1045,7 +1071,13 @@
         340
       ],
       "onError": "continueErrorOutput",
-      "id": "c9eb2677-c475-55f8-94f3-be44e0bde2e1"
+      "id": "c9eb2677-c475-55f8-94f3-be44e0bde2e1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaDataApi1",
+          "name": "ticketmoa-data-api"
+        }
+      }
     }
   ],
   "connections": {

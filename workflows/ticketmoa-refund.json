@@ -416,11 +416,19 @@
               "neverError": true
             }
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "notes": "【역할】 이 예매에 이미 접수된 환불 요청이 있는지 본다.\n【입력】 pending_key.\n【처리】 새 안내가 확정 이력을 덮어쓰면 다시 확인했을 때 티켓이 또 생긴다. 그래서 저장 전에 읽는다.\n【출력】 {statusCode, body:{value}}.\n【실패 시】 읽지 못하면 확정 이력이 없는 것으로 보고 진행한다. 티켓 전에 확인 재조회를 한 번 더 거친다.",
       "notesInFlow": false,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaDataApi1",
+          "name": "ticketmoa-data-api"
+        }
+      }
     },
     {
       "id": "037184a6-4a87-c048-5cbc-ed0c3fe06f82",
@@ -492,11 +500,19 @@
               "neverError": true
             }
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "notes": "【역할】 확정 기록의 티켓이 실제로 남아 있는지 확인한다.\n【입력】 없음. 앞 노드의 existing을 다음 노드에서 비교한다.\n【처리】 GET /tickets-created. /tickets-reset은 티켓만 지우고 캐시를 남기므로 재시험 때 없는 티켓 번호를 돌려주지 않게 한다.\n【출력】 {statusCode, body:{tickets}}.\n【실패 시】 확인하지 못하면 티켓이 있다고 본다. 이중 티켓을 막는 쪽이 안전하다.",
       "notesInFlow": false,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaDataApi1",
+          "name": "ticketmoa-data-api"
+        }
+      }
     },
     {
       "id": "280d5a74-b255-f7ba-281a-32c0139cf9b0",
@@ -627,11 +643,19 @@
         "method": "POST",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ value: $json.pending, ttl: 1800 }) }}"
+        "jsonBody": "={{ JSON.stringify({ value: $json.pending, ttl: 1800 }) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "notes": "【역할】 안내한 금액을 서버 쪽에 저장한다. 2차 확인이 이 값만 믿는다.\n【입력】 {pending, pending_key}. 키는 refund-pending:<user>:<booking_id>이다.\n【처리】 POST /cache, 30분 유지. 고객이 보내는 context는 위조할 수 있어 근거로 쓰지 않는다.\n【출력】 {statusCode, body}.\n【실패 시】 저장에 실패하면 금액은 안내하되 확정 접수는 받지 않는다.",
       "notesInFlow": false,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaDataApi1",
+          "name": "ticketmoa-data-api"
+        }
+      }
     },
     {
       "id": "9720ee88-2ce7-71c1-374b-48183837d4ad",
@@ -697,11 +721,19 @@
               "neverError": true
             }
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "notes": "【역할】 1차 때 저장한 안내 내용을 읽는다.\n【입력】 pending_key. 키에 본체가 검증한 user가 들어 있어 남의 건은 찾아지지 않는다.\n【처리】 GET /cache/<key>.\n【출력】 {statusCode, body:{value}}. 없으면 404.\n【실패 시】 읽지 못하면 없는 것으로 처리해 티켓을 만들지 않는다.",
       "notesInFlow": false,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaDataApi1",
+          "name": "ticketmoa-data-api"
+        }
+      }
     },
     {
       "id": "75ca7d93-f413-0c64-fd01-ee42184fffa3",
@@ -1028,11 +1060,19 @@
         "method": "POST",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ value: $json.new_pending, ttl: 1800 }) }}"
+        "jsonBody": "={{ JSON.stringify({ value: $json.new_pending, ttl: 1800 }) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "notes": "【역할】 바뀐 금액으로 대기 상태를 고친다.\n【입력】 {new_pending, pending_key}.\n【처리】 다음 확인은 새 금액과 비교한다.\n【출력】 {statusCode, body}.\n【실패 시】 저장 실패 시 다음 확인에서 금액이 달라 다시 안내하게 되므로 안전하다.",
       "notesInFlow": false,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaDataApi1",
+          "name": "ticketmoa-data-api"
+        }
+      }
     },
     {
       "id": "ecad3a96-ace0-db53-8680-3c2011c0709f",
@@ -1072,11 +1112,19 @@
         "method": "POST",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ value: { ...$json.pending, status: 'cancelled' }, ttl: 1800 }) }}"
+        "jsonBody": "={{ JSON.stringify({ value: { ...$json.pending, status: 'cancelled' }, ttl: 1800 }) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "notes": "【역할】 고객이 확정하지 않겠다고 하면 대기 상태를 끝낸다.\n【입력】 {pending, pending_key}.\n【처리】 이후 confirm=true가 와도 다시 안내를 받아야 한다.\n【출력】 {statusCode, body}.",
       "notesInFlow": false,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaDataApi1",
+          "name": "ticketmoa-data-api"
+        }
+      }
     },
     {
       "id": "92bcdbd4-c541-cd80-c030-69e0c16e6bac",
@@ -1219,11 +1267,19 @@
         "method": "POST",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ value: { ...$json.pending, status: 'confirmed', ticket: $json.ticket }, ttl: 86400 }) }}"
+        "jsonBody": "={{ JSON.stringify({ value: { ...$json.pending, status: 'confirmed', ticket: $json.ticket }, ttl: 86400 }) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "notes": "【역할】 이 환불 요청이 접수됐음을 기록한다.\n【입력】 {pending, ticket, pending_key}.\n【처리】 다른 request_id의 재확인이 티켓을 또 만들지 못하게 한다. 현 API에는 원자적 소비가 없어 동시 확인까지 막지는 못한다.\n【출력】 {statusCode, body}.\n【실패 시】 실패해도 고객 응답은 막지 않는다.",
       "notesInFlow": false,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaDataApi1",
+          "name": "ticketmoa-data-api"
+        }
+      }
     },
     {
       "id": "60e72b05-5376-287d-ce86-f6a8889e251d",

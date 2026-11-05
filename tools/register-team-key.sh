@@ -15,3 +15,12 @@ docker inspect "$container" >/dev/null 2>&1 || { echo "n8n 컨테이너 '$contai
 printf '%s' "$credentials" | docker exec -i "$container" sh -c \
   'cat > /tmp/team-key.json && n8n import:credentials --input=/tmp/team-key.json; status=$?; rm -f /tmp/team-key.json; exit $status'
 echo "Registered 'ticketmoa-team-key' (ticketmoaTeamKey1)"
+
+# 데이터 API 호출에 붙는 X-Api-Key Credential도 고정 id로 넣는다 (.env의 TM_DATA_API_KEY).
+api_key="${TM_DATA_API_KEY:-}"
+[ -n "$api_key" ] || { echo "TM_DATA_API_KEY가 비어 있다." >&2; exit 1; }
+case "$api_key" in *\"*|*\\*) echo "키에 \" 나 \\ 는 쓸 수 없다." >&2; exit 1;; esac
+credentials=$(printf '[{"id":"ticketmoaDataApi1","name":"ticketmoa-data-api","type":"httpHeaderAuth","data":{"name":"X-Api-Key","value":"%s"}}]' "$api_key")
+printf '%s' "$credentials" | docker exec -i "$container" sh -c \
+  'cat > /tmp/data-api-key.json && n8n import:credentials --input=/tmp/data-api-key.json; status=$?; rm -f /tmp/data-api-key.json; exit $status'
+echo "Registered 'ticketmoa-data-api' (ticketmoaDataApi1)"
