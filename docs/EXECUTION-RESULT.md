@@ -3,7 +3,7 @@
 > 산출물 ③ (25점) · 작성 담당: **E 시험·품질 · 김인혜**
 > 제출 기준 결과: **팀 VM, `main` `ea1a6c9`, 공통 3회 50/51, 팀 13/13** (0절 A행). 시험별 코드·문서 버전은 0절 표를 따른다.
 > 측정일: 2026-11-04 ~ 2026-11-05
-> **측정 환경 및 출처 표기 안내**: 본 문서의 수치는 `runs/`(로컬 WSL `AIO`) 및 `runs/vm/`(팀 VM `aio-t4`) 디렉터리에 저장된 실행 보고서 JSON 실측값을 기본으로 사용하며, **로컬 측정치**와 **팀 VM 측정치**를 열로 구분해 섞지 않는다. `runs/` 보고서 파일 밖의 값(11/04 팀 공유치, `tools/reindex.py` 터미널 출력, 로컬 첫 호출 `8.1s`, 로컬 `GET /logs?source=live` 120건 메모리 조회)은 각 표와 본문에 출처를 별도로 명시한다.
+> **측정 환경 및 출처 표기 안내**: 본 문서의 수치는 `runs/`(로컬 WSL `AIO`) 및 `runs/vm/`(팀 VM `aio-t4`) 디렉터리에 저장된 실행 보고서 JSON 실측값을 기본으로 사용하며, **로컬 측정치**와 **팀 VM 측정치**를 열로 구분해 섞지 않는다. `runs/` 보고서 파일 밖의 값(11/04 팀 공유치, `tools/reindex.py` 터미널 출력, 로컬 첫 호출 `8.1s`, 로컬 `GET /logs?source=live` 메모리 조회)은 각 표와 본문에 출처를 별도로 명시한다.
 
 ---
 
@@ -94,7 +94,7 @@
 `uv run --env-file .env tools/reindex.py` 실행 시 터미널 표준출력으로 반환된 색인·검색 확인 값(출처: `reindex.py` 실행 콘솔 출력 및 `docs/RAG-ARCHITECTURE.md` 1절·5.1절, `runs/` 보고서 파일 아님)은 다음과 같다.
 
 | 측정 시각 · 환경 | 전체 문서 | 일반 문서 (`all`) | 스태프 문서 (`staff`) | 청크 수 | 청크 길이 최소 / 중앙값 / 최대 (문자) | 색인 결과 (`outcome`) | 검색 확인 (`QR 입장`, `top_k: 3`) |
-| --- | :---: | :---: | :---: | :---: | :---: | --- | --- |
+| --- | :---: | :---: | :---: | :---: | --- | --- | --- |
 | 2026-11-05 12:09 (로컬, 기존 문서) | 8 / 8 | 7 | 1 | **33개** | 116 / 194 / 379 | `store_output_received` | 일반 `True`, 스태프 `True`, 결과 3건 |
 | 2026-11-05 12:32 (로컬, 정제본 `45bde9a`) | 8 / 8 | 7 | 1 | **42개** | 116 / 229 / 432 | `store_output_received` | 일반 `True`, 스태프 `True`, 결과 3건 |
 | 2026-11-05 12:44 (**팀 VM `445ba2d`**, 정제본 `45bde9a`) | 8 / 8 | 7 | 1 | **42개** | 116 / 229 / 432 | `store_output_received` | 일반 `True`, 스태프 `True`, 결과 3건 |
@@ -169,23 +169,25 @@
 | 로컬 | `requests/wf02.json` | 정보 부족 (`보완 질문`, LLM 1회) | 5 | **1.26s** (`1.260s`) | **1.28s** (`1.279s`) | **1.28s** (`1.279s`) | 0 / 5 | `1.28`, `1.19`, `1.26`, `1.13`, `1.26` | `runs/bench-ticketmoa-support-20261105-123446.json` |
 | 로컬 | `requests/wf12.json` | 복합·긴급 (`search ∥ payment` 병렬 + 긴급 이관, LLM 3회) | 5 | **3.38s** (`3.376s`) | **3.49s** (`3.492s`) | **3.49s** (`3.492s`) | 0 / 5 | `3.38`, `3.26`, `3.21`, `3.49`, `3.47` | `runs/bench-ticketmoa-support-20261105-123503.json` |
 
-### 3.2 데이터 API `/logs?source=live` 집계 (로컬 시험 직후 메모리 조회, 120건)
+### 3.2 데이터 API `/logs?source=live` 집계 (로컬 시험 직후 메모리 조회, 총 120건)
 
-> **출처 안내**: 아래 표는 `runs/` JSON 파일 안에 들어 있는 값이 아니라, 2026-11-05 로컬에서 `common.json --repeat 3`(51건), `team.json --repeat 3`(39건 + `TM-09` `before` 사전 호출 5건 × 3회 = 15건, 소계 54건), `bench -n 5` 3종(15건)을 연속 실행한 직후 로컬 데이터 API의 `GET http://localhost:8800/logs?source=live` 엔드포인트를 조회해 집계한 **총 120건**의 인메모리 실행 기록이다 (`51 + 54 + 15 = 120건`). 기록에 질문 원문·답변·이름·연락처는 포함되지 않음을 확인했다.
+> **출처 안내**: 아래 표는 `runs/` JSON 파일 안에 들어 있는 값이 아니라, 2026-11-05 로컬에서 `common.json --repeat 3`(51건), `team.json --repeat 3`(본 시험 39건 + `TM-09` `before` 사전 호출 5건 × 3회 = 15건, 소계 54건), `bench -n 5` 3종(15건)을 연속 실행한 직후 로컬 데이터 API의 `GET http://localhost:8800/logs?source=live` 엔드포인트를 조회해 집계한 인메모리 실행 기록이다. 총 호출 수는 `51 + 54(39 + 15) + 15 = 120건`이다. 이 가운데 당시 집계한 **110건**(`53 + 31 + 11 + 3 + 3 + 9 = 110건`, `rejected` 9건이 이미 포함되어 있음)의 세부 `route`/`status`는 확인되었으나, 나머지 `TM-09` `before` 사전 호출분 **10건**은 원본 인메모리 로그가 초기화되어 세부 `route`를 다시 셀 수 없으므로 **미분류(사전 호출)**로 분리 표기한다. 기록에 질문 원문·답변·이름·연락처는 포함되지 않음을 확인했다.
 
-#### (1) 최종 `route` 및 상태 비율 (`status` 110건 + `rejected` 9건 + 사전 호출 중 1건 = 120건, 로컬 `/logs` 출처)
+#### (1) 최종 `route` 및 상태 비율 (집계 확인 110건 + 사전 호출 미분류 10건 = 총 120건, 로컬 `/logs` 출처)
 
-| 구분 (`route` / `status`) | 건수 (로컬 `/logs`) | 비율 (110건 기준 / 120건 기준) | 비고 |
+| 구분 (`route` / `status`) | 건수 (로컬 `/logs`) | 비율 (확인 110건 기준 / 전체 120건 기준) | 비고 |
 | --- | :---: | :---: | --- |
 | `담당자 이관` | 53건 | 48.2% / 44.2% | 지식 없음, 결제 오류, 환불 확정/예외, 긴급 입장, 장애 폴백 등 |
-| `자동 답변` | 31건 (본 시험) + 10건 (`TM-09` `before` 사전 호출 중 일부) | 28.2% / 34.2% | QR·앱 로그인·매크로 문의, 본인 조회, 환불 1차 금액 안내 등 |
+| `자동 답변` | 31건 | 28.2% / 25.8% | QR·앱 로그인·매크로 문의, 본인 조회, 환불 1차 금액 안내 등 (확인 110건 내 수치) |
 | `보완 질문` | 11건 | 10.0% / 9.2% | `WF-02` (3회 + bench 5회), `TM-10` (3회) |
 | `권한 없음` | 3건 | 2.7% / 2.5% | `WF-06` 타인 건 조회 (3회) |
 | `차단` | 3건 | 2.7% / 2.5% | `WF-08` 프롬프트 주입 규칙 차단 (3회) |
-| `rejected` (HTTP 400) | 9건 | 8.2% / 7.5% | `WF-13a`·`13b`·`13c` 잘못된 입력 (3종 × 3회) |
-| **합계** | **본 시험·bench 110건** (`TM-09` `before` 사전 호출 포함 시 **120건**) | **100.0%** | — |
+| `rejected` (HTTP 400) | 9건 | 8.2% / 7.5% | `WF-13a`·`13b`·`13c` 잘못된 입력 (3종 × 3회, **110건에 이미 포함됨**) |
+| **소계 (집계 확인분)** | **110건** | **100.0% / 91.7%** | 본 시험·bench 105건(`rejected` 9건 포함) + `TM-09` `before` 사전 호출 5건 (`53+31+11+3+3+9 = 110건`) |
+| `미분류` (`TM-09` `before` 사전 호출 나머지) | 10건 | — / 8.3% | `TM-09` 사전 호출 15건 중 110건 집계 당시 빠진 10건 (원본 메모리 소실로 세부 `route` 미분류) |
+| **전체 합계** | **120건** | **— / 100.0%** | `common` 51건 + `team` 본 시험 39건 + `TM-09` 사전 호출 15건 + `bench` 15건 |
 
-#### (2) 하위 웹훅 단계별 소요 시간 (`steps`) 및 LLM 호출 수 (`llm_calls`) (출처: 로컬 `GET /logs?source=live`)
+#### (2) 하위 웹훅 단계별 소요 시간 (`steps`) 및 LLM 호출 수 (`llm_calls`) (출처: 로컬 `GET /logs?source=live` 확인 110건 기준)
 
 | 측정 항목 | 호출 건수 (`n`) | `p50` (로컬) | `p95` (로컬) | `max` (로컬) | 비고 |
 | --- | :---: | :---: | :---: | :---: | --- |
@@ -216,7 +218,7 @@
 - **조치**:
   - 커밋 `2ad2849`에서 본체(`workflows/ticketmoa-support.json`)의 `Call search` 및 병렬 `Call search ∥` 노드를 수정해, 긴급 입장 문의(`urgency === "high"`)일 때는 검색 `scope`를 `["onsite-entry-fallback"]`으로 고정하여 대체 입장 근거가 검색 4위 밖으로 밀리지 않도록 개선했다.
 - **재시험 결과**:
-  - 수정 후 42청크 기준 로컬 3회 반복 시험(`runs/common-20261105-123211.json`)에서 `WF-12`가 **3 / 3 통과**(`4.4s`, `3.3s`, `3.4s`)했고, **팀 VM(`445ba2d`, 42청크) 3회 반복 시험(`runs/vm/common-20261105-034700.json`)에서도 3 / 3 통과(`4.9s`, `4.2s`, `3.8s`)**하며 `onsite-entry-fallback` 근거와 `"현장 발권"` 안내가 안정적으로 포함됨을 확인했다.
+  - 수정 후 42청크 기준 로컬 3회 반복 시험(`runs/common-20261105-123211.json`)에서 `WF-12`가 **3 / 3 통과**(`4.4s`, `3.3s`, `3.4s`)했고, **팀 VM(`445ba2d`, 42청크) 3회 반복 시험(`runs/vm/common-20261105-034700.json`)에서도 3 / 3 통과(`4.9s`, `4.2s`, `3.8s`)**, **최신 팀 VM(`ea1a6c9`)에서도 3 / 3 통과(`4.6s`, `4.6s`, `4.3s`)**하며 `onsite-entry-fallback` 근거와 `"현장 발권"` 안내가 안정적으로 포함됨을 확인했다.
 
 ### 사례 2 · OpenAI Credential 인증 실패(HTTP 401)로 인한 색인 누락 및 정상/보완/긴급 문의 이관 폴백
 
@@ -234,23 +236,26 @@
 - **재시험 결과**:
   - 직후 재시험 보고서 `runs/common-20261105-121025.json`(로컬, 33청크)에서 `WF-01`(`자동 답변`, `6.0s`), `WF-02`(`보완 질문`, `2.4s`), `WF-12`(`담당자 이관`, `priority: "high"`, `3.6s`)가 모두 통과하여 **17 / 17 전원 통과**를 확인했다.
 
-### 사례 3 · `WF-01`·`TM-07` 간헐적 `llm_unavailable` 이관 및 시간 제한(2.5초) 유지 판단
+### 사례 3 · `WF-01`·`TM-07` 간헐적 시간 초과 3종(작성·검증·전체 시간 초과) 규명 및 제한 유지·예열 조치
 
-- **발생 시나리오**: `WF-01 정상 문의` (로컬 `--repeat 3`의 #2·#3회차), `TM-07 매크로 제한 문의` (11/04 로컬 3회 반복 중 1회차)
-- **근거 보고서 및 출처**: `runs/common-20261105-123211.json` (2026-11-05 12:32, 로컬 42청크), 11/04 로컬 시험 기록(출처: `docs/WORKFLOW-DESIGN.md` 4.6절), 컨테이너 재시작 직후 로컬 단건 호출 기록(8.1s, 콘솔 측정치로 `runs/` 파일 없음)
-- **현상**:
-  1. 로컬 컨테이너 재시작 직후 첫 `WF-01` 단건 호출(콘솔 확인, `runs/` 미보관)에서 `route: "자동 답변"`과 `sources`는 정상 생성되었으나 전체 소요 시간이 `8.1s`(`total_ms: 6175ms`)로 `expect.max_seconds: 8`을 `0.1s` 초과한 사례가 있었다.
-  2. 2026-11-05 12:32 로컬 42청크 `common.json --repeat 3`(`runs/common-20261105-123211.json`)에서 `WF-01` #1회차는 `7.3s`(`tech_ms: 3934ms`)로 통과했으나, #2회차(`6.2s`, `tech_ms: 2657ms`)와 #3회차(`6.3s`, `tech_ms: 2647ms`)는 분류(`intents: ["tech_issue"]`, `confidence: 0.95`)와 검색까지 성공하고도 `route: "담당자 이관"`, `sources: []`, `reason: "llm_unavailable"`로 실패했다. (11/04 로컬 시험에서도 `TM-07`이 3회 중 1회 `llm_unavailable`로 이관됨.)
-- **원인 분석**:
-  - `workflows/ticketmoa-tech.json`의 `작성 모델`(`gpt-4.1-mini`) 노드에 `timeout: 2500`(2.5초)과 `maxRetries: 1`이 설정되어 있어, OpenAI 응답이 순간적으로 2.5초를 넘기면 `작성 실패 결과` 노드를 통해 `reason: "llm_unavailable"`로 안전 이관된 것으로 추정된다.
-  - 다만 응답의 `timings.steps.tech_ms`(로컬 `/logs` 기준 `p50 2,429ms`, `p95 3,015ms`)는 **`작성 모델` 단독 시간이 아니라 답변 작성 LLM과 `ticketmoa-agents-verify` 검증 LLM 호출을 합친 값**이므로, `tech_ms` 수치만으로 2.5초 타임아웃이 원인이었다고 단정할 수는 없으며 n8n 실행 기록의 상세 오류 메시지는 추가 확인이 필요하다.
-- **조치 판단 및 이후 시험 결과 (2.5초 제한 유지)**:
-  - `작성 모델` timeout을 3.5~4초로 늘리면 분류(최대 3초) + 검색 + 작성 + 검증의 최악 합계 시간이 시나리오 판정 기준인 **8초(`max_seconds: 8`)를 초과**하게 된다.
-  - 12:32 실패 이후 수행한 로컬 `team.json --repeat 3`(`runs/team-20261105-123416.json`, 12:34)에서 `TM-07`이 `3 / 3` 통과했고, 로컬 `bench -n 5`(`runs/bench-ticketmoa-support-20261105-123440.json`, 12:34)에서도 `WF-01`이 **5 / 5 통과(`p50 4.61s`, `p95 5.15s`)**했다.
-  - 무엇보다 **팀 VM(`445ba2d`, 42청크)에서 실행한 `common.json --repeat 3`(`runs/vm/common-20261105-034700.json`, 12:47 KST)에서 `WF-01`이 3 / 3 통과(`6.6s`, `6.8s`, `6.1s` ≤ 8s)해 전체 `51 / 51`을 달성**했고, **VM `bench -n 5`(`runs/vm/bench-ticketmoa-support-20261105-034838.json`, 12:48 KST)에서도 5 / 5 통과(`p50 5.45s`, `p95 6.00s`)**했으므로 `작성 모델` 2.5초 제한을 그대로 **유지**하기로 결정했다.
-  - **VM 재시험 (`a5c80dc`, 0절 A′행)**: 공통 3회 `50 / 51`로, `WF-01` 1회차가 `push`와 재색인 직후 `llm_unavailable`로 이관됐다(`7.3s`, `tech_ms` 약 2.7초). 2·3회차와 `bench -n 5`는 통과했다. 시간 초과형 실패가 1건으로 조정 기준(2건 이상) 미만이라 2.5초를 유지한다.
-  - **최신 VM 재시험 (`ea1a6c9`, 0절 A행)**: 공통 3회 `50 / 51`로, `WF-01` 1회차가 `push`와 재색인 직후 `8.2s`로 기준을 넘었다. 답은 정상이어서 시간 초과형 이관은 없었고, 2.5초 제한은 유지한다.
-  - **잔여 위험**: 팀 VM 시험 직전 단건 호출에서 `WF-01`이 `verification_failed`로 1회 이관된 사례가 있었고, 로컬과 VM 모두에서 간헐적 `llm_unavailable` 이관이 관측되었으므로, 완전 해결로 보지 않고 계속 모니터링한다.
+- **발생 시나리오**: `WF-01 정상 문의` (로컬·팀 VM 반복 시험 및 단건 호출), `TM-07 매크로 제한 문의` (11/04 로컬 3회 반복 중 1회차)
+- **근거 보고서 및 출처**:
+  - 로컬 보고서: `runs/common-20261105-123211.json` (0절 D행), `runs/common-20261105-140723.json` (0절 C행)
+  - 팀 VM 보고서: `runs/vm/common-20261105-051822.json` (0절 A′행, `a5c80dc`), `runs/vm/common-20261105-061255.json` (0절 A행, `ea1a6c9`)
+  - VM n8n 실행 기록(Executions) 확인 및 콘솔 단건 기록 (`docs/daily/DAY80.md` 3절, `docs/WORKFLOW-DESIGN.md` 4.6~4.8절)
+- **실행 기록으로 규명된 3가지 원인 유형**:
+  1. **작성 시간 초과 (`ticketmoa-tech` · `작성 모델` 제한 2.5초, 확인됨)**:
+     - **확인 내역**: 팀 VM **14:16** 실행 기록(0절 A′행 `a5c80dc` 1회차, 전체 `7.3s`, `llm_calls: 2`)에서 `ticketmoa-tech`의 `작성 모델` 노드가 **2.507초** 만에 `Request timed out.` 오류를 내고 `작성 실패 결과` 노드를 통해 `route: "담당자 이관"`, `reason: "llm_unavailable"`, `sources: []`로 빠진 것이 **확인됨**.
+     - 로컬 12:32(`runs/common-20261105-123211.json` #2·#3회차, `tech_ms` 약 2.65초, `llm_calls: 2`), 로컬 14:07(`runs/common-20261105-140723.json` #2회차)의 `llm_unavailable` 이관도 동일 경로다. (단, 응답의 `tech_ms` 자체는 작성과 검증을 합친 값이다.)
+  2. **검증 시간 초과 (`ticketmoa-agents` · `검증 모델` 제한 2.0초, 높은 추정)**:
+     - **확인 내역**: 팀 VM **12:19** 단건 시험 실행 기록에서 답변 작성까지는 성공했으나, `ticketmoa-agents-verify` 호출이 **2.007초** 만에 `issues: ["llm_unavailable"]`을 반환해 `ticketmoa-tech`의 `답변 결정` 노드에서 `route: "담당자 이관"`, `reason: "verification_failed"`로 이관되었다.
+     - `ticketmoa-agents`의 검증 모델 노드에 설정된 **제한 2.0초(`timeout: 2000`)**에 걸려 검증 실패 분기로 빠진 것으로 판단된다(**높은 추정**).
+  3. **전체 시간 초과 (`expect.max_seconds: 8`, 답은 정상)**:
+     - **확인 내역**: 최신 팀 VM **15:10** 시험(`ea1a6c9`, 0절 A행 `runs/vm/common-20261105-061255.json` 1회차)에서 분류·검색·작성·검증(`llm_calls: 3`)을 모두 통과해 **`route: "자동 답변"`과 정상 근거(`sources`)를 반환했으나, 전체 소요 시간이 `8.2초`**(내부 `total_ms: 7,961ms`, 분류 `3,046ms`)로 `cases/common.json`의 `max_seconds: 8` 기준을 `0.2초` 초과해 FAIL로 집계되었다.
+     - 로컬 컨테이너 재시작 직후 첫 단건 호출(`8.1s`, 콘솔 확인) 및 로컬 14:07 3회차(`8.0s`)도 동일한 콜드스타트성 전체 시간 초과 사례다.
+- **조치 판단 및 재시험 결과 (제한 유지 + 시연 전 예열)**:
+  - **시간 제한 유지**: 작성 모델(2.5초)이나 검증 모델(2.0초)의 timeout을 늘리면 분류(최대 3.0초) + 검색 + 작성 + 검증의 합계 시간이 시나리오 전체 기준인 **8.0초를 넘기게 되므로** 현재 제한(작성 2.5초, 검증 2.0초, 분류 3.0초)을 그대로 유지한다.
+  - **시연 전 예열(`tools/demo.py --warm`) 도입**: 실패가 모두 `push` 및 재색인 직후 첫 회차에서 집중 발생하고, 예열 직후인 2·3회차(`5.2s`, `6.2s`) 및 **팀 VM `bench -n 5`에서는 `445ba2d`(`p50 5.45s`), `a5c80dc`(`p50 5.50s`), `ea1a6c9`(`p50 5.40s`, `p95 5.90s`) 모두 실패 0 / 5로 통과**했다. 이에 따라 `tools/demo.py --warm`으로 시연·시험 전 워밍업 호출을 수행하도록 조치했다.
 
 ### 사례 4 · 강한 불만 문의(`TM-05`) 이관 시 근거 문서(`sources`) 누락
 
@@ -263,19 +268,19 @@
 - **조치**:
   - 커밋 `d213d89`에서 본체 `Route` 스위치에 `evidence_handoff` 갈래(`Call search (evidence)` → `Evidence handoff answer`)를 추가해, 강한 불만 문의(`sentiment: "angry"`)나 당일 취소 문의도 해당 업무의 `kb_scope` 문서를 먼저 검색한 뒤 `sources`를 담아 `ticketmoa-handoff`로 넘기도록 수정했다.
 - **재시험 결과**:
-  - 로컬 3회 반복(`runs/team-20261105-123416.json`)에서 `TM-05`(`1.8s`, `1.9s`, `2.1s`)와 `TM-06`(`1.8s`, `1.8s`, `1.8s`)이 **3 / 3 통과**했고, **팀 VM(`runs/vm/team-20261105-034811.json`)에서도 `TM-05`(`2.4s`), `TM-06`(`2.3s`) 모두 통과**하며 `payment-error-guide`·`refund-policy` 근거가 정상 포함됨을 확인했다.
+  - 로컬 3회 반복(`runs/team-20261105-123416.json`)에서 `TM-05`(`1.8s`, `1.9s`, `2.1s`)와 `TM-06`(`1.8s`, `1.8s`, `1.8s`)이 **3 / 3 통과**했고, **팀 VM(`445ba2d` 및 최신 `ea1a6c9`)에서도 `TM-05`(`2.1s`), `TM-06`(`2.0s`) 모두 통과**하며 `payment-error-guide`·`refund-policy` 근거가 정상 포함됨을 확인했다.
 
-### 사례 5 · 가산 시나리오(`TM-09`~`TM-11`) 반복 요청 및 IP 차단 미연결 (`445ba2d`까지, `a5c80dc`에서 해결)
+### 사례 5 · 가산 시나리오(`TM-09`~`TM-11`) 반복 요청 및 IP 차단 미연결 (`445ba2d`까지, `a5c80dc`·`ea1a6c9`에서 해결)
 
 - **발생 시나리오**: `TM-09 반복 요청 차단 (6번째 요청)`, `TM-10 해외 IP 차단`, `TM-11 블랙리스트 IP 차단`
-- **근거 보고서**: 로컬 `runs/team-20261105-121121.json`, `runs/team-20261105-123416.json` 및 **팀 VM `runs/vm/team-20261105-034811.json`**
+- **근거 보고서**: 로컬 `runs/team-20261105-121121.json`, `runs/team-20261105-123416.json` 및 **팀 VM `runs/vm/team-20261105-034811.json`(B행) → `runs/vm/team-20261105-061351.json`(A행)**
 - **현상**:
-  - 기대값은 모두 `route: "차단"` 및 `security.blocked_by` 값(`"rate_limit"`, `"geo"`, `"ip_blocklist"`)이나, `445ba2d`까지는 일반 문의와 동일하게 분류·답변 경로를 타서 `자동 답변`(`TM-09`, `TM-11`) 또는 `보완 질문`(`TM-10`)과 `security.blocked_by: ""`를 반환해 로컬 `0 / 3`, 팀 VM `0 / 1` 실패했다.
+  - 기대값은 모두 `route: "차단"` 및 `security.blocked_by` 값(`"rate_limit"`, `"geo"`, `"ip_blocklist"`)이나, `445ba2d`(B행)까지는 일반 문의와 동일하게 분류·답변 경로를 타서 `자동 답변`(`TM-09`, `TM-11`) 또는 `보완 질문`(`TM-10`)과 `security.blocked_by: ""`를 반환해 로컬 `0 / 3`, 팀 VM `0 / 1` 실패했다.
 - **원인**:
   - `lib/common.js`의 `checkRateLimit`·`checkIpPolicy` 함수(현재 `node --test lib/test/*.test.js` 단위 테스트 **20 / 20** 통과)와 `config/ip-policy.json`, 패치 스크립트(`tools/abuse_guard_apply.py`, PR #13)는 준비되어 있었으나, 필수 시나리오 VM 검증을 먼저 끝내는 원칙에 따라 `445ba2d` 시점에는 본체(`workflows/ticketmoa-support.json`)에 연결하지 않은 상태였다.
-- **조치 및 현재 상태**:
+- **조치 및 재시험 결과**:
   - 국내 정상 IP(`203.0.113.10`)가 과잉 차단되지 않는지 확인하는 `TM-12`는 로컬 **3 / 3**, 팀 VM **1 / 1** 통과했다.
-  - 팀 VM에서 필수 시나리오(공통 `51/51`, 팀 필수 `9/9`) 통과를 확인한 뒤, 후속 커밋 `6f158de`에서 본체에 차단 노드 5개를 연결해 로컬 `runs/team-20261105-140447.json`에서 **팀 13 / 13 전원 통과**를 확인했다. 이후 VM에 재배포한 `a5c80dc`에서도 **팀 13 / 13**으로 통과했다 (0절 A′행, `TM-09`~`11` 각 0.2초, LLM 호출 전 차단). `ea1a6c9`(A행)에서도 13 / 13이다.
+  - 팀 VM에서 필수 시나리오(공통 `51/51`, 팀 필수 `9/9`) 통과를 확인한 뒤, 커밋 `6f158de`에서 본체에 차단 노드 5개를 연결해 로컬 `runs/team-20261105-140447.json`에서 **팀 13 / 13 전원 통과**를 확인했다. 이후 팀 VM에 배포한 `a5c80dc`(A′행) 및 최신 **`ea1a6c9`(A행, `runs/vm/team-20261105-061351.json`)에서도 팀 13 / 13 전원 통과**(`TM-09`~`11` 각 `0.2s`, LLM 호출 전 차단)를 달성했다.
 
 ---
 
@@ -287,7 +292,7 @@
 
 | # | 구분 | 체크리스트 항목 (`KSM-REQ.md` 6절 원문) | 확인 근거 (산출물 절 · 구현 파일 · 실측 보고서) | 충족 |
 | :---: | --- | --- | --- | :---: |
-| 1 | **노코드 워크플로우 설계서** | Trigger → 처리 → 출력 흐름이 실제 구현과 일치한다. | `docs/WORKFLOW-DESIGN.md` 2~3절 및 `workflows/ticketmoa-*.json` 7종(`support`, `agents`, `search`, `tech`, `payment`, `refund`, `handoff`) 노드 흐름 일치 확인 | [x] |
+| 1 | **노코드 워크플로우 설계서** | Trigger → 처리 → 출력 흐름이 실제 구현과 일치한다. | `docs/WORKFLOW-DESIGN.md` 2~3절 및 `workflows/ticketmoa-*.json` **9개**(`support`, `agents`, `refund`, `index`, `search`, `tech`, `payment`, `handoff`, `errors`) 노드 흐름 일치 확인 | [x] |
 | 2 | **노코드 워크플로우 설계서** | 병렬·분기·루프 구조의 사용 목적이 명확하다. | `docs/WORKFLOW-DESIGN.md` 4절 (신뢰도·권한·감정 분기, `WF-12` `Call search ∥`·`Call payment ∥` 병렬, `WF-02`·`WF-02b` `attempt` 보완 질문 루프 및 재시도 루프 명시) | [x] |
 | 3 | **노코드 워크플로우 설계서** | 외부 연동별 인증 및 오류 처리를 기록했다. | `docs/WORKFLOW-DESIGN.md` 5·7절 (`X-Team-Key`, `X-Api-Key`, `OpenAI (.env)` 인증 및 401/403 비재시도, 429/5xx/timeout 재시도·DLQ·알림·Error Workflow 기록) | [x] |
 | 4 | **노코드 워크플로우 설계서** | 노드 간 페이로드의 필수·선택 필드와 변환 로직을 작성했다. | `docs/WORKFLOW-DESIGN.md` 6절 (하위 웹훅 및 주요 연결선별 필수·선택 필드, `lib/common.js` 변환·정규화·마스킹 로직, 실제 페이로드 예시 수록) | [x] |
@@ -295,24 +300,24 @@
 | 6 | **RAG 아키텍처 설계서** | 임베딩 모델 선정 이유와 실제 벡터 차원을 기록했다. | `docs/RAG-ARCHITECTURE.md` 3절 (`text-embedding-3-large`, 실제 벡터 차원 3,072차원 확인 근거, 문장 의미 검색 목적과 비교 실험 부재 기록) | [x] |
 | 7 | **RAG 아키텍처 설계서** | 거리 계산 방식과 인덱스·메타데이터 구조를 작성했다. | `docs/RAG-ARCHITECTURE.md` 3~4절 (Cosine Similarity 재계산 대조 확인, `ticketmoa_kb_v1_all`·`ticketmoa_kb_v1_staff` 권한 분리 파티션 및 메타데이터·검색 전후 필터 구조) | [x] |
 | 8 | **RAG 아키텍처 설계서** | 백업·복구 및 확장 방안을 작성했다. | `docs/RAG-ARCHITECTURE.md` 5절 (Git 원본 백업, `tools/reindex.py` 재색인 시간 측정과 비용 추산, 자동 롤백 미구현 기록, 문서 10배 확장 추산) | [x] |
-| 9 | **워크플로우 실행 결과서** | 주요 시나리오별 실행 테스트 로그가 있다. | 본 문서 1~3절 (`cases/common.json` 17케이스, `cases/team.json` 13케이스 로컬·팀 VM 실측, `bench -n 5`, 로컬 `/logs` 120건 단계별 `steps` 및 `llm_calls` 기록) | [x] |
-| 10 | **워크플로우 실행 결과서** | 예외 상황의 실제 처리 결과가 있다. | 본 문서 2.1~2.2절 (`WF-03` 무근거 이관, `WF-04` 티켓 API 500 장애 DLQ+알림, `WF-05`~`08` 권한·PII·주입 차단, `WF-09` 중복 방지, `WF-10` LLM 장애, `WF-11` 8초 지연, `WF-13` 400 검증) | [x] |
+| 9 | **워크플로우 실행 결과서** | 주요 시나리오별 실행 테스트 로그가 있다. | 본 문서 0~3절 (`cases/common.json` 17케이스, `cases/team.json` 13케이스 로컬·팀 VM 실측, `bench -n 5`, 로컬 `/logs` 120건 단계별 `steps` 및 `llm_calls` 기록) | [x] |
+| 10 | **워크플로우 실행 결과서** | 예외 상황의 실제 처리 결과가 있다. | 본 문서 0.1~0.2절, 2.1~2.2절 (`WF-03` 무근거 이관, `WF-04` 티켓 API 500 장애 DLQ+알림, `WF-05`~`08` 권한·PII·주입 차단, `WF-09` 중복 방지, `WF-10` LLM 장애, `WF-11` 8초 지연, `WF-13` 400 검증) | [x] |
 | 11 | **워크플로우 실행 결과서** | 기대 결과와 실제 결과를 구분했다. | 본 문서 2.1절·2.2절 시나리오 표에서 `기대 판정 (expect)` 열과 로컬·팀 VM 실제 결과 및 `실제 응답 route · 주요 필드 확인` 열을 분리해 대조 기록 | [x] |
-| 12 | **워크플로우 실행 결과서** | 실패 사례와 재시험 결과를 기록했다. | 본 문서 4절 (사례 1 `WF-12` 42청크 근거 누락 → `2ad2849`로 로컬·VM `3/3` 통과, 사례 2 OpenAI 401 → `17/17` 통과, 사례 3 `WF-01`·`TM-07` 간헐 이관 → VM B행 `51/51`, A′행·A행 `50/51`, `bench 5/5` 확인 후 제한 유지, 사례 4 `TM-05` 근거 누락 → 통과, 사례 5 가산 연결 → VM A행 `13/13`) | [x] |
-| 13 | **공통** | 세 설계서·결과서의 내용이 실제 구현과 일치한다. | `docs/WORKFLOW-DESIGN.md`, `docs/RAG-ARCHITECTURE.md`, `docs/EXECUTION-RESULT.md`의 워크플로우·노드명·메모리 키·계약 필드가 `workflows/*.json` 및 `lib/common.js`와 일치 | [x] |
+| 12 | **워크플로우 실행 결과서** | 실패 사례와 재시험 결과를 기록했다. | 본 문서 4절 (사례 1 `WF-12` 42청크 근거 누락 → `2ad2849`로 로컬·VM `3/3` 통과, 사례 2 OpenAI 401 → `17/17` 통과, 사례 3 `WF-01` 시간 초과 3종 원인 규명 → VM `50/51`·`bench 5/5` 및 예열 조치, 사례 4 `TM-05` 근거 누락 → 통과, 사례 5 가산 연결 → VM A행 `13/13`) | [x] |
+| 13 | **공통** | 세 설계서·결과서의 내용이 실제 구현과 일치한다. | `docs/WORKFLOW-DESIGN.md`, `docs/RAG-ARCHITECTURE.md`, `docs/EXECUTION-RESULT.md`의 워크플로우 9개·노드명·메모리 키·계약 필드가 `workflows/*.json` 및 `lib/common.js`와 일치 | [x] |
 | 14 | **공통** | 예시 수치를 팀의 실제 측정값으로 교체했다. | 모든 통과율·소요 시간(`p50`/`p95`)·청크 분포·단계별 시간(`steps`)을 `runs/*.json`, `runs/vm/*.json` 보고서 및 `reindex.py`·`/logs` 실측값으로 기입 | [x] |
 | 15 | **공통** | 인증정보와 개인정보가 문서·로그·저장소에 노출되지 않았다. | 키는 n8n Credential(`openAiCourse0001`, `ticketmoa-data-api`, `ticketmoa-team-key`)에만 분리, 가짜 연락처(`010-****-3307`) 마스킹 및 `/logs` 원문·PII 노출 0건 확인. 제출 전 `tscan scan .` 오탐 정리는 남아 있음 | [x] |
 
 ### 5.2 기능별 검증 표
 
-티켓모아 고객 기술지원 워크플로우의 15개 핵심 기능에 대한 구현 위치와 로컬(`runs/`)·팀 VM(`runs/vm/`, B행 `445ba2d`) 실측 검증 결과는 다음과 같다. 최신 VM 결과는 0절 A행이다.
+티켓모아 고객 기술지원 워크플로우의 15개 핵심 기능에 대한 구현 위치와 로컬(`runs/`)·팀 VM(`runs/vm/`, B행 `445ba2d`) 실측 검증 결과는 다음과 같다. 최신 VM 결과는 0절 A행(`ea1a6c9`)이다.
 
 | # | 기능별 검증 항목 | 구현 워크플로우 · 노드 | 검증 시나리오 | 로컬 및 팀 VM 실측 결과 (`runs/` · `runs/vm/`) | 충족 |
 | :---: | --- | --- | --- | --- | :---: |
-| 1 | **공통 Webhook 입구 및 Header Auth 인증**: `POST /webhook/ticketmoa-support` 단일 입구와 `X-Team-Key` Header Auth(`ticketmoa-team-key`) 적용, 공통 응답 9개 필드(`request_id`, `route`, `answer`, `sources`, `ticket`, `agents`, `security`, `timings`, `reason`) 준수 | `ticketmoa-support` · `Question webhook`, `Build response` | 전체 (WF-01~13, TM-01~13) | 로컬·팀 VM 전 케이스 응답 스키마 100% 일치 (`runs/vm/common-20261105-034700.json`) | ✔ |
+| 1 | **공통 Webhook 입구 및 Header Auth 인증**: `POST /webhook/ticketmoa-support` 단일 입구와 `X-Team-Key` Header Auth(`ticketmoa-team-key`) 적용, 공통 응답 9개 필드(`request_id`, `route`, `answer`, `sources`, `ticket`, `agents`, `security`, `timings`, `reason`) 준수 | `ticketmoa-support` · `Question webhook`, `Build response` | 전체 (WF-01~13, TM-01~13) | 로컬·팀 VM 전 케이스 응답 스키마 100% 일치 (`runs/vm/common-20261105-061255.json`) | ✔ |
 | 2 | **입력 유효성 검증 (규칙)**: 빈 질문(`empty_question`), 미등록 사용자(`unknown_user`), 501자 이상(`question_too_long`) 요청 시 LLM 호출 전 HTTP 400 `{"error":"invalid request","codes":[...]}` 반환 | `ticketmoa-support` · `Get users` → `Check input` → `Reject invalid` | WF-13a, WF-13b, WF-13c | 로컬 **9 / 9**, 팀 VM **9 / 9 통과** (HTTP 400, 0.1~0.2s, `llm_calls: 0`) | ✔ |
 | 3 | **프롬프트 주입(Injection) 사전 차단**: `"이전 지시 무시"`, `"시스템 프롬프트"` 등 주입 패턴을 LLM 호출 전 규칙으로 차단(`route: "차단"`, `security.blocked_by: "rule"`, `llm_calls: 0`)하고 정상 문의는 과잉 차단하지 않음 | `ticketmoa-support` · `Injection rules` → `Blocked answer` | WF-08, TM-04, TM-12 | WF-08 로컬 **3 / 3**·VM **3 / 3**, TM-04·TM-12 로컬 **6 / 6**·VM **2 / 2 통과** | ✔ |
-| 4 | **업무 레지스트리 기반 Supervisor 분류 및 Fail-Closed**: `config/registry.json`을 읽어 Structured Output JSON으로 의도·신뢰도·긴급도·감정(`angry` 등)을 분류하고, 파싱 실패·오류 시 `담당자 이관`으로 안전 폴백 | `ticketmoa-support` · `Load registry`, `ticketmoa-agents` · `Supervisor 분류`, `분류 결과 검사` | WF-01, WF-10, TM-01~08 | 정상 분류 및 LLM 장애 시 fail-closed 이관 확인 (VM 공통 **51 / 51**) | ✔ |
+| 4 | **업무 레지스트리 기반 Supervisor 분류 및 Fail-Closed**: `config/registry.json`을 읽어 Structured Output JSON으로 의도·신뢰도·긴급도·감정(`angry` 등)을 분류하고, 파싱 실패·오류 시 `담당자 이관`으로 안전 폴백 | `ticketmoa-support` · `Load registry`, `ticketmoa-agents` · `Supervisor 분류`, `분류 결과 검사` | WF-01, WF-10, TM-01~08 | 정상 분류 및 LLM 장애 시 fail-closed 이관 확인 (VM B행 **51 / 51**, A행 **50 / 51**) | ✔ |
 | 5 | **보완 질문 루프 및 반복 한도 이관**: 정보 부족·저신뢰(`confidence < 0.7` 또는 필수 슬롯 누락) 시 `보완 질문`으로 되묻고, `attempt >= 3`이면 LLM 호출 없이 즉시 `담당자 이관` | `ticketmoa-agents` · `LLM 필요?`, `ticketmoa-support` · `Plan route` | WF-02 (`attempt: 1`), WF-02b (`attempt: 3`) | WF-02 로컬 **3 / 3**·VM **3 / 3**, WF-02b 로컬 **3 / 3**·VM **3 / 3 통과** (`llm_calls: 0`) | ✔ |
 | 6 | **문서 품질 검사 및 권한 분리 색인**: `knowledge/*.md` 8개 문서를 `##` 절 단위로 청킹하고, 색인 전 품질 검사(절 개수·`access_level`·빈 절·연락처 포함 여부) 후 `ticketmoa_kb_v1_all`과 `ticketmoa_kb_v1_staff`로 분리 저장 | `ticketmoa-index` · `Validate and make chunks`, `Store public chunks`, `Store staff chunks` | `tools/reindex.py` | 문서 8/8 (일반 7, 스태프 1, 정제본 42청크), `issues: []`, `store_output_received` 확인 | ✔ |
 | 7 | **검색 전 문서 권한 필터링 (Pre-filtering)**: 질문 문구가 아니라 조회된 사용자의 `access_level`로 검색 대상 메모리 키를 결정하여 일반 고객(`all`) 검색 시 스태프 전용 문서(`staff-entry-manual`) 원천 배제 | `ticketmoa-search` · `검색 준비`, `스태프 권한?` | WF-05 | WF-05 로컬 **3 / 3**, 팀 VM **3 / 3 통과** (`staff-entry-manual`·`책임자 코드`·`수기 모드` 노출 0건) | ✔ |
@@ -332,11 +337,11 @@
 담당 파일인 `cases/common.json`, `cases/team.json`, `cases/README.md`, `requests/*.json`을 전수 검토한 결과는 다음과 같다.
 
 1. **`cases/common.json` (14유형 17케이스)**:
-   - `expect` 조건은 과제 공통 기준과 정확히 일치하며 일절 수정하지 않았다.
-   - 질문 문구도 실제 고객센터 문의 말투(`"모바일티켓 QR이 회색으로만 나오고 안 떠요. 어떻게 해야 하나요?"`, `"공연 10분 전인데 모바일티켓 QR이 안 떠요! 어제 문의한 C-2002도 어떻게 됐는지 확인해 주세요"` 등)로 자연스럽게 작성되어 있어 추가 수정 없이 그대로 유지하는 것이 안전하다.
+   - `expect` 조건은 과제 공통 기준을 따르며, 결과를 통과시키기 위해 기대 조건을 낮춘 적은 없다. 오히려 커밋 `3c7260a`에서 78일차 `flow.py`가 `null`을 빈 문자열로 변환해 `not_contains: {"ticket": ["null"]}`이 항상 통과하던 허점을 막기 위해 `WF-02b`, `WF-03`, `WF-09`, `WF-12`의 티켓 생성 판정을 `contains: {"ticket": ["T-"]}`로 **강화**한 이력이 있다.
+   - 질문 문구도 실제 고객센터 문의 말투(`"모바일티켓 QR이 회색으로만 나오고 안 떠요. 어떻게 해야 하나요?"`, `"공연 10분 전인데 모바일티켓 QR이 안 떠요! 어제 문의한 C-2002도 어떻게 됐는지 확인해 주세요"` 등)로 자연스럽게 작성되어 있어 그대로 유지한다.
 2. **`cases/team.json` (13케이스: 필수 9 + 가산 4)**:
-   - `TM-01`~`TM-08`, `TM-13`(필수 9개)은 `data/records.json`(`C-2001`~`C-2006`) 및 `knowledge/*.md` 8개 문서와 정합성이 맞고, 로컬 3회 반복 시험(**27 / 27**) 및 팀 VM 단회 시험(**9 / 9**)에서 전원 통과했다.
-   - `TM-09`~`TM-12`(가산 4개)는 `context.client_ip`에 RFC 5737 문서용 예약 대역(`198.51.100.7`, `203.0.113.66`, `203.0.113.10`)만 사용하여 실제 개인정보·외부 IP 없이 시연 가능하도록 설계되어 있다.
+   - `TM-01`~`TM-08`, `TM-13`(필수 9개)은 `data/records.json`(`C-2001`~`C-2006`) 및 `knowledge/*.md` 8개 문서와 정합성이 맞고, 로컬 3회 반복 시험(**27 / 27**) 및 팀 VM 단회 시험(**9 / 9**)에서 전원 통과했다. 티켓 생성 케이스(`TM-03`, `TM-05`, `TM-06`, `TM-08`, `TM-13`) 역시 커밋 `3c7260a`에서 `contains: {"ticket": ["T-"]}`로 판정을 강화했다.
+   - `TM-09`~`TM-12`(가산 4개)는 `context.client_ip`에 RFC 5737 문서용 예약 대역(`198.51.100.7`, `203.0.113.66`, `203.0.113.10`)만 사용하여 실제 개인정보·외부 IP 없이 시연 가능하도록 설계되어 있으며, 최신 팀 VM(`ea1a6c9`)에서 **13 / 13 전원 통과**했다.
 3. **`requests/wf01.json`, `requests/wf02.json`, `requests/wf12.json`**:
    - 시연 및 `flow.py bench` 측정용 요청 본문으로, `cases/common.json`의 `WF-01`, `WF-02`, `WF-12` 요청과 동일하며 `bench -n 5`에서 모두 정상 동작함을 확인했다.
 
