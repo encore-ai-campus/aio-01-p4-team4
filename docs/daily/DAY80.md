@@ -21,7 +21,7 @@
 | 최강현 | `ticketmoa-agents`(attempt 3회째 분류 LLM 생략)·`ticketmoa-refund`(환불 2단계 안전장치), 설계서 2~4절 초안, 오케스트레이션 구조도, promptfoo 보안 점검 세트와 `security/`, 공격 대응 방침·보안 개념서 · 커밋 기록 기준 단위 13/13, lib 16/16, abuse 16/17 | `7a042a0` `0980621` `e9963ec` `23aa388` `6defd53` `7963e45` (개인 저장소 `hyun`) |
 | 정예진 | 11/03 `ticketmoa-index` 색인, 11/04 `ticketmoa-search`·`ticketmoa-tech` 작성, `docs/RAG-ARCHITECTURE.md` 초안(PR #6, 측정 값은 아직) | `20545e0` `0228a7a` `ac22cc2` `b7c22e0` |
 | 심환석 | 11/03 `ticketmoa-payment`·`handoff`·`errors`, `/logs` channel 값 제한(`normalizeChannel`), 하위 웹훅 팀 키 복원 · common 15/17(담당 파일 PR 기준), 11/04 PR #2 리뷰 반영(중복 티켓 주인 확인, payment 재시도 시간) | `f5ae06f` `1ce3897` `dabd2e5` `2de999a` |
-| 김인혜 | `cases/common.json`·`cases/team.json`·`requests/` 시나리오·페이로드 정합성 검토, 로컬 시험 환경(n8n·연습용 데이터 API·Credential·지식 문서 8종 재색인) 구성 후 공통·팀 단회 시험 수행 및 `runs/` 보고서 보관 · common 14/17(키 교체 전 Fail-Closed 확인) → 17/17, team 10/13(필수 9/9) | `11167cb` |
+| 김인혜 | `cases/`·`requests/` 시나리오 검토, 로컬 n8n·데이터 API 시험(공통 단회 17/17(33청크), 3회 반복 49/51(42청크), 팀 3회 반복 30/39(필수 27/27), `bench -n 5` p50 4.61s) 및 `runs/` 보고서 8종 보관, `docs/EXECUTION-RESULT.md` 작성(실패 사례 5건·KSM-REQ 6절 체크리스트 15항목·팀 VM `445ba2d` 51/51·필수 9/9·p50 5.45s 반영) | `11167cb` `a19c26f` `5421c83` `7ebd155` |
 
 ## 3. 막힌 것 · 푼 방법
 
