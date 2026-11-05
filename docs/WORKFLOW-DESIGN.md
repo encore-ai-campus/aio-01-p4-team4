@@ -3,7 +3,7 @@
 > 산출물 ① (35점 제안). 강의 자료 「기술지원자동화_전체아키텍처」 23쪽 목차 8절을 따른다.
 > 담당: 1절 A 최두나 · **2~4절 B 최강현** · 5~7절 D 심환석 · 8절 함께.
 > 노드 이름은 `workflows/*.json`의 실제 노드 이름이다.
-> 상태: 1절 초안 (2026-11-04, A) · 2~4절 초안 (2026-11-04, B, 본체와 tech 노드는 A가 실제 파일에 맞춤). 5~8절 초안 (2026-11-04, A 작성, D 확인 필요). 실행 예시(4.6절)는 로컬 n8n 결과이고, 팀 VM 결과는 반영 뒤 다시 확인한다.
+> 상태: 1절 초안 (2026-11-04, A) · 2~4절 초안 (2026-11-04, B, 본체와 tech 노드는 A가 실제 파일에 맞춤). 5~8절 초안 (2026-11-04, A 작성, D 확인 필요). 실행 예시(4.6절)의 표는 로컬 n8n 결과이고, 팀 VM 결과는 4.6절 끝에 따로 적었다.
 
 ## 1. 업무 시나리오 · 처리할 문의 유형
 
@@ -59,9 +59,10 @@
 
 모든 데이터는 가짜이며 연락처는 `010-0000-xxxx`, `@example.com` 형식이다. 외부 시스템은 연습용 데이터 API만 쓴다.
 
-### 1.5 아직 구현하지 않은 범위
+### 1.5 가산 차단과 시험 기준
 
-주제 제안서의 반복 요청 차단과 IP 차단(`rate_limit`, `geo`, `ip_blocklist`, TM-09~11)은 `lib/common.js`에 함수만 있고 `ticketmoa-support`에는 아직 연결하지 않았다.
+- **가산 차단:** 반복 요청과 IP 차단(`rate_limit`, `geo`, `ip_blocklist`, TM-09~11)은 `support`의 주입 차단 뒤, LLM 앞에 연결했다. IP는 실제 접속 주소가 아니라 요청의 `context.client_ip`(가상 IP)로 검사한다. 웹 화면과 Ops Assistant는 구현하지 않았다.
+- **WF-05 통과 기준:** `cases/common.json`의 기대 결과를 따른다. 일반 고객의 응답 `sources`에 `staff-entry-manual`이 없고, 답에 `책임자 코드`, `수기 모드`가 없으면 통과다. route는 정하지 않으므로, 고객용 문서로 답하거나 이관하는 것 모두 허용한다.
 
 ## 2. 전체 흐름 (단계 목록)
 
@@ -71,7 +72,7 @@
 | --- | --- | --- | --- | --- |
 | 1 받기 | 웹훅으로 질문 도착, 팀 키 확인 | 규칙 | support `Question webhook` (Header Auth `X-Team-Key`) | — |
 | 2 입력 검사 | 빈 질문 · 501자 이상 · 없는 사용자 → 400 | 규칙 | support `Get users` → `Check input` → `Valid?` (실패하면 `Log record` → `Rejected?` → `Reject invalid`). 사용자 조회 실패는 `Lookup failed` | 500자, users 5명 |
-| 3 문지기 | 주입 문구 차단 | 규칙 | support `Injection rules` → `Blocked by rule?` → `Blocked answer` | 주입 패턴(lib/common.js) |
+| 3 문지기 | 주입 문구, IP 정책, 반복 요청 차단 | 규칙 | support `Injection rules` → `Blocked by rule?` → `Abuse rules` → `Get rate` → `Rate check` → `Abuse blocked?` → `Save rate`. 차단이면 `Blocked answer` | 주입 패턴, 가상 IP 정책, 같은 사용자·같은 질문 60초에 6번째 (lib/common.js) |
 | 4 분류 | 업무 유형 · 긴급도 · 감정 · 빠진 정보 | AI | support `Load registry` → `Refund confirm?` → `Call agents` → **agents** `규칙 신호 추출` → `LLM 필요?` → `Supervisor 분류` → `분류 결과 검사` → support `Plan route` → `Route` | 확신도 0.7, 긴급 = 공연 30분 이내 |
 | 5 검색 | 지식 문서를 찾고, 복합 문의는 내 접수 건도 함께 | 검색 | support `Call search` → `Tech input`. 복합 문의: `Call search ∥` → `Search done ∥`, `Call payment ∥` → `Payment done ∥` → `Merge search + lookup` → `Tech input` | top_k는 RAG 설계서. 점수 기준은 아직 없음 (4.7절) |
 | 6 답변 | 찾은 근거로만 답 쓰기 | AI / 규칙 | 기술·앱·일반: support `Call tech` → **tech** `처리 준비` → `공연 직전?` → `근거 있음?` → `작성 시간 있음?` → `답변 작성` → `작성 결과 검사` → `작성 통과?` → support `Collect tech`. 환불: `Call refund` → **refund** 규칙 문장 → `Collect refund`. 조회·결제: `Call payment` → `Collect payment` | 근거 없으면 이관 |
@@ -102,7 +103,11 @@ flowchart TD
   VD --> C["Injection rules"]
   C --> CB{"Blocked by rule?"}
   CB -- 주입 문구 --> C1["Blocked answer<br/>LLM 0회"]
-  CB --> RG["Load registry"]
+  CB --> AB["Abuse rules → Get rate → Rate check"]
+  AB --> AQ{"Abuse blocked?"}
+  AQ -- "IP 정책, 반복 요청" --> C1
+  AQ --> SR["Save rate"]
+  SR --> RG["Load registry"]
   RG --> F{"Refund confirm?"}
   F -- 아니오 --> G["Call agents<br/>ticketmoa-agents"]
   F -- pending_action + boolean confirm --> P["Plan route<br/>decideRoute"]
@@ -162,7 +167,7 @@ flowchart TD
 | `ticketmoa-tech.json` | `/webhook/ticketmoa-tech` | 기술·앱·일반 답변, 대체 입장 | C | support `Call tech` 5초 (안쪽 `작성 모델` 2.5초) |
 | `ticketmoa-payment.json` | `/webhook/ticketmoa-payment` | 본인 건 조회, 남의 건 forbidden | D | support `Call payment`·`Call payment ∥` 2.5초, refund 4초 |
 | `ticketmoa-handoff.json` | `/webhook/ticketmoa-handoff` | 요약 티켓 · 알림 · DLQ | D | support `Call handoff` 최대 5.5초에서 경과 시간을 뺀 값 (최소 0.5초), refund 5초 |
-| `ticketmoa-errors.json` | Error Trigger | 오류 알림 | D | agents, refund, payment, handoff의 Error Workflow (7.3절) |
+| `ticketmoa-errors.json` | Error Trigger | 오류 알림 | D | support, agents, refund, payment, handoff의 Error Workflow (7.3절) |
 
 support에서 `Call handoff`만 요청 시작부터 지난 시간을 빼서 시간 제한을 계산하고, 나머지 호출은 위 고정값을 쓴다. `deadline_ms`는 하위 웹훅에 넘기는 남은 시간(ms)이다. 하위 웹훅은 실패해도 HTTP 200 + `{"error": ...}`로 돌려주고, 부르는 쪽은 오류 출력 갈래에서 이관으로 간다.
 
@@ -252,16 +257,31 @@ n8n 안에서 되도는 루프는 만들지 않는다. 보완 질문은 요청 �
 
 **반복 시험 (각 3회)**: 공통 17/17, 17/17, 17/17. 팀 필수 9개는 9/9, 9/9, 8/9다. 실패 1건은 TM-07이 `llm_unavailable`로 이관된 경우다 (`작성 모델` 2.5초 제한에 걸린 것으로 보임).
 
+**팀 VM 시험** (2026-11-05 12:44~12:48, `main` `445ba2d`, 문서 42청크, 보고서 `runs/vm/`): 위 표와 환경·문서가 달라 직접 비교하지 않는다.
+
+| 시험 | 결과 |
+| --- | --- |
+| 공통 3회 | 51/51 |
+| 팀 필수 1회 | 9/9 (전체 10/13, 가산 TM-09~11 실패) |
+| WF-01 3회 | 자동 답변, 6.6 / 6.8 / 6.1초 (기준 8초) |
+| WF-11 3회 | 담당자 이관 `payment_failed`, 5.6 / 5.6 / 5.5초 (기준 6초) |
+| WF-12 3회 | 담당자 이관 `urgent_entry`, 4.9 / 4.2 / 3.8초 |
+| `bench -n 5` (WF-01 질문) | p50 5.45초, p95 6.00초, 실패 0/5 |
+
+시험 직전 단건 호출에서 WF-01이 `verification_failed`로 1건 이관됐다. 공통 3회에서 재현되지 않았지만 해결로 보지는 않는다.
+
 ### 4.7 남은 일
 
 - [x] `LLM 필요?`에 `attempt < 3` 조건 추가 (작업 지시서 B-2, 결함 F-003) · 2026-11-04, 로컬 n8n 실행으로 확인
 - [x] 분류·검증 입출력 예시 추가 (4.6절, 로컬 n8n 기준)
-- [ ] 팀 VM 반영 뒤 같은 예시와 시간을 다시 확인
+- [x] 팀 VM 반영 뒤 시나리오와 시간 확인 · 2026-11-05, 위 표. 분류·검증 단독 호출 예시는 VM에서 다시 재지 않음
 - [x] tflow로 본체 흐름도와 실제 연결 비교 · 2026-11-04, `ticketmoa-support` 연결 51개 일치
-- [ ] 검색 점수 기준 추가: 지금은 관련 없는 근거도 답변 작성까지 가서, WF-03·04·05의 이관이 LLM 판단에 달려 있다 (C)
-- [ ] `작성 모델` 시간 제한 2.5초 재검토: 정상 문의도 가끔 이관된다 (C)
+- [x] 검색 점수 기준 판단 · 정상 질문과 문서에 없는 질문의 점수가 겹쳐 기준을 두지 않고 근거 검증으로 거른다 (RAG 설계서 3.0절). WF-03·04·05의 이관은 계속 LLM 판단에 달려 있다
+- [x] `작성 모델` 시간 제한 2.5초 재검토 · 제한 합계가 이미 약 8초이고 VM 공통 3회에서 실패가 없어 유지한다. 단건 간헐 실패는 계속 확인한다
 - [x] 하위 웹훅 표(IMPLEMENTATION-PLAN)에 `ticketmoa-agents-verify` 행과 search `scope` 추가 (A 승인, 2026-11-04)
 - [x] 구조도 이미지(`images/orchestration.*`)를 실제 본체 흐름으로 다시 만들기 · 2026-11-04
+- [ ] 구조도 이미지에 가산 차단 노드 반영, tflow로 본체 연결 다시 비교 (A)
+- [ ] 가산 차단과 `errorWorkflow`를 넣은 `support`를 VM에서 시험 (A)
 ## 5. 외부 연동 노드 (연습용 → 운영)
 
 지금은 외부 시스템을 모두 연습용 데이터 API(n8n 안에서 `http://data-api:8800`)로 대신한다. 운영으로 옮길 때는 아래 노드의 주소와 Credential만 바꾸는 것을 목표로 한다. 운영 열은 계획이며 구현하지 않았다.
@@ -300,6 +320,10 @@ n8n 안에서 되도는 루프는 만들지 않는다. 보완 질문은 요청 �
 | `Valid?` 실패 → `Log record` | 위와 같음. 끝에 HTTP 400 `{error:"invalid request", codes}` |
 | `Injection rules` → `Blocked by rule?` | `{blocked, blocked_by, reason, started_at}` |
 | `Blocked by rule?` 차단 → `Blocked answer` | 위와 같음. `Blocked answer`는 공통 응답을 만든다 (`llm_calls` 0) |
+| `Blocked by rule?` 통과 → `Abuse rules` | 위와 같음 |
+| `Abuse rules` → `Get rate` → `Rate check` | `{ip_blocked, blocked_by, reason, country, rate_key, started_at}`. `rate_key`는 사용자와 질문의 해시이고 질문 원문은 남기지 않는다. `/cache` 조회가 실패하면 막지 않고 통과한다 |
+| `Abuse blocked?` 차단 → `Blocked answer` | `{blocked, blocked_by, reason, started_at}` (`llm_calls` 0) |
+| `Abuse blocked?` 통과 → `Save rate` → `Load registry` | `{value: recent, ttl: 120}`을 `/cache`에 저장. 저장이 실패해도 계속한다 |
 | `Load registry` → `Refund confirm?` | `{registry, t0}` |
 | `Refund confirm?` 아니오 → `Call agents` | 위와 같음. 호출 본문은 `{request_id, user, question, attempt, context, registry}` |
 | `Refund confirm?` 예 → `Plan route` | `{registry, t0}` (분류 없음) |
@@ -387,7 +411,7 @@ n8n 안에서 되도는 루프는 만들지 않는다. 보완 질문은 요청 �
 
 ### 7.3 알려진 빈틈
 
-- `ticketmoa-errors`는 agents, refund, payment, handoff에만 연결했다. support, tech, search, index에는 Error Workflow가 설정되어 있지 않다.
+- `ticketmoa-errors`는 support, agents, refund, payment, handoff에 연결했다. tech, search, index에는 Error Workflow가 설정되어 있지 않다. 2026-11-05 로컬에서 같은 설정의 임시 워크플로우를 일부러 실패시켜 `/alerts`에 기록되는 것을 확인했다. support 자체를 실패시켜 본 적은 없다.
 - WF-11은 5.6초에 응답해 기준 6초와 여유가 적다.
 - 답변 작성 시간 제한 2.5초 때문에 정상 문의도 가끔 이관된다 (4.7절).
 - 동시에 같은 환불을 확정하면 경쟁이 생길 수 있다. handoff에 `idempotency_key`가 필요하다 (`security/refund-threat-model.md`).

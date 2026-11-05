@@ -97,6 +97,7 @@ flowchart TD
 | 팀 키 | 본체 웹훅은 Header Auth로 막혀 있고, 키가 없거나 틀리면 403 |
 | 권한 | 질문 글이 아니라 `user`로 조회한 `access_level`로 판단하고, 직원 문서는 검색 전에 거름 |
 | 근거 검증 | 검증 Agent가 근거·정책·개인정보를 확인하고, 통과하지 못하면 이관 |
+| 부정 사용 차단 | 가상 IP 정책과 반복 요청(같은 사용자·같은 질문 60초에 6번째)을 LLM 앞에서 차단. 기록 조회가 실패하면 막지 않고 통과 |
 | 개인정보 | 응답과 로그에서 연락처를 가리고 가린 개수는 `security.masked`에 표시 |
 | 장애 대응 | 하위 웹훅이 실패해도 HTTP 200 + `{"error"}`로 돌려주고, 본체가 이관으로 처리 |
 | 티켓 장애 | `ticket: null`로 답하고 DLQ와 알림을 남김 |
@@ -109,7 +110,7 @@ flowchart TD
 
 | 파일 | 웹훅 경로 | 노드 | 하는 일 | 담당 |
 | --- | --- | --- | --- | --- |
-| `ticketmoa-support` | `ticketmoa-support` | 40 | 본체: 입력 검사, 주입 차단, 라우팅, 병렬 호출, 응답 조립, 기록 | 최두나 |
+| `ticketmoa-support` | `ticketmoa-support` | 45 | 본체: 입력 검사, 주입·부정 사용 차단, 라우팅, 병렬 호출, 응답 조립, 기록 | 최두나 |
 | `ticketmoa-agents` | `ticketmoa-agents`, `ticketmoa-agents-verify` | 17 | Supervisor 분류, 보완 질문 판단, 답변 검증 | 최강현 |
 | `ticketmoa-refund` | `ticketmoa-refund` | 38 | 환불 금액 안내, 고객 확정 후 티켓 | 최강현 |
 | `ticketmoa-index` | `ticketmoa-index` | 12 | 지식 문서 검사, `##` 절 단위 청킹, 권한별 색인 | 정예진 |
@@ -121,13 +122,18 @@ flowchart TD
 
 ## 현재 상태
 
-2026-11-04 기준, `test` 브랜치 `d213d89`를 **로컬 n8n**에서 시험한 결과입니다. 이 워크플로우는 2026-11-05에 `main`에 병합됐습니다(PR #7). 팀 VM에서는 아직 시험하지 않았습니다.
+2026-11-05 12:44~12:48, `main` `445ba2d`를 **팀 VM**에 올리고 지식 문서 42청크로 색인한 뒤 시험한 결과입니다. 보고서는 `runs/vm/`에 있습니다.
 
 | 시험 | 결과 |
 | --- | --- |
-| 공통 시나리오 (`cases/common.json`) | 17/17, 3회 반복 |
-| 팀 필수 시나리오 (TM-01~08, TM-13) | 9/9, 9/9, 8/9 (TM-07 1회 실패) |
-| 팀 가산 시나리오 | TM-12 통과, TM-09~11 실패 (반복 요청·IP 차단 미연결) |
+| 공통 시나리오 (`cases/common.json`) 3회 | 51/51 |
+| 팀 필수 시나리오 (TM-01~08, TM-13) 1회 | 9/9 |
+| 팀 가산 시나리오 1회 | TM-12 통과, TM-09~11 실패 (반복 요청·IP 차단 미연결) |
+| 정상 문의 `bench -n 5` | p50 5.45초, p95 6.00초, 실패 0/5 |
+
+이 표는 가산 차단과 `errorWorkflow`를 넣기 전 결과입니다. 넣은 뒤에는 **로컬 n8n**에서 팀 13/13, 공통 3회 49/51(WF-01 2회 실패)이었고, VM 시험은 남아 있습니다.
+
+시험 직전 단건 호출에서 WF-01이 `verification_failed`로 1건 이관됐고, 로컬 시험에서도 LLM 시간 제한으로 보이는 간헐 실패가 있었습니다. 로컬 결과는 `docs/EXECUTION-RESULT.md`에 있으며, VM 값과 섞지 않습니다.
 
 ## 디렉터리
 
@@ -161,7 +167,7 @@ aio-01-p4-team4/
 │
 ├── cases/                     # common.json(공통 14유형 17케이스), team.json(팀 13개, TM-09~12는 가산)
 ├── requests/                  # 시연·bench용 요청 파일
-├── runs/                      # 결과서 증거로 남길 test·bench 보고서
+├── runs/                      # 결과서 증거로 남길 test·bench 보고서 (vm/은 팀 VM 결과, 파일 이름 시각은 UTC)
 │
 ├── security/                  # 환불 안전장치 원본, promptfoo 회귀 시험, PyRIT 설계 예시
 ├── reference/                 # 색인·검색 출발 예제 워크플로우
@@ -216,6 +222,7 @@ ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py push workflow
 ```
 
 - **`push`는 공용 n8n을 다시 켠다.** 한 사람이 올려도 팀 전체의 실행이 끊기고, In-Memory 색인이 사라질 수 있다. 그래서 올리기 전에 팀 채팅에 알리고, 올린 뒤에는 `tools/reindex.py`로 색인을 다시 돌린다. 이 스크립트는 OpenAI 임베딩을 호출한다.
+- 서버에는 78일차 `flow.py`가 기본 경로에 없다. `FLOW_PY=~/aio-tools/Last3Mon/78/tools/flow.py`를 붙여 실행한다. 보고서는 `~/aio-tools/Last3Mon/78/runs/`에 저장되므로, 결과서에 쓸 보고서는 `runs/vm/`으로 옮긴다.
 - 서버 명령은 꼭 `bash -lc`로 감싼다 (없으면 `uv`를 못 찾는다). PowerShell에서 명령 안에 `$`가 있으면 `` `$ ``로 쓴다.
 - 오래 걸리는 시험은 서버 `tmux` 세션에서 돌린다. 서버 RAM이 2.6GB라 n8n과 같이 쓰므로 무거운 작업 전에 `free -h`를 본다.
 - 서버에서 파일을 직접 고치지 않는다. 다음 `scp` 때 로컬 파일로 덮어써진다.
