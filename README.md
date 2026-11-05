@@ -172,7 +172,7 @@ aio-01-p4-team4/
 ├── tools/
 │   ├── flow.py                # 78일차 flow.py를 부르고 팀 웹훅에 X-Team-Key를 붙임
 │   ├── reindex.py             # knowledge/를 다시 색인하고 검색 확인 (push 뒤 실행)
-│   └── register-team-key.sh   # 팀 키 Credential을 고정 id로 등록
+│   └── register-team-key.sh   # 팀 키와 데이터 API 키 Credential을 고정 id로 등록
 │
 └── docs/
     ├── TOPIC.md               # 주제 제안서
