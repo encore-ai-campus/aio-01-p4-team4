@@ -23,7 +23,7 @@ route 값: "자동 답변" | "보완 질문" | "담당자 이관" | "권한 없�
 잘못된 입력(빈 질문·없는 사용자·501자 이상): HTTP 400 {"error":"invalid request","codes":[...]}
 ```
 
-하위 웹훅끼리 주고받는 모양은 `docs/IMPLEMENTATION-PLAN.md` 1단계의 하위 웹훅 표를 따른다 (설계서는 구현 뒤에 이 표로 쓴다). 하위 웹훅은 실패해도 HTTP 200 + `{"error": "..."}`로 돌려준다.
+하위 웹훅끼리 주고받는 모양은 `docs/IMPLEMENTATION-PLAN.md` 1단계의 하위 웹훅 표를 따른다 (설계서도 이 표에 맞춘다). 하위 웹훅은 실패해도 HTTP 200 + `{"error": "..."}`로 돌려준다.
 
 ## 4. 파일 담당 (한 사람 = 한 파일)
 
@@ -66,7 +66,7 @@ route 값: "자동 답변" | "보완 질문" | "담당자 이관" | "권한 없�
 git pull                                            # 바꾸기 전 (Windows 로컬)
 # 내 파일만 고친다
 scp workflows/<내 파일>.json aio-t4:~/aio-01-p4-team4/workflows/
-ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py check workflows/<내 파일>.json && uv run tools/flow.py push workflows/<내 파일>.json && uv run tools/flow.py test cases/common.json --webhook ticketmoa-support'"
+ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py check workflows/<내 파일>.json && uv run tools/flow.py push workflows/<내 파일>.json && sleep 10 && uv run --env-file .env tools/reindex.py && uv run --env-file .env tools/flow.py test cases/common.json --webhook ticketmoa-support'"
 git commit -m "<무엇> · common N/14"
 ```
 

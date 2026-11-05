@@ -121,7 +121,7 @@ flowchart TD
 
 ## 현재 상태
 
-2026-11-04 기준, `test` 브랜치 `d213d89`를 **로컬 n8n**에서 시험한 결과입니다. 팀 VM에서는 아직 시험하지 않았고, 이 내용은 `main`에도 아직 반영되지 않았습니다.
+2026-11-04 기준, `test` 브랜치 `d213d89`를 **로컬 n8n**에서 시험한 결과입니다. 이 워크플로우는 2026-11-05에 `main`에 병합됐습니다(PR #7). 팀 VM에서는 아직 시험하지 않았습니다.
 
 | 시험 | 결과 |
 | --- | --- |
@@ -167,6 +167,7 @@ aio-01-p4-team4/
 ├── reference/                 # 색인·검색 출발 예제 워크플로우
 ├── tools/
 │   ├── flow.py                # 78일차 flow.py를 부르고 팀 웹훅에 X-Team-Key를 붙임
+│   ├── reindex.py             # knowledge/를 다시 색인하고 검색 확인 (push 뒤 실행)
 │   └── register-team-key.sh   # 팀 키 Credential을 고정 id로 등록
 │
 └── docs/
@@ -177,7 +178,7 @@ aio-01-p4-team4/
     ├── TEAM-CHARTER.md        # 팀 헌장
     ├── TODO.md                # 교시별 일정
     ├── WORKFLOW-DESIGN.md     # 산출물 1: 워크플로우 설계서
-    ├── RAG-ARCHITECTURE.md    # 산출물 2: RAG 설계서 (PR #6 검토 중)
+    ├── RAG-ARCHITECTURE.md    # 산출물 2: RAG 설계서 (초안, 측정 값 작성 중)
     ├── EXECUTION-RESULT.md    # 산출물 3: 실행 결과서 (작성 예정)
     ├── daily/                 # 데일리 기록 80·81·82
     └── images/                # 기획 구조도, 오케스트레이션 구조도
@@ -192,6 +193,7 @@ aio-01-p4-team4/
 ```powershell
 git clone https://github.com/ensk712-rgb/aio-01-p4-team4.git
 cd aio-01-p4-team4
+git switch test                         # 통합 브랜치에서 시작
 git switch -c feat/<이름>-<파일>        # 예: feat/jeongyejin-search
 node --test lib/test/*.test.js          # 공통 함수 테스트 (16개 통과해야 함)
 ssh -o BatchMode=yes aio-t4 "whoami"   # toor가 나오면 서버 접속 준비 끝
@@ -199,11 +201,21 @@ ssh -o BatchMode=yes aio-t4 "whoami"   # toor가 나오면 서버 접속 준비 
 
 **2. 서버에 반영하고 실행**
 
+내 워크플로우를 시험할 때는 **내 파일만** 올린다.
+
 ```powershell
-scp -r workflows knowledge data cases config lib requests tools aio-t4:~/aio-01-p4-team4/
-ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py push workflows/*.json'"
+scp workflows/<내 파일>.json aio-t4:~/aio-01-p4-team4/workflows/
+ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py check workflows/<내 파일>.json && uv run tools/flow.py push workflows/<내 파일>.json && sleep 10 && uv run --env-file .env tools/reindex.py'"
 ```
 
+전체 배포는 리드가 `main` 기준으로 한다.
+
+```powershell
+scp -r workflows knowledge data cases config lib requests tools aio-t4:~/aio-01-p4-team4/
+ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py push workflows/*.json && sleep 10 && uv run --env-file .env tools/reindex.py'"
+```
+
+- **`push`는 공용 n8n을 다시 켠다.** 한 사람이 올려도 팀 전체의 실행이 끊기고, In-Memory 색인이 사라질 수 있다. 그래서 올리기 전에 팀 채팅에 알리고, 올린 뒤에는 `tools/reindex.py`로 색인을 다시 돌린다. 이 스크립트는 OpenAI 임베딩을 호출한다.
 - 서버 명령은 꼭 `bash -lc`로 감싼다 (없으면 `uv`를 못 찾는다). PowerShell에서 명령 안에 `$`가 있으면 `` `$ ``로 쓴다.
 - 오래 걸리는 시험은 서버 `tmux` 세션에서 돌린다. 서버 RAM이 2.6GB라 n8n과 같이 쓰므로 무거운 작업 전에 `free -h`를 본다.
 - 서버에서 파일을 직접 고치지 않는다. 다음 `scp` 때 로컬 파일로 덮어써진다.
@@ -225,19 +237,22 @@ git commit -m "search: 권한 필터 뒤 검색"
 git push -u origin feat/<이름>-<파일>
 ```
 
-GitHub에서 `main`으로 PR을 열면 리드가 검토하고 병합한다. 병합 뒤에는 `git switch main; git pull`로 최신을 받는다.
+GitHub에서 `test`로 PR을 열면 리드가 검토하고 병합한다. 리드가 `test`에서 공통 시나리오를 돌려 확인한 뒤 `test` → `main` PR로 올린다. 다음 작업 전에는 `git switch test; git pull`로 최신을 받는다.
 
-**n8n에서 손으로 할 것**: Credential 3개(`OpenAI (.env)`(id `openAiCourse0001`, `Last3Mon/65/n8n/register-credentials.sh`로 등록), `ticketmoa-data-api`(X-Api-Key), `ticketmoa-team-key`(X-Team-Key)) 만들기, 워크플로우 활성화, `ticketmoa-index` 한 번 실행. OpenAI Credential은 새로 만들지 말고 등록 스크립트가 만든 것을 고른다 (WF-10 시험이 이 Credential의 키를 잠깐 깨뜨려 확인한다). 키 값은 n8n Credentials에만 둔다.
+**n8n에서 손으로 할 것**: Credential 3개(`OpenAI (.env)`(id `openAiCourse0001`, `Last3Mon/65/n8n/register-credentials.sh`로 등록), `ticketmoa-data-api`(X-Api-Key), `ticketmoa-team-key`(X-Team-Key)) 만들기, 워크플로우 활성화. 색인은 `uv run --env-file .env tools/reindex.py`로 넣는다. OpenAI Credential은 새로 만들지 말고 등록 스크립트가 만든 것을 고른다 (WF-10 시험이 이 Credential의 키를 잠깐 깨뜨려 확인한다). 키 값은 n8n Credentials에만 둔다.
 
 ## 시험
 
 ```bash
 uv run tools/flow.py push workflows/*.json
+sleep 10
+uv run --env-file .env tools/reindex.py
 uv run --env-file .env tools/flow.py test cases/common.json --webhook ticketmoa-support -v
 uv run --env-file .env tools/flow.py test cases/team.json -v
 ```
 
-- **push 뒤 10초쯤 기다렸다가 시험한다.** `push`는 n8n을 다시 켜는데, 직후 몇 초 동안은 이전 버전이 응답해서 결과가 틀리게 나온다.
+- **push 뒤 10초쯤 기다렸다가 색인하고 시험한다.** `push`는 n8n을 다시 켜는데, 직후 몇 초 동안은 이전 버전이 응답해서 결과가 틀리게 나온다.
+- **`knowledge/`를 고친 뒤에도 `tools/reindex.py`를 돌린다.** 색인에는 마지막으로 보낸 문서만 들어 있다.
 - **하위 웹훅이 없거나 멈추면 본체는 `담당자 이관`으로 답한다** (fail-closed. 하위 웹훅 timeout 5초, 예매 조회는 2.5초, 이관은 남은 시간 예산 `5.5초 - 쓴 시간`으로 끊고 같은 값을 `deadline_ms`로 넘긴다). 그래서 내 하위 웹훅을 아직 올리지 않았어도 본체 시험은 500 없이 돈다.
 - 시험 도중 바뀐 장애 스위치·OpenAI 키는 시험이 끝나면 되돌아간다. 중간에 멈췄으면 `uv run tools/flow.py fault all ok`, `uv run tools/flow.py llm up`.
 
