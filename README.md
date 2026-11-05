@@ -121,7 +121,7 @@ flowchart TD
 
 ## 현재 상태
 
-2026-11-04 기준, `test` 브랜치 `d213d89`를 **로컬 n8n**에서 시험한 결과입니다. 팀 VM에서는 아직 시험하지 않았고, 이 내용은 `main`에도 아직 반영되지 않았습니다.
+2026-11-04 기준, `test` 브랜치 `d213d89`를 **로컬 n8n**에서 시험한 결과입니다. 이 워크플로우는 2026-11-05에 `main`에 병합됐습니다(PR #7). 팀 VM에서는 아직 시험하지 않았습니다.
 
 | 시험 | 결과 |
 | --- | --- |
@@ -177,7 +177,7 @@ aio-01-p4-team4/
     ├── TEAM-CHARTER.md        # 팀 헌장
     ├── TODO.md                # 교시별 일정
     ├── WORKFLOW-DESIGN.md     # 산출물 1: 워크플로우 설계서
-    ├── RAG-ARCHITECTURE.md    # 산출물 2: RAG 설계서 (PR #6 검토 중)
+    ├── RAG-ARCHITECTURE.md    # 산출물 2: RAG 설계서 (초안, 측정 값 작성 중)
     ├── EXECUTION-RESULT.md    # 산출물 3: 실행 결과서 (작성 예정)
     ├── daily/                 # 데일리 기록 80·81·82
     └── images/                # 기획 구조도, 오케스트레이션 구조도
@@ -192,6 +192,7 @@ aio-01-p4-team4/
 ```powershell
 git clone https://github.com/ensk712-rgb/aio-01-p4-team4.git
 cd aio-01-p4-team4
+git switch test                         # 통합 브랜치에서 시작
 git switch -c feat/<이름>-<파일>        # 예: feat/jeongyejin-search
 node --test lib/test/*.test.js          # 공통 함수 테스트 (16개 통과해야 함)
 ssh -o BatchMode=yes aio-t4 "whoami"   # toor가 나오면 서버 접속 준비 끝
@@ -225,7 +226,7 @@ git commit -m "search: 권한 필터 뒤 검색"
 git push -u origin feat/<이름>-<파일>
 ```
 
-GitHub에서 `main`으로 PR을 열면 리드가 검토하고 병합한다. 병합 뒤에는 `git switch main; git pull`로 최신을 받는다.
+GitHub에서 `test`로 PR을 열면 리드가 검토하고 병합한다. 리드가 `test`에서 공통 시나리오를 돌려 확인한 뒤 `test` → `main` PR로 올린다. 다음 작업 전에는 `git switch test; git pull`로 최신을 받는다.
 
 **n8n에서 손으로 할 것**: Credential 3개(`OpenAI (.env)`(id `openAiCourse0001`, `Last3Mon/65/n8n/register-credentials.sh`로 등록), `ticketmoa-data-api`(X-Api-Key), `ticketmoa-team-key`(X-Team-Key)) 만들기, 워크플로우 활성화, `ticketmoa-index` 한 번 실행. OpenAI Credential은 새로 만들지 말고 등록 스크립트가 만든 것을 고른다 (WF-10 시험이 이 Credential의 키를 잠깐 깨뜨려 확인한다). 키 값은 n8n Credentials에만 둔다.
 
