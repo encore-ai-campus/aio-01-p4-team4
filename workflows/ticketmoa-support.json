@@ -165,7 +165,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "parameters": {
-        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst ROUTES = {\n  AUTO: '자동 답변',\n  CLARIFY: '보완 질문',\n  HANDOFF: '담당자 이관',\n  FORBIDDEN: '권한 없음',\n  BLOCKED: '차단',\n};\n\nfunction maskPII(text) {\n  let masked = 0;\n  let out = String(text == null ? '' : text);\n  out = out.replace(/\\b(01[016789])[-.\\s]?(\\d{3,4})[-.\\s]?(\\d{4})\\b/g, (_, a, _b, c) => { masked++; return `${a}-****-${c}`; });\n  out = out.replace(/\\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b/g, (_, first, domain) => { masked++; return `${first}***@${domain}`; });\n  return { text: out, masked };\n}\n\nfunction buildResponse(p) {\n  const x = p || {};\n  const m = maskPII(x.answer || '');\n  const security = Object.assign({ blocked_by: '', reason: '', masked: 0 }, x.security || {});\n  security.masked = (security.masked || 0) + m.masked;\n  return {\n    request_id: x.request_id || '',\n    route: x.route || ROUTES.HANDOFF,\n    answer: m.text,\n    sources: Array.isArray(x.sources) ? x.sources.map(s => ({ doc: s.doc, section: s.section, score: s.score })) : [],\n    ticket: x.ticket === undefined ? null : x.ticket,\n    agents: x.agents || {},\n    security,\n    timings: x.timings || {},\n    reason: x.reason || '',\n  };\n}\n// ↑ lib/common.js 복사 끝\n\nconst body = $('Question webhook').first().json.body || {};\nreturn [{ json: buildResponse({\n  request_id: body.request_id,\n  route: ROUTES.BLOCKED,\n  answer: '보안 정책상 처리할 수 없는 요청입니다. 예매·티켓 관련 문의를 다시 남겨 주세요.',\n  sources: [],\n  ticket: null,\n  agents: { used: [], llm_calls: 0 },\n  security: { blocked_by: $json.blocked_by, reason: $json.reason, masked: 0 },\n  timings: { total_ms: Date.now() - $json.started_at },\n  reason: $json.reason,\n}) }];\n"
+        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst ROUTES = {\n  AUTO: '자동 답변',\n  CLARIFY: '보완 질문',\n  HANDOFF: '담당자 이관',\n  FORBIDDEN: '권한 없음',\n  BLOCKED: '차단',\n};\n\nfunction maskPII(text) {\n  let masked = 0;\n  let out = String(text == null ? '' : text);\n  out = out.replace(/\\b(01[016789])[-.\\s]?(\\d{3,4})[-.\\s]?(\\d{4})\\b/g, (_, a, _b, c) => { masked++; return `${a}-****-${c}`; });\n  out = out.replace(/\\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b/g, (_, first, domain) => { masked++; return `${first}***@${domain}`; });\n  return { text: out, masked };\n}\n\nfunction buildResponse(p) {\n  const x = p || {};\n  const m = maskPII(x.answer || '');\n  const security = Object.assign({ blocked_by: '', reason: '', masked: 0 }, x.security || {});\n  security.masked = (security.masked || 0) + m.masked;\n  return {\n    request_id: x.request_id || '',\n    route: x.route || ROUTES.HANDOFF,\n    answer: m.text,\n    sources: Array.isArray(x.sources) ? x.sources.map(s => ({ doc: s.doc, section: s.section, score: s.score })) : [],\n    ticket: x.ticket === undefined ? null : x.ticket,\n    agents: x.agents || {},\n    security,\n    timings: x.timings || {},\n    reason: x.reason || '',\n  };\n}\n// ↑ lib/common.js 복사 끝\n\nconst body = $('Question webhook').first().json.body || {};\nreturn [{ json: buildResponse({\n  request_id: body.request_id,\n  route: ROUTES.BLOCKED,\n  answer: ({\n    geo: '현재 지역에서는 예매할 수 없습니다. 일부 공연은 공연사 요청으로 국내 접속에서만 예매할 수 있습니다. 해외 체류 중이면 [마이페이지 > 해외 예매 인증]에서 본인인증을 마친 뒤 이용해 주세요 (공연마다 허용 여부가 다릅니다). VPN·프록시 접속은 부정 접속으로 판단될 수 있습니다.',\n    ip_blocklist: '부정 접속이 의심되어 이 접속 환경에서는 문의를 처리할 수 없습니다. 본인이라면 고객센터에서 본인 확인 후 해제를 요청해 주세요.',\n    rate_limit: '같은 요청이 짧은 시간에 반복되어 잠시 제한되었습니다. 1분 뒤 다시 시도해 주세요.',\n  })[$json.blocked_by] || '보안 정책상 처리할 수 없는 요청입니다. 예매·티켓 관련 문의를 다시 남겨 주세요.',\n  sources: [],\n  ticket: null,\n  agents: { used: [], llm_calls: 0 },\n  security: { blocked_by: $json.blocked_by, reason: $json.reason, masked: 0 },\n  timings: { total_ms: Date.now() - $json.started_at },\n  reason: $json.reason,\n}) }];\n"
       },
       "position": [
         1320,
@@ -459,7 +459,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ query: $('Question webhook').first().json.body.question, access_level: ($('Check input').first().json.user || {}).access_level || 'all', top_k: 4 }) }}",
+        "jsonBody": "={{ JSON.stringify({ query: $('Question webhook').first().json.body.question, access_level: ($('Check input').first().json.user || {}).access_level || 'all', top_k: 4, scope: $('Plan route').first().json.urgency === 'high' ? ['onsite-entry-fallback'] : undefined }) }}",
         "options": {
           "timeout": 5000
         }
@@ -487,7 +487,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ query: $('Question webhook').first().json.body.question, access_level: ($('Check input').first().json.user || {}).access_level || 'all', top_k: 4 }) }}",
+        "jsonBody": "={{ JSON.stringify({ query: $('Question webhook').first().json.body.question, access_level: ($('Check input').first().json.user || {}).access_level || 'all', top_k: 4, scope: $('Plan route').first().json.urgency === 'high' ? ['onsite-entry-fallback'] : undefined }) }}",
         "options": {
           "timeout": 5000
         }
@@ -936,6 +936,116 @@
       "parameters": {
         "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst ROUTES = {\n  AUTO: '자동 답변',\n  CLARIFY: '보완 질문',\n  HANDOFF: '담당자 이관',\n  FORBIDDEN: '권한 없음',\n  BLOCKED: '차단',\n};\n// ↑ lib/common.js 복사 끝\n\n// 검색이 실패해도 이관은 그대로 간다 (근거만 빠진다)\nconst plan = $('Plan route').first().json;\nconst r = $json || {};\nconst hits = !r.error && Array.isArray(r.hits) ? r.hits : [];\nreturn [{ json: { route: ROUTES.HANDOFF, answer: plan.evidence.answer, sources: hits, needs_handoff: true,\n  reason: plan.reason, masked: 0, used: [...plan.used, 'ticketmoa-search'], llm_calls: plan.llm_calls,\n  agents_extra: r.error ? { search_error: String(r.error.message || r.error).slice(0, 200) } : {},\n  steps: { ...plan.steps, search_ms: Date.now() - plan.t_routed } } }];\n"
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 tools/abuse_guard_apply.py를 다시 돌린다)\nconst RATE_LIMIT = { max: 5, windowSeconds: 60 }; // 같은 사용자·같은 질문이 60초에 5건 넘으면 차단\n\n/**\n * 반복 요청을 세는 캐시 키. 같은 사용자가 같은 질문을 되풀이하는 것(매크로)만 센다.\n * 사용자 단위로만 세면 공통 시나리오(김하늘 유효 요청 5건)와 시연에서 정상 문의까지 막힌다.\n * 질문 원문은 키에 남기지 않고 공백을 정리한 앞 100자의 FNV-1a 해시만 쓴다.\n * @param {string} user\n * @param {string} question\n * @returns {string} 예: \"ratelimit:박서준:1a2b3c4d\"\n */\nfunction rateLimitKey(user, question) {\n  const q = String(question == null ? '' : question).replace(/\\s+/g, ' ').trim().toLowerCase().slice(0, 100);\n  let h = 0x811c9dc5;\n  for (let i = 0; i < q.length; i++) {\n    h ^= q.charCodeAt(i);\n    h = Math.imul(h, 0x01000193) >>> 0;\n  }\n  return `ratelimit:${String(user || '')}:${h.toString(16).padStart(8, '0')}`;\n}\n\n/**\n * 최근 요청 목록으로 차단 여부를 정한다.\n * 목록은 데이터 API /cache/<rateLimitKey>에 저장하고, 돌려준 recent를 다시 저장한다.\n * requestId를 주면 같은 request_id는 한 번만 센다 (--repeat·bench·재전송은 같은 본문을 다시 보낸다).\n * @param {Array<string|{at:string,rid:string}>} recent  이전 요청 (ISO 문자열 또는 {at, rid}, 없으면 [])\n * @param {Date} [now]\n * @param {string} [requestId]\n * @returns {{blocked:boolean, recent:Array, count:number, reason:string}}\n * blocked면 LLM을 부르지 않고 route \"차단\", security.blocked_by \"rate_limit\".\n */\nfunction checkRateLimit(recent, now, requestId) {\n  const t = now || new Date();\n  const from = t.getTime() - RATE_LIMIT.windowSeconds * 1000;\n  const at = x => new Date(x && typeof x === 'object' ? x.at : x).getTime();\n  const kept = (Array.isArray(recent) ? recent : []).filter(x => at(x) > from);\n  const seen = requestId && kept.some(x => x && typeof x === 'object' && x.rid === requestId);\n  if (!seen) kept.push(requestId ? { at: t.toISOString(), rid: String(requestId) } : t.toISOString());\n  const blocked = kept.length > RATE_LIMIT.max;\n  return { blocked, recent: kept, count: kept.length, reason: blocked ? 'too_many_requests' : '' };\n}\n\n// ---------------------------------------------------------------------------\n// 13. 가상 IP 차단 (해외 접속·블랙리스트, 가산) · TM-10, TM-11\n// ---------------------------------------------------------------------------\n\n/**\n * 요청 context.client_ip를 config/ip-policy.json으로 검사한다.\n * IP가 없으면(수업 환경의 일반 요청) 통과시킨다.\n * @param {string} ip\n * @param {{geo:Array<{prefix:string,country:string}>, allowed_countries:string[], blocklist:string[], blocklist_reason:object}} policy\n * @returns {{blocked:boolean, blocked_by:string, reason:string, country:string}}\n * blocked면 LLM을 부르지 않고 route \"차단\". 해외 차단 안내는 fair-booking-policy 3절 문구를 쓴다.\n */\nfunction checkIpPolicy(ip, policy) {\n  const p = policy || {};\n  if (!ip) return { blocked: false, blocked_by: '', reason: '', country: '' };\n  if ((p.blocklist || []).includes(ip)) {\n    return { blocked: true, blocked_by: 'ip_blocklist', reason: (p.blocklist_reason || {})[ip] || 'blocklisted', country: '' };\n  }\n  const hit = (p.geo || []).find(g => ip.startsWith(g.prefix));\n  const country = hit ? hit.country : 'UNKNOWN';\n  if (!(p.allowed_countries || []).includes(country)) {\n    return { blocked: true, blocked_by: 'geo', reason: 'country_not_allowed', country };\n  }\n  return { blocked: false, blocked_by: '', reason: '', country };\n}\n// ↑ lib/common.js 복사 끝\n\n// config/ip-policy.json 복사본 (가상 IP 정책, RFC 5737 대역). 정책을 고치면 이 노드도 다시 만든다.\nconst IP_POLICY = {\n  \"_note\": \"가상 IP 정책 (시연용). IP는 문서·시험용으로 예약된 대역(RFC 5737)만 써서 실제 사용자와 겹치지 않는다.\",\n  \"geo\": [\n    {\n      \"prefix\": \"203.0.113.\",\n      \"country\": \"KR\"\n    },\n    {\n      \"prefix\": \"198.51.100.\",\n      \"country\": \"US\"\n    },\n    {\n      \"prefix\": \"192.0.2.\",\n      \"country\": \"CN\"\n    }\n  ],\n  \"allowed_countries\": [\n    \"KR\"\n  ],\n  \"blocklist\": [\n    \"203.0.113.66\",\n    \"203.0.113.99\"\n  ],\n  \"blocklist_reason\": {\n    \"203.0.113.66\": \"macro_detected\",\n    \"203.0.113.99\": \"scalping_reported\"\n  }\n};\n\n// 가산 TM-10·11: context.client_ip가 있으면 가상 IP 정책으로 검사 (없으면 통과). LLM 앞.\n// TM-09용 반복 요청 키도 여기서 만든다 (사용자 + 질문 해시, 질문 원문은 남기지 않음).\nconst body = $('Question webhook').first().json.body || {};\nconst ctx = body.context && typeof body.context === 'object' ? body.context : {};\nconst ip = checkIpPolicy(String(ctx.client_ip || '').trim(), IP_POLICY);\nreturn [{ json: {\n  ip_blocked: ip.blocked,\n  blocked_by: ip.blocked_by,\n  reason: ip.reason,\n  country: ip.country,\n  rate_key: rateLimitKey(body.user, body.question),\n  started_at: $json.started_at,\n} }];\n"
+      },
+      "name": "Abuse rules",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        220
+      ],
+      "id": "22dd4550-f369-534b-8903-cbf43434e842"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'http://data-api:8800/cache/' + encodeURIComponent($json.rate_key) }}",
+        "options": {
+          "timeout": 1000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Get rate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1260,
+        220
+      ],
+      "onError": "continueErrorOutput",
+      "id": "b56d0a9a-bbdb-59c8-970d-a8dbef085c56"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 tools/abuse_guard_apply.py를 다시 돌린다)\nconst RATE_LIMIT = { max: 5, windowSeconds: 60 }; // 같은 사용자·같은 질문이 60초에 5건 넘으면 차단\n\n/**\n * 반복 요청을 세는 캐시 키. 같은 사용자가 같은 질문을 되풀이하는 것(매크로)만 센다.\n * 사용자 단위로만 세면 공통 시나리오(김하늘 유효 요청 5건)와 시연에서 정상 문의까지 막힌다.\n * 질문 원문은 키에 남기지 않고 공백을 정리한 앞 100자의 FNV-1a 해시만 쓴다.\n * @param {string} user\n * @param {string} question\n * @returns {string} 예: \"ratelimit:박서준:1a2b3c4d\"\n */\nfunction rateLimitKey(user, question) {\n  const q = String(question == null ? '' : question).replace(/\\s+/g, ' ').trim().toLowerCase().slice(0, 100);\n  let h = 0x811c9dc5;\n  for (let i = 0; i < q.length; i++) {\n    h ^= q.charCodeAt(i);\n    h = Math.imul(h, 0x01000193) >>> 0;\n  }\n  return `ratelimit:${String(user || '')}:${h.toString(16).padStart(8, '0')}`;\n}\n\n/**\n * 최근 요청 목록으로 차단 여부를 정한다.\n * 목록은 데이터 API /cache/<rateLimitKey>에 저장하고, 돌려준 recent를 다시 저장한다.\n * requestId를 주면 같은 request_id는 한 번만 센다 (--repeat·bench·재전송은 같은 본문을 다시 보낸다).\n * @param {Array<string|{at:string,rid:string}>} recent  이전 요청 (ISO 문자열 또는 {at, rid}, 없으면 [])\n * @param {Date} [now]\n * @param {string} [requestId]\n * @returns {{blocked:boolean, recent:Array, count:number, reason:string}}\n * blocked면 LLM을 부르지 않고 route \"차단\", security.blocked_by \"rate_limit\".\n */\nfunction checkRateLimit(recent, now, requestId) {\n  const t = now || new Date();\n  const from = t.getTime() - RATE_LIMIT.windowSeconds * 1000;\n  const at = x => new Date(x && typeof x === 'object' ? x.at : x).getTime();\n  const kept = (Array.isArray(recent) ? recent : []).filter(x => at(x) > from);\n  const seen = requestId && kept.some(x => x && typeof x === 'object' && x.rid === requestId);\n  if (!seen) kept.push(requestId ? { at: t.toISOString(), rid: String(requestId) } : t.toISOString());\n  const blocked = kept.length > RATE_LIMIT.max;\n  return { blocked, recent: kept, count: kept.length, reason: blocked ? 'too_many_requests' : '' };\n}\n\n// ---------------------------------------------------------------------------\n// 13. 가상 IP 차단 (해외 접속·블랙리스트, 가산) · TM-10, TM-11\n// ---------------------------------------------------------------------------\n\n/**\n * 요청 context.client_ip를 config/ip-policy.json으로 검사한다.\n * IP가 없으면(수업 환경의 일반 요청) 통과시킨다.\n * @param {string} ip\n * @param {{geo:Array<{prefix:string,country:string}>, allowed_countries:string[], blocklist:string[], blocklist_reason:object}} policy\n * @returns {{blocked:boolean, blocked_by:string, reason:string, country:string}}\n * blocked면 LLM을 부르지 않고 route \"차단\". 해외 차단 안내는 fair-booking-policy 3절 문구를 쓴다.\n */\nfunction checkIpPolicy(ip, policy) {\n  const p = policy || {};\n  if (!ip) return { blocked: false, blocked_by: '', reason: '', country: '' };\n  if ((p.blocklist || []).includes(ip)) {\n    return { blocked: true, blocked_by: 'ip_blocklist', reason: (p.blocklist_reason || {})[ip] || 'blocklisted', country: '' };\n  }\n  const hit = (p.geo || []).find(g => ip.startsWith(g.prefix));\n  const country = hit ? hit.country : 'UNKNOWN';\n  if (!(p.allowed_countries || []).includes(country)) {\n    return { blocked: true, blocked_by: 'geo', reason: 'country_not_allowed', country };\n  }\n  return { blocked: false, blocked_by: '', reason: '', country };\n}\n// ↑ lib/common.js 복사 끝\n\n// 가산 TM-09: 같은 사용자·같은 질문이 60초에 6번째면 차단. 같은 request_id는 한 번만 센다.\n// /cache 조회가 실패하면(데이터 API 문제) 막지 않고 통과시킨다 (fail-open).\nconst a = $('Abuse rules').first().json;\nconst base = { rate_key: a.rate_key, started_at: a.started_at, country: a.country };\nif (a.ip_blocked) return [{ json: { ...base, blocked: true, blocked_by: a.blocked_by, reason: a.reason, recent: [] } }];\nconst res = $input.first().json || {};\nconst status = typeof res.statusCode === 'number' ? res.statusCode : null;\nif (status !== 200 && status !== 404) {\n  return [{ json: { ...base, blocked: false, blocked_by: '', reason: '', recent: [], rate_check: 'cache_unavailable' } }];\n}\nconst prev = status === 200 && res.body && Array.isArray(res.body.value) ? res.body.value : [];\nconst body = $('Question webhook').first().json.body || {};\nconst r = checkRateLimit(prev, new Date(), body.request_id);\nreturn [{ json: { ...base, blocked: r.blocked, blocked_by: r.blocked ? 'rate_limit' : '', reason: r.reason,\n  recent: r.recent, count: r.count } }];\n"
+      },
+      "name": "Rate check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        220
+      ],
+      "id": "a87ee544-66fb-562f-a498-1bbf4dce9a44"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "abuse1",
+              "leftValue": "={{ $json.blocked }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Abuse blocked?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1580,
+        220
+      ],
+      "id": "efa830a4-e5d4-55d3-b944-9605ad0a4c99"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'http://data-api:8800/cache/' + encodeURIComponent($json.rate_key) }}",
+        "options": {
+          "timeout": 1000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ value: $json.recent, ttl: 120 }) }}"
+      },
+      "name": "Save rate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1740,
+        340
+      ],
+      "onError": "continueErrorOutput",
+      "id": "c9eb2677-c475-55f8-94f3-be44e0bde2e1"
     }
   ],
   "connections": {
@@ -1030,7 +1140,7 @@
         ],
         [
           {
-            "node": "Load registry",
+            "node": "Abuse rules",
             "type": "main",
             "index": 0
           }
@@ -1515,9 +1625,86 @@
           }
         ]
       ]
+    },
+    "Abuse rules": {
+      "main": [
+        [
+          {
+            "node": "Get rate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get rate": {
+      "main": [
+        [
+          {
+            "node": "Rate check",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rate check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rate check": {
+      "main": [
+        [
+          {
+            "node": "Abuse blocked?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abuse blocked?": {
+      "main": [
+        [
+          {
+            "node": "Blocked answer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save rate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save rate": {
+      "main": [
+        [
+          {
+            "node": "Load registry",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Load registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "errorWorkflow": "ticketmoaErrors01"
   }
 }
