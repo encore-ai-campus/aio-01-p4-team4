@@ -220,7 +220,7 @@ n8n 안에서 되도는 루프는 만들지 않는다. 보완 질문은 요청 �
 - 견적에 `owner`·`expires_at`을 넣고, 확정 때 사용자·예매·만료를 다시 본다 (`확인 자격 판정`).
 - context의 user·amount·role·approved는 쓰지 않고 `ignored_context`로 이름만 남긴다 (`요청 단계 판정`).
 - 분류·검증 모델은 Credential `OpenAI (.env)`만 쓴다 (WF-10).
-- refund의 하위 웹훅 호출에는 `ticketmoa-team-key`를 쓴다. data-api 호출은 다른 워크플로우처럼 Credential 없이 부른다 (연습용 data-api는 키를 검사하지 않음).
+- refund의 하위 웹훅 호출에는 `ticketmoa-team-key`를 쓴다. data-api 호출은 다른 워크플로우처럼 Credential `ticketmoa-data-api`(`X-Api-Key`)를 붙여 부른다 (연습용 data-api는 키를 검사하지 않음).
 - 검증: promptfoo 환불 공격 세트 10/10, 공격 대응 세트 16/17 (계약 모형 기준, `security/promptfoo/`).
 
 ### 4.6 실행 예시
@@ -257,18 +257,18 @@ n8n 안에서 되도는 루프는 만들지 않는다. 보완 질문은 요청 �
 
 **반복 시험 (각 3회)**: 공통 17/17, 17/17, 17/17. 팀 필수 9개는 9/9, 9/9, 8/9다. 실패 1건은 TM-07이 `llm_unavailable`로 이관된 경우다 (`작성 모델` 2.5초 제한에 걸린 것으로 보임).
 
-**팀 VM 시험** (2026-11-05 14:16~14:20, `main` `a5c80dc`, 문서 42청크, 보고서 `runs/vm/`): 위 표와 환경·문서가 달라 직접 비교하지 않는다. 버전별 전체 기록은 `EXECUTION-RESULT.md` 0절에 있다.
+**팀 VM 시험** (2026-11-05 15:10~15:14, `main` `ea1a6c9`, 문서 42청크, 보고서 `runs/vm/`): 위 표와 환경·문서가 달라 직접 비교하지 않는다. 버전별 전체 기록은 `EXECUTION-RESULT.md` 0절에 있다.
 
 | 시험 | 결과 |
 | --- | --- |
 | 공통 3회 | 50/51 |
 | 팀 1회 | 13/13 (필수 9/9, 가산 4/4) |
-| WF-01 3회 | 7.3초 `llm_unavailable` 이관(실패), 5.6 / 6.2초 자동 답변 (기준 8초) |
-| WF-11 3회 | 담당자 이관 `payment_failed`, 5.7 / 5.8 / 5.6초 (기준 6초) |
-| WF-12 3회 | 담당자 이관 `urgent_entry`, 3.9 / 3.7 / 4.6초 |
-| `bench -n 5` (WF-01 질문) | p50 5.50초, p95 5.77초, 실패 0/5 |
+| WF-01 3회 | 8.2초 자동 답변(시간 초과로 실패), 5.2 / 6.2초 자동 답변 (기준 8초) |
+| WF-11 3회 | 담당자 이관 `payment_failed`, 5.6 / 5.6 / 5.6초 (기준 6초) |
+| WF-12 3회 | 담당자 이관 `urgent_entry`, 4.6 / 4.6 / 4.3초 |
+| `bench -n 5` (WF-01 질문) | p50 5.40초, p95 5.90초, 실패 0/5 |
 
-WF-01 실패는 `push`와 재색인 직후 1회차에서 나왔다. 앞선 시험에서도 간헐 실패가 있어 해결로 보지 않는다.
+WF-01 실패는 `push`와 재색인 직후 1회차에서 나왔고, 답은 정상이었다. 앞선 시험에서는 작성 모델 2.5초 초과(`Request timed out.`)로 이관된 경우가 있어 해결로 보지 않는다.
 
 ### 4.7 남은 일
 
@@ -277,11 +277,89 @@ WF-01 실패는 `push`와 재색인 직후 1회차에서 나왔다. 앞선 시�
 - [x] 팀 VM 반영 뒤 시나리오와 시간 확인 · 2026-11-05, 위 표. 분류·검증 단독 호출 예시는 VM에서 다시 재지 않음
 - [x] tflow로 본체 흐름도와 실제 연결 비교 · 2026-11-04, `ticketmoa-support` 연결 51개 일치
 - [x] 검색 점수 기준 판단 · 정상 질문과 문서에 없는 질문의 점수가 겹쳐 기준을 두지 않고 근거 검증으로 거른다 (RAG 설계서 3.0절). WF-03·04·05의 이관은 계속 LLM 판단에 달려 있다
-- [x] `작성 모델` 시간 제한 2.5초 재검토 · 제한 합계가 이미 약 8초이고, VM 최신 공통 3회의 시간 초과형 실패가 1건으로 기준(2건 이상) 미만이라 유지한다. 간헐 실패는 계속 확인한다
+- [x] `작성 모델` 시간 제한 2.5초 재검토 · 제한 합계가 이미 약 8초이고, VM 공통 3회의 시간 초과형 실패가 기준(2건 이상) 미만이라 유지한다. 간헐 실패는 계속 확인한다
 - [x] 하위 웹훅 표(IMPLEMENTATION-PLAN)에 `ticketmoa-agents-verify` 행과 search `scope` 추가 (A 승인, 2026-11-04)
 - [x] 구조도 이미지(`images/orchestration.*`)를 실제 본체 흐름으로 다시 만들기 · 2026-11-04
 - [ ] 구조도 이미지에 가산 차단 노드 반영, tflow로 본체 연결 다시 비교 (A)
 - [x] 가산 차단과 `errorWorkflow`를 넣은 `support`를 VM에서 시험 · 2026-11-05, 위 표. `support` 자체를 실패시킨 Error Workflow 시험은 하지 않음
+
+### 4.8 80일차 강현 담당 점검 · 2026-11-05 (목)
+
+이 절은 강사 14:22 피드백의 **WF-01 검증 실패 분석**, 앞선 **WF-05 기준·오류 연결 확인**을 정리한다. 로컬 작업 기준은 `Hyun` `7963e45`, 비교한 팀 main은 `415ab10402ced6d7111cc5cfdcdddebd003bcfd5`다. 병합 전 최신 main `ea1a6c9`에서 WF-05 판정 조건, errors 노드, tech·search의 `errorWorkflow` 없음, agents 수정 전 blob이 같음을 다시 확인했다. 이 main에 저장된 `ticketmoa-agents.json`은 수정 전 로컬 파일과 같은 Git blob(`41b246b0808498cddeeb7bc54c13d4a62253a719`)이다. 아래 VM 수치는 저장소에 보관된 기존 시험이며, 이번 수정본을 VM에서 시험한 값이 아니다.
+
+#### 4.8.1 시험 환경·버전을 나눠 읽기
+
+| 환경·코드 | 보고서 시각 (2026-11-05 KST) | 공통 | WF-01 회차별 결과 | 근거 |
+| --- | --- | --- | --- | --- |
+| 로컬 E, 실행 커밋 미기록, 42청크 | 12:32:11 | 49/51 | 1회 통과 7.3초 / 2회 실패 6.2초 / 3회 실패 6.3초. 실패 둘 다 `llm_unavailable` | `runs/common-20261105-123211.json` |
+| 팀 VM, main `445ba2d`, 42청크 | 12:47:00 | 51/51 | 3회 통과: 6.6 / 6.8 / 6.1초 | `runs/vm/common-20261105-034700.json` |
+| 로컬 리드, `support-guards` (`6f158de`와 같은 워크플로우), 42청크 | 14:07:23 | 49/51 | 1회 통과 6.1초 / 2회 `llm_unavailable` 5.5초 / 3회 자동 답변이지만 시간 기준 실패(표시 8.0초) | `runs/common-20261105-140723.json` |
+| 팀 VM, main `a5c80dc`, 42청크 | 14:18:22 | 50/51 | 1회 `llm_unavailable` 7.3초 / 2·3회 통과 5.6 / 6.2초 | `runs/vm/common-20261105-051822.json` |
+
+시각과 배포 코드의 출처는 비교한 main의 `docs/EXECUTION-RESULT.md` 0절이다. 보고서 JSON에는 실행 커밋·색인 버전 필드가 없으므로 파일 자체에서 검증한 정보와 구별한다. VM 파일명 시각은 UTC이고 표는 9시간을 더한 KST다. 두 로컬 49/51과 이전 VM 51/51을 합치거나 수정 후 결과로 쓰지 않는다.
+
+원본 링크: [로컬 12:32](https://github.com/ensk712-rgb/aio-01-p4-team4/blob/415ab10402ced6d7111cc5cfdcdddebd003bcfd5/runs/common-20261105-123211.json), [로컬 14:07](https://github.com/ensk712-rgb/aio-01-p4-team4/blob/415ab10402ced6d7111cc5cfdcdddebd003bcfd5/runs/common-20261105-140723.json), [이전 VM](https://github.com/ensk712-rgb/aio-01-p4-team4/blob/415ab10402ced6d7111cc5cfdcdddebd003bcfd5/runs/vm/common-20261105-034700.json), [최신 보관 VM](https://github.com/ensk712-rgb/aio-01-p4-team4/blob/415ab10402ced6d7111cc5cfdcdddebd003bcfd5/runs/vm/common-20261105-051822.json).
+
+#### 4.8.2 WF-01 실패 위치와 확인 한계
+
+| 구분 | 코드상 경로·응답 | 보고서에서 확인한 사실 |
+| --- | --- | --- |
+| 작성 모델 오류 | tech `답변 작성` 오류 출력 → `작성 실패 결과` → `reason: llm_unavailable` | 로컬 12:32 2·3회, 로컬 14:07 2회, VM 14:18 1회. 모두 이관·빈 sources, `llm_calls: 2` |
+| 검증 Agent 부정 판정·읽기 실패 | agents `검증 결과 검사` → `{ok:false, issues}` → tech `답변 결정` → `verification_failed` | 위 네 보고서의 WF-01에서는 이 사유가 없다 |
+| 검증 HTTP 호출 실패 | tech `검증 호출` 오류 → `답변 결정` → `verification_timeout` | 위 네 보고서의 WF-01에서는 이 사유가 없다. 현재 코드는 상태 코드가 없으면 모두 이 사유로 묶으므로 실제 timeout 여부는 실행 오류를 확인해야 한다 |
+| 전체 응답 시간 초과 | 답·검증은 통과했지만 시험 도구의 `max_seconds: 8` 초과 | 로컬 14:07 3회차: 자동 답변, 기대 문서 포함, `llm_calls: 3`, `reason: ""` |
+
+**따라서 최근 실패를 검증 Agent의 오판으로 단정해 프롬프트·통과 기준을 완화하지 않는다.** VM 실패는 분류 3,522ms + 검색 482ms + tech 2,709ms + 이관 256ms, 응답 내부 `total_ms: 7103`, 시험 시간 7.3초다. 로컬 작성 실패의 tech도 2,647~2,677ms다. tech `작성 모델`의 timeout 2,500ms와 가까워 작성 모델 시간 제한이 원인 후보지만, n8n 실행 오류가 없어 timeout·429·인증 오류 중 무엇인지는 확정할 수 없다. `llm_calls`는 코드가 기록한 횟수이며 제공자 실제 재시도 횟수의 증거는 아니다.
+
+시간만 실패한 로컬 3회차는 분류 2,285ms + 검색 1,737ms + tech 3,770ms, 내부 합계 7,874ms다. 시험 도구는 HTTP 전체 시간을 **반올림 전에** 8초와 비교하고 결과에는 소수 첫째 자리로 저장한다(`Last3Mon/78/tools/flow.py` 574~575, 697행). 표시가 8.0초여도 `passed:false`와 `problems`의 시간 초과 판정을 유지한다. 정확히 몇 ms 초과했는지는 이 보고서로 복원할 수 없다. 예진 담당의 작성·검색 지연 분석에 이 수치를 전달할 수 있다.
+
+WF-02는 위 네 보고서 모두 3/3 통과다. 앞선 `common-20261105-114641.json`의 WF-01·02 실패는 `agents_failed`이며 분류 단계 장애다. 키 교체 전이라는 설명은 결과서의 경과 기록이고, 원본 응답만으로 인증 오류를 확정하지 않는다.
+
+#### 4.8.3 강현 코드 수정과 로컬 검증
+
+`검증 결과 검사`는 `{relevant:true, grounded:false, policy_ok:true, issues:[]}`를 받으면 기존에 `{ok:false, issues:[], llm_calls:1}`을 반환했다. 이관 판단은 안전했지만 **어떤 판정이 실패했는지 사라지는 문제**를 실제 Code 노드 실행으로 재현했다.
+
+- 수정: 세 판정이 false이면 `not_relevant` / `not_grounded` / `policy_violation`, boolean이 아니면 `invalid_<필드>`, JSON 파싱·필수 필드 실패이면 `unreadable`을 `issues` 앞에 기록한다. 모델의 설명도 남기되 중복을 제거하고 최대 5개로 제한한다.
+- 유지: boolean true 세 개를 모두 요구하는 통과 기준, 응답 `{ok, issues, llm_calls}`, 공통 `parseAgentJson` 원문, 프롬프트·모델·시간 제한·워크플로우 연결은 같다.
+- 로컬 결과: 전용 회귀 검사 14/14(판정 값 343조합 포함), 공통 함수 검사 16/16, `flow.py check workflows/ticketmoa-agents.json` 오류 0. 전용 검사는 수정 전 7개 실패 → 수정 후 0개 실패였다.
+- 시험 한계: Code 노드와 tech의 응답 분기를 로컬에서 실행한 결과다. LLM의 실제 판단 품질·속도와 n8n VM 실행을 대신하지 않는다. 이번 변경이 기존 WF-01 작성 모델 장애를 해결했다고 주장하지 않는다.
+
+본체 `Collect tech`는 하위 응답의 `issues`를 `agents_extra`로 옮기지 않아 최종 응답에서는 상세 사유가 빠진다. A에게 기존 응답 계약 안에서 **검증 사유 코드만** 보존할지 검토를 요청한다. 모델 설명 원문은 개인정보 가능성이 있어 그대로 로그에 넣지 않는다. 본체 파일은 B가 수정하지 않았다.
+
+#### 4.8.4 WF-05 기준·오류 연결 확인
+
+수업 `03-SCENARIOS-AND-DATA.md`의 WF-05는 제한 문서 미검색·미노출과 route `권한 없음` 또는 `담당자 이관`을 요구한다. 현재 팀 `cases/common.json`은 sources에 `staff-entry-manual`이 없고 answer에 `책임자 코드`·`수기 모드`가 없는지만 검사하며 **route 조건이 없다**. 따라서 시험 PASS만으로 수업의 권한 기준을 모두 검증했다고 쓰지 않는다. 두 VM 보고서의 실제 route는 각각 3회 모두 `담당자 이관`이었다. 검색 전 권한 분리는 search 실행의 메모리 키·hits 증거까지 필요하다. 시험 기대값은 수정하지 않으며 A·C·E가 수업 기준과 문서 설명을 맞춰야 한다.
+
+| 점검 대상 (비교 main 기준) | 정적 확인 | 실행 확인 |
+| --- | --- | --- |
+| B `agents`·`refund` | `settings.errorWorkflow = ticketmoaErrors01`, errors의 top-level id와 일치 | 실제 예외 연동은 미확인 |
+| A `support` | 같은 Error Workflow id 연결 | 공통 시나리오 통과는 처리되지 않은 예외 발생의 증거가 아님 |
+| C `tech` | `settings`에 `errorWorkflow` 없음 | C·D 확인 필요 |
+| D `errors` | `오류 수신` → `알림 내용 조립` → `장애 알림 전송`; `/dlq` 노드 없음 | 알림·DLQ 완료로 쓸 수 없음 |
+
+환석 담당에게 필요한 사항: Error Workflow의 DLQ 경로를 완성한 뒤, 게시된 워크플로우의 **처리되지 않은 실제 오류**로 실행 ID·실패 노드·알림·DLQ를 대조한다. 예상된 모델 실패는 `continueErrorOutput`에서 HTTP 200으로 처리되므로 Error Trigger 검증과 구별한다. WF-04의 티켓 API 장애 경로도 별도다. errors·tech 파일은 담당자가 수정한다.
+
+#### 4.8.5 VM 재검증 상태와 후속 실행
+
+현재 세션에서 `ssh aio-t4`는 별칭 해석 실패, SSH 설정 읽기·WSL 실행은 접근 거절로 VM에 연결하지 못했다. **이번 수정본은 VM 미배포·미검증**이다. 공용 컨테이너와 장애 스위치는 변경하지 않았다.
+
+접속 가능한 환경에서는 B 파일만 반영하고, 팀 공지 후 `flow.py check` → `push` → 재시작 대기 → 기존 `tools/reindex.py`로 재색인한다. 최신 main 전체 반영은 A 담당이다. VM에서 아래를 확인하고 E가 새 보고서를 기존 결과와 구별해 보관한다.
+
+1. 정상 근거 답변, 근거 밖 답변, 정책 위반 답변을 `ticketmoa-agents-verify`로 호출해 `{ok, issues, llm_calls}`를 확인한다. 비정상 답을 통과시키지 않는다.
+2. 같은 문서·청킹·질문·기대값으로 WF-01 및 공통 3회, 팀 필수 9개를 실행한다. `bench` 성공을 공통 통과로 대체하지 않는다.
+3. WF-01 실패 시 tech 작성 모델 오류인지 verifier 판정·HTTP 오류인지 n8n 실행에서 확인한다. 입력·출력은 가리고 실행 ID, 코드 버전, 색인 버전, UTC/KST, 노드별 시간, 오류 코드만 근거로 남긴다.
+4. 원인별 조정 후 같은 조건으로 재시험한다. 작성 timeout을 늘리면 tech 호출 5초·WF-01 전체 8초 안에 검증 시간까지 들어오는지 함께 확인한다.
+
+아래는 접속 가능한 PowerShell에서 실행할 명령이며 **이번 세션에서는 실행하지 않았다**. VM이 비교한 main보다 새 버전이면 먼저 agents 변경을 비교해 덮어쓰지 않는다. 공용 `push`·장애 시험 시간은 A와 맞춘다. 팀 시험은 13개 전체 중 필수 9개 결과를 별도로 센다.
+
+```powershell
+scp workflows/ticketmoa-agents.json aio-t4:~/aio-01-p4-team4/workflows/
+ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && export FLOW_PY=~/aio-tools/Last3Mon/78/tools/flow.py && uv run tools/flow.py check workflows/ticketmoa-agents.json && uv run tools/flow.py push workflows/ticketmoa-agents.json && sleep 10 && uv run --env-file .env tools/reindex.py'"
+ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && FLOW_PY=~/aio-tools/Last3Mon/78/tools/flow.py uv run --env-file .env tools/flow.py test cases/common.json --webhook ticketmoa-support --repeat 3'"
+ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && FLOW_PY=~/aio-tools/Last3Mon/78/tools/flow.py uv run --env-file .env tools/flow.py test cases/team.json --webhook ticketmoa-support'"
+```
+
+수업 일정은 80일차 11/05(목), 81일차 11/06(금), 82일차 11/09(월)이다. 이 절은 80일차 기록이며 81·82일차나 VM 완료 기록으로 미리 표시하지 않는다.
 ## 5. 외부 연동 노드 (연습용 → 운영)
 
 지금은 외부 시스템을 모두 연습용 데이터 API(n8n 안에서 `http://data-api:8800`)로 대신한다. 운영으로 옮길 때는 아래 노드의 주소와 Credential만 바꾸는 것을 목표로 한다. 운영 열은 계획이며 구현하지 않았다.
@@ -302,7 +380,7 @@ WF-01 실패는 `push`와 재색인 직후 1회차에서 나왔다. 앞선 시�
 
 운영으로 옮길 때 함께 바꿀 것:
 
-- **인증:** 연습용 data-api는 키를 검사하지 않아서 data-api 호출에 Credential이 없다. 운영 시스템 호출에는 시스템별 Credential을 연결한다.
+- **인증:** data-api 호출 23곳에 Credential `ticketmoa-data-api`(`X-Api-Key`, id `ticketmoaDataApi1`)를 연결했다. 헤더가 실제로 나가는 것은 임시 워크플로우로 확인했다(2026-11-05, 로컬). VM에서는 이 Credential로 공통·팀 시나리오를 통과했다. 연습용 data-api는 키를 검사하지 않으므로, 틀린 키를 거절하는지는 이 환경에서 시험할 수 없다. 운영 시스템 호출에는 시스템별 Credential을 연결한다.
 - **색인:** 지금은 In-Memory Vector Store를 쓰고, n8n을 재시작한 뒤에는 `ticketmoa-index`를 다시 호출한다. 재시작 후 데이터가 유지되는지는 아직 확인하지 않았다.
 - **신원:** 지금은 요청의 `user` 칸을 신원으로 믿는다. 운영에는 서명된 세션 토큰이 필요하다.
 

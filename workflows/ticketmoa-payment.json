@@ -113,11 +113,19 @@
               "neverError": true
             }
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "notes": "【역할】 데이터 API로 기록을 조회한다.\n【입력】 {record_id, user, deadline_ms}.\n【처리】 GET /tickets/<id>?requester=<user>. timeout은 2.5초와 남은 시간 중 짧은 쪽이다 (WF-11).\n【출력】 {statusCode, body}. 403·404도 정상 출력으로 받아 다음 노드에서 판단한다.\n【실패 시】 timeout·연결 실패는 오류 출력으로 조회 판정에 간다.",
       "notesInFlow": false,
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaDataApi1",
+          "name": "ticketmoa-data-api"
+        }
+      }
     },
     {
       "id": "cb03fd42-cbbf-3e7f-04b0-8a89181e201c",
