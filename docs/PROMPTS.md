@@ -6,7 +6,7 @@
 - 한 번에 한 단계만 시킨다. 단계가 끝날 때마다 n8n에 push하고 해당 시나리오를 돌려 본 뒤 다음 단계로 간다.
 - `<...>` 칸은 직접 채운다.
 - reference 파일 이름은 2026-11-03에 실습 폴더(68·69·71·72·73·76·77·78)에서 확인한 것이다. 79일차 폴더는 아직 없어서 79 예제를 쓰는 곳에는 대신 쓸 파일을 함께 적었다.
-- 시험은 저장소의 `tools/flow.py`로 저장소 뿌리에서 돌린다. 78일차 `flow.py`를 그대로 부르면서 팀 웹훅에 `X-Team-Key`를 붙여 준다 (78 원본은 이 머리글을 보내지 않아 Header Auth를 걸면 401). 키는 셸에서만: `FLOW_WEBHOOK_KEY=<팀 키> uv run tools/flow.py test cases/common.json --webhook ticketmoa-support`
+- 시험은 저장소의 `tools/flow.py`로 저장소 뿌리에서 돌린다. 78일차 `flow.py`를 그대로 부르면서 팀 웹훅에 `X-Team-Key`를 붙여 준다 (78 원본은 이 머리글을 보내지 않아 Header Auth를 걸면 403). 키는 `.env`의 `TM_TEAM_KEY`에만: `uv run --env-file .env tools/flow.py test cases/common.json --webhook ticketmoa-support`
 - 에이전트가 할 수 없는 일(손으로): n8n Credential 만들기, 워크플로우 활성화(Publish), 색인 웹훅 한 번 실행.
 
 ---

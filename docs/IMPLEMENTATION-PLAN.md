@@ -46,14 +46,17 @@ route: 자동 답변 | 보완 질문 | 담당자 이관 | 권한 없음 | 차단
 
 | 웹훅 | 받는 것 | 돌려주는 것 | 만드는 사람 |
 | --- | --- | --- | --- |
-| `ticketmoa-agents` | `{request_id, user, question, attempt, context, registry}` | `{intents, entities, sentiment, urgency, confidence, missing}` | B |
-| `ticketmoa-search` | `{query, access_level, top_k}` | `{hits:[{doc, section, score, text}]}` | C |
-| `ticketmoa-tech` (기술 장애·앱·일반 정보) | `{request_id, user, question, urgency, hits}` | `{route, answer, sources, alert}` | C |
-| `ticketmoa-refund` | `{request_id, user, booking_id, context}` | `{route, answer, sources, pending_action}` | B |
-| `ticketmoa-payment` (결제 오류·예매 조회) | `{request_id, user, record_id}` | `{status, record (가림), forbidden}` | D |
-| `ticketmoa-handoff` | `{request_id, user, summary, category, priority}` | `{ticket, duplicate, dlq, alert}` | D |
+| `ticketmoa-agents` | `{request_id, user, question, attempt, context, registry}` | `{intents, entities, sentiment, urgency, confidence, clarity, missing, clarify_question, signals, llm_calls}` | B |
+| `ticketmoa-agents-verify` (답변 검증) | `{question, answer, hits}` | `{ok, issues, llm_calls}` | B |
+| `ticketmoa-search` | `{query, access_level, top_k, scope(선택: 찾을 문서 이름 목록)}` | `{hits:[{doc, section, score, text}]}` | C |
+| `ticketmoa-tech` (기술 장애·앱·일반 정보) | `{request_id, user, question, access_level, urgency, hits}` | `{route, answer, sources, alert}` | C |
+| `ticketmoa-refund` | `{request_id, user, question, access_level, record_id, booking_id, context, deadline_ms}` | `{route, answer, sources, ticket, pending_action}` | B |
+| `ticketmoa-payment` (결제 오류·예매 조회) | `{request_id, user, record_id, deadline_ms(선택)}` | `{status, record (가림), forbidden}` | D |
+| `ticketmoa-handoff` | `{request_id, user, summary, category, priority, alert, deadline_ms}` | `{ticket, duplicate, dlq, alert}` | D |
 
 모든 하위 웹훅은 실패해도 **200 + `{"error": "..."}`** 로 돌려주고, 본체는 HTTP Request에 timeout(예: 5초)을 두고 실패하면 이관으로 간다.
+
+`deadline_ms`는 웹훅마다 뜻이 다르다. `ticketmoa-refund`, `ticketmoa-payment`, `ticketmoa-handoff`에 넘기는 값은 남은 시간(ms)이다. `ticketmoa-tech`는 이 칸을 절대 시각으로 읽으므로, 지금처럼 보내지 않거나 같은 뜻으로 맞춘 뒤 보낸다.
 
 **끝 표시**: 위 표를 다섯 명이 모두 확인 (바꾸면 이 표부터 고친다. 설계서 3절은 구현 뒤 이 표로 쓴다).
 
@@ -126,4 +129,4 @@ git add workflows/ticketmoa-<내파일>.json && git commit -m "무엇 · common 
 
 다른 사람 작업을 내 n8n에서 보려면 `git pull` 후 `uv run tools/flow.py push workflows/*.json`, 색인은 `ticketmoa-index`를 한 번 다시 돌린다.
 
-> `flow.py`는 저장소의 `tools/flow.py`를 쓴다 (78일차 `flow.py` + `X-Team-Key`). 키는 `FLOW_WEBHOOK_KEY` 환경 변수로만.
+> `flow.py`는 저장소의 `tools/flow.py`를 쓴다 (78일차 `flow.py` + `X-Team-Key`). 키는 `.env`의 `TM_TEAM_KEY`로만 (`uv run --env-file .env ...`).
