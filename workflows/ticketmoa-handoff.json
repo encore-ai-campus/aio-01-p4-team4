@@ -38,7 +38,7 @@
         0
       ],
       "parameters": {
-        "jsCode": "// ↓ lib/common.js 원문 복사\nfunction maskPII(text) {\n  let masked = 0;\n  let out = String(text == null ? '' : text);\n  out = out.replace(/\\b(01[016789])[-.\\s]?(\\d{3,4})[-.\\s]?(\\d{4})\\b/g, (_, a, _b, c) => { masked++; return `${a}-****-${c}`; });\n  out = out.replace(/\\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b/g, (_, first, domain) => { masked++; return `${first}***@${domain}`; });\n  return { text: out, masked };\n}\nfunction maskDeep(value) {\n  let masked = 0;\n  const walk = v => {\n    if (typeof v === 'string') { const r = maskPII(v); masked += r.masked; return r.text; }\n    if (Array.isArray(v)) return v.map(walk);\n    if (v && typeof v === 'object') { const o = {}; for (const k of Object.keys(v)) o[k] = walk(v[k]); return o; }\n    return v;\n  };\n  return { value: walk(value), masked };\n}\n// ↑ lib/common.js 원문 복사 끝\n\nconst b = $input.first().json.body || {};\nconst summary = maskPII(String(b.summary || ''));\nconst alert = b.alert ? maskDeep(b.alert) : { value: null, masked: 0 };\nconst category = String(b.category || 'general');\nconst priority = b.priority === 'high' ? 'high' : 'normal';\n// 데이터 API는 title, requester, category, priority만 저장한다. 요약을 잃지 않도록 title에 담는다.\nconst title = ('[' + category + '] ' + summary.text).replace(/\\s+/g, ' ').slice(0, 500);\nreturn [{ json: {\n  request_id: String(b.request_id || ''), user: String(b.user || ''), title, summary: summary.text, category, priority,\n  alert: alert.value, masked: summary.masked + alert.masked,\n  // 본체가 넘기는 deadline_ms는 남은 시간(ms, 최소 500)이다. 받은 시각부터 세어 절대 시각으로 바꾼다.\n  // reserve_ms는 티켓 실패 뒤 DLQ·알림·응답에 남겨 두는 시간이다.\n  deadline_ms: Date.now() + (Number(b.deadline_ms) > 0 ? Number(b.deadline_ms) : 5000), reserve_ms: 300, try_no: 1,\n} }];"
+        "jsCode": "// ↓ lib/common.js 원문 복사\nfunction maskPII(text) {\n  let masked = 0;\n  let out = String(text == null ? '' : text);\n  out = out.replace(/\\b(01[016789])[-.\\s]?(\\d{3,4})[-.\\s]?(\\d{4})\\b/g, (_, a, _b, c) => { masked++; return `${a}-****-${c}`; });\n  out = out.replace(/\\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b/g, (_, first, domain) => { masked++; return `${first}***@${domain}`; });\n  return { text: out, masked };\n}\nfunction maskDeep(value) {\n  let masked = 0;\n  const walk = v => {\n    if (typeof v === 'string') { const r = maskPII(v); masked += r.masked; return r.text; }\n    if (Array.isArray(v)) return v.map(walk);\n    if (v && typeof v === 'object') { const o = {}; for (const k of Object.keys(v)) o[k] = walk(v[k]); return o; }\n    return v;\n  };\n  return { value: walk(value), masked };\n}\n// ↑ lib/common.js 원문 복사 끝\n\n// 입력 검사: request_id·user·summary는 비어 있지 않은 문자열이어야 한다. 아니면 티켓·DLQ·알림을 만들지 않고\n// HTTP 200 + {\"error\":\"invalid request\"}로 돌려준다 (다시 보내도 성공할 수 없는 요청을 장애로 올리지 않는다).\n// category·priority·alert·deadline_ms는 모양이 틀리면 기본값으로 바꾼다 (본체가 보내는 정상 요청은 그대로).\nconst raw = $input.first().json.body;\nconst b = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};\nconst isText = (v, max) => typeof v === 'string' && v.trim() !== '' && v.length <= max;\nconst codes = [];\nif (!isText(b.request_id, 100)) codes.push('invalid_request_id');\nif (!isText(b.user, 50)) codes.push('invalid_user');\nif (!isText(b.summary, 2000)) codes.push('invalid_summary');\nif (codes.length) {\n  return [{ json: { invalid: true, codes, request_id: typeof b.request_id === 'string' ? b.request_id.slice(0, 100) : '' } }];\n}\nconst summary = maskPII(b.summary);\nconst alertIn = b.alert && typeof b.alert === 'object' && !Array.isArray(b.alert) ? b.alert : null;\nconst alert = alertIn ? maskDeep(alertIn) : { value: null, masked: 0 };\nconst category = typeof b.category === 'string' && /^[a-z][a-z0-9_]{0,39}$/.test(b.category) ? b.category : 'general';\nconst priority = b.priority === 'high' ? 'high' : 'normal';\nconst remain = typeof b.deadline_ms === 'number' && isFinite(b.deadline_ms) && b.deadline_ms > 0 ? Math.min(b.deadline_ms, 10000) : 5000;\n// 데이터 API는 title, requester, category, priority만 저장한다. 요약을 잃지 않도록 title에 담는다.\nconst title = ('[' + category + '] ' + summary.text).replace(/\\s+/g, ' ').slice(0, 500);\nreturn [{ json: {\n  invalid: false,\n  request_id: b.request_id, user: b.user, title, summary: summary.text, category, priority,\n  alert: alert.value, masked: summary.masked + alert.masked,\n  // 본체가 넘기는 deadline_ms는 남은 시간(ms, 최소 500)이다. 받은 시각부터 세어 절대 시각으로 바꾼다 (최대 10초).\n  // reserve_ms는 티켓 실패 뒤 DLQ·알림·응답에 남겨 두는 시간이다.\n  deadline_ms: Date.now() + remain, reserve_ms: 300, try_no: 1,\n} }];\n"
       },
       "notes": "【역할】 티켓 본문을 만들고 연락처를 가린다.\n【입력】 요청 본문.\n【처리】 maskPII로 요약을, maskDeep으로 알림을 가린다. 데이터 API가 summary 칸을 버리므로 요약을 title에도 넣는다. 질문 원문이 그대로 나가지 않는다.\n【출력】 {request_id, user, title, summary, category, priority, alert, masked, deadline_ms, try_no:1}.",
       "notesInFlow": false
@@ -842,6 +842,53 @@
       },
       "notes": "【역할】 중복 티켓의 주인을 확인하지 못했으면 캐시를 건드리지 않고 번호 없이 끝낸다 (fail-closed).\n【분기】 참: 이관 결과 조립 / 거짓: 긴급 건?",
       "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "v1",
+              "leftValue": "={{ $json.invalid !== true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6e668c97-8992-5cfc-9671-37e0f7f3a478",
+      "name": "입력 정상?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        450,
+        250
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 잘못된 요청: 티켓·DLQ·알림 없이 바로 돌려준다 (하위 웹훅 규칙: 실패해도 HTTP 200 + error)\nconst j = $json;\nreturn [{ json: { request_id: j.request_id, ticket: null, duplicate: false, dlq: false, alert: false, masked: 0, error: 'invalid request', codes: j.codes, reason: 'invalid_request', retries: 0 } }];"
+      },
+      "id": "2fb4a4df-fd37-5f0c-81cc-ca7b355f6e15",
+      "name": "잘못된 요청 응답",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        750,
+        400
+      ]
     }
   ],
   "connections": {
@@ -860,7 +907,7 @@
       "main": [
         [
           {
-            "node": "티켓 시도 상태",
+            "node": "입력 정상?",
             "type": "main",
             "index": 0
           }
@@ -1301,6 +1348,35 @@
         [
           {
             "node": "긴급 건?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "입력 정상?": {
+      "main": [
+        [
+          {
+            "node": "티켓 시도 상태",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "잘못된 요청 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "잘못된 요청 응답": {
+      "main": [
+        [
+          {
+            "node": "이관 결과 응답",
             "type": "main",
             "index": 0
           }
