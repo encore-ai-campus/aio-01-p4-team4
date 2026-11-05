@@ -11,6 +11,7 @@ OpenAI 임베딩을 호출하므로 필요할 때만 실행한다.
 
 팀 키는 환경 변수 TM_TEAM_KEY로 준다. n8n 주소는 N8N_URL로 바꿀 수 있다 (기본 http://localhost:5678).
 """
+import argparse
 import json
 import os
 import sys
@@ -44,12 +45,16 @@ def post(path: str, body: dict, timeout: int) -> dict:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="knowledge/*.md를 다시 색인하고 검색이 되는지 확인한다. 기존 색인은 지워진다.")
+    parser.add_argument("--knowledge", type=Path, default=ROOT / "knowledge", help="색인할 문서 폴더 (기본: 저장소 knowledge/)")
+    args = parser.parse_args()
+
     if not KEY:
         sys.exit("TM_TEAM_KEY가 없다. uv run --env-file .env tools/reindex.py 로 실행한다.")
 
-    files = sorted((ROOT / "knowledge").glob("*.md"))
+    files = sorted(args.knowledge.glob("*.md"))
     if not files:
-        sys.exit("knowledge/*.md가 없다.")
+        sys.exit(f"{args.knowledge}에 .md 문서가 없다.")
     documents = [{"doc": path.stem, "text": path.read_text(encoding="utf-8")} for path in files]
 
     result = post("ticketmoa-index", {"documents": documents}, timeout=180)
