@@ -36,23 +36,26 @@
 
 아직 연결하지 않은 것 (가산): 반복 요청 · IP 차단(TM-09~11, `lib/common.js`에 함수만 있음), 웹 화면, Ops Assistant `ticketmoa-ops`.
 
-### 구현 현황 (2026-11-05, `main` `b9d6be4` 기준)
+### 구현 현황 (2026-11-05, `main` `b31ba06` 기준)
 
 | 담당 | 저장소에 있는 것 | 남은 것 |
 | --- | --- | --- |
-| 최두나 | `ticketmoa-support`, 통합, 설계서 1절과 5~8절 초안, `README.md` | VM 배포 · 시험, `support`의 `errorWorkflow` 설정 결정, 제출 전 문서 갱신 |
-| 최강현 | `ticketmoa-agents`, `ticketmoa-refund`, 설계서 2~4절 초안, `security/` | VM 결과에 따른 수정이 생기면 반영 |
-| 정예진 | `ticketmoa-index`, `ticketmoa-search`, `ticketmoa-tech`, `knowledge/`, RAG 설계서 초안 | 원문 길이 수정, 청킹 비교 · hit@3 · 점수 분포 · 비용 · 재색인 시간 측정, 점수 기준과 2.5초 제한 결정 |
-| 심환석 | `ticketmoa-payment`, `ticketmoa-handoff`, `ticketmoa-errors`, `data/` | 설계서 5~7절 확인 |
-| 김인혜 | `cases/`, `requests/` (리드가 넣은 초안, 담당 파일) | `docs/EXECUTION-RESULT.md` 작성, `runs/` 보고서 넣기 |
+| 최두나 | `ticketmoa-support`, 통합, 설계서 1절과 5~8절 초안, `README.md`, 팀 VM 배포 · 시험 | `support`의 `errorWorkflow` 설정 결정, 제출 전 문서 갱신 |
+| 최강현 | `ticketmoa-agents`, `ticketmoa-refund`, 설계서 2~4절 초안, `security/` | 시험 결과에 따른 수정이 생기면 반영 |
+| 정예진 | `ticketmoa-index`, `ticketmoa-search`, `ticketmoa-tech`, `knowledge/`, RAG 설계서, 측정 질문 38개, 청킹 비교 | VM 질문 38개 측정, 재시작 후 색인 유지 확인, NOL 링크 확인 |
+| 심환석 | `ticketmoa-payment`, `ticketmoa-handoff`, `ticketmoa-errors`, `data/`, 가산 차단 패치 스크립트 | 설계서 5~7절 확인 |
+| 김인혜 | `cases/`, `requests/`, `docs/EXECUTION-RESULT.md`, `runs/` 로컬 보고서 | 체크리스트 원문 대조, VM 값 반영 |
 
-시험 결과 (2026-11-04, `d213d89`, 로컬 n8n. 팀 VM은 아직 시험 전):
+시험 결과 (2026-11-05 12:44~12:48, 팀 VM, `main` `445ba2d`, 문서 42청크. 보고서 `runs/vm/`):
 
 | 시험 | 결과 |
 | --- | --- |
-| 공통 시나리오 | 17/17, 3회 반복 |
-| 팀 필수 (TM-01~08, TM-13) | 9/9, 9/9, 8/9 (TM-07 1회 실패) |
-| 팀 가산 (TM-09~12) | TM-12 통과, TM-09~11 실패 |
+| 공통 시나리오 3회 | 51/51 |
+| 팀 필수 (TM-01~08, TM-13) 1회 | 9/9 |
+| 팀 가산 (TM-09~12) 1회 | TM-12 통과, TM-09~11 실패 |
+| 정상 문의 `bench -n 5` | p50 5.45초, p95 6.00초, 실패 0/5 |
+
+로컬 값은 `docs/EXECUTION-RESULT.md`에 있으며 VM 값과 섞지 않는다.
 
 ## 4. 규칙
 
@@ -89,3 +92,6 @@
 | 11/05 | 기능 동결은 81일차 8교시로 유지하고, 82일차 11시를 마지막 워크플로우 수정 시각으로 적음 | 강사 일정(81일차 8교시 발표 ② · 기능 동결)에 맞춤. 같은 날 오전에 82일차 11시로 잘못 바꾼 것을 되돌림 |
 | 11/05 | VM 배포 규칙을 공통 폴더 · 최종 배포는 팀장, 시험용 자기 파일은 각자로 변경 | `AGENTS.md` · `README.md`의 반영 순서와 맞춤 |
 | 11/05 | push 뒤 `tools/reindex.py`로 색인을 다시 돌리는 규칙 추가 | 강사 안내. 공용 n8n이 다시 켜지면 In-Memory 색인이 사라질 수 있음 |
+| 11/05 | 지식 문서를 42청크 정제본으로 교체 (PR #11) | 안전 지침 보강. 출처와 가상 기준은 RAG 설계서로 옮김 |
+| 11/05 | 긴급 문의는 대체 입장 문서로 검색 범위 고정 (`2ad2849`) | 문서를 늘리자 근거가 검색 4위 밖으로 밀려 WF-12 실패 |
+| 11/05 | 팀 VM 첫 배포와 시험 (`445ba2d`) | 강사 요청. 직접 SSH가 막혀 웹 터미널로 진행 |
