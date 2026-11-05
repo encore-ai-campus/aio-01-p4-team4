@@ -30,11 +30,11 @@
 | 1 | 78일차 데이터 API 복사본 켜기, `flow.py doctor` (`docs/PROMPTS.md` 0단계) | 모두 | 모두 `ready` |
 | 2 | **주제 제안서 강사 승인 (10:30)**, 팀 헌장, 비공개 팀 저장소 만들기·초대, `AGENTS.md`, `flow.py doctor` | A | `docs/TOPIC.md`, `docs/TEAM-CHARTER.md`, 모두 `ready` |
 | 3 | 초안을 저장소에 넣기 (`knowledge/`, `data/`, `cases/`), 데이터 API가 팀 데이터를 읽게 설정 | C·D | `GET /tickets/C-2002?requester=김하늘` 200, 남의 건 403 |
-| 4 | 워크플로우 설계서 1~3절 (업무 시나리오·전체 흐름·흐름도·역할 표) | A·B | 설계서 1~3절 |
-| 5 | 골격 `ticketmoa-support`: Webhook(Header Auth) → 입력 검사 → 주입 차단 → (가짜) 분류 → Respond | A | WF-08, WF-13 통과 |
+| 4 | 워크플로우 설계서 1~4절 초안 (업무 시나리오·전체 흐름·흐름도·역할 표·분기) | A·B | 설계서 1~4절 |
+| 5 | **1차 점검 (팀별 10분)**: 범위, 설계서 1~4절, 공통 계약, `cases/common.json`, 본체 400·주입 차단 | A | WF-08, WF-13 통과 |
 | 6 | 색인 `ticketmoa-index`: 청킹·임베딩·`ticketmoa_kb_v1_all`/`_staff` 저장, 청크 길이 분포 재기 | C | 색인 개수, RAG 설계서 1~2절 |
-| 7 | 도구 노드: 예매 조회·`POST /tickets`(key=request_id)·`POST /alerts`, Credential(`X-Api-Key`) | D | 도구마다 `call` 한 번 |
-| 8 | **설계 리뷰**: 옮긴 `cases/common.json` 강사 확인, 데일리 기록 | A·E | 피드백 칸, `docs/daily/80.md` |
+| 7 | 도구 노드: 예매 조회·`POST /tickets`(key=request_id)·`POST /alerts`, Credential(`X-Api-Key`), **팀 VM 첫 배포·색인** | D·A | 도구마다 `call` 한 번, VM에서 `push`·`tools/reindex.py` |
+| 8 | **발표 ① (팀별 10분)**: 팀 VM에서 시연, 설계서 1~4절, RAG 설계서 1~2절, 공통 시나리오 통과 수, 데일리 | A·E | 피드백 칸, `docs/daily/DAY80.md` |
 
 ## 3. 81일차 (11/06 금) · 구현과 예외 처리
 
@@ -43,12 +43,12 @@
 | 1 | 공통 시나리오 한 번 돌려 출발점 기록 | E | 통과 수 |
 | 2 | Supervisor(레지스트리 → 분류 프롬프트) + `ticketmoa-search` + 답변 Agent | B·C | WF-01 |
 | 3 | 검증 Agent, 신뢰도 분기, `ticketmoa-handoff`(요약 티켓·알림) | B·D | WF-03 |
-| 4 | 보완 질문 루프(attempt 3회째 이관), 병렬(검색 + 예매 조회), 복합·긴급(대체 입장 + 현장 알림) | B | WF-02, 02b, 11, 12 |
+| 4 | 보완 질문 루프(attempt 3회째 이관), 병렬(검색 + 예매 조회), 복합·긴급(대체 입장 + 현장 알림), **중간 점검** | B·A | WF-02, 02b, 11, 12 |
 | 5 | 본인 건만, 문서 권한(검색 전 필터), 출력·로그 개인정보 가림 | D | WF-05, 06, 07 |
 | 6 | timeout·재시도(429·5xx·timeout만), DLQ·알림, 중복 요청(`/cache`), LLM 멈춤 대비 | D | WF-04, 09, 10 |
 | 7 | `ticketmoa-errors` Error Workflow 게시, 실행 기록 `/logs`, 설계서 5~7절 페이로드 표 | D·A | 설계서 5~7절 |
 | 7 (병행) | 환불 2단계 확인 (`ticketmoa-refund`), 이중결제 이관 (`ticketmoa-payment`) | B·D | TM-02, 03, 05, 06 |
-| 8 | **중간 점검**: 공통 시나리오 실행 화면 + 남은 것, 데일리 | A·E | `docs/daily/81.md` |
+| 8 | **발표 ②·기능 동결**: 공통 시나리오 실행 화면 + 남은 것, 데일리 | A·E | `docs/daily/DAY81.md` |
 
 > 중간 점검에서 공통 시나리오가 절반(7개) 미만이면 82일차에는 가산을 멈추고 필수만 한다.
 
@@ -56,7 +56,7 @@
 
 | 시각 | 할 일 | 담당 | 끝 표시 |
 | --- | --- | --- | --- |
-| 1교시 | 동결 기준 정하기 (**11시 뒤로 워크플로우 수정 금지**) | A | |
+| 1교시 | 마지막 수정 범위 정하기 (기능 동결은 81일차 8교시, **11시 뒤로 워크플로우 수정 금지**) | A | |
 | 2교시 | 공통·장애·팀 시나리오 전부, LLM 들어간 것 `--repeat 3`, `bench` | E | `runs/*.json` |
 | 3교시 | 실패 원인·조치·재시험 (실패 사례 2건 이상), 결과서 숫자 | E | 결과서 1~4절 |
 | 4교시 | 설계서 둘·결과서·README 마무리, `tscan scan .`, **14:50까지 제출** | 모두 | 마지막 커밋 |
