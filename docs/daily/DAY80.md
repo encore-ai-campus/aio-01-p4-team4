@@ -4,20 +4,20 @@
 
 ## 1. 오늘의 숫자
 
-`아침` 칸은 11/04 로컬 n8n, `오후` 칸은 11/05 14:16~14:20 팀 VM(`main` `a5c80dc`, 문서 42청크) 결과다. 환경과 문서가 달라 직접 비교하지 않는다. 버전별 전체 기록은 `docs/EXECUTION-RESULT.md` 0절에 있다.
+`아침` 칸은 11/04 로컬 n8n, `오후` 칸은 11/05 15:10~15:14 팀 VM(`main` `ea1a6c9`, 문서 42청크) 결과다. 환경과 문서가 달라 직접 비교하지 않는다. 버전별 전체 기록은 `docs/EXECUTION-RESULT.md` 0절에 있다.
 
 | 항목 | 아침 (11/04 로컬) | 오후 (11/05 VM) |
 | --- | --- | --- |
-| 공통 시나리오 통과 | 17/17 (`d213d89`, 3회 반복 모두) | 50/51 (3회 합산, WF-01 1회 실패) |
+| 공통 시나리오 통과 | 17/17 (`d213d89`, 3회 반복 모두) | 50/51 (3회 합산, WF-01 1회 8.2초) |
 | 팀 시나리오 통과 | 10/13, 10/13, 9/13 (`d213d89`. 필수 9/9, 9/9, 8/9) | 13/13 (1회. 필수 9/9, 가산 4/4) |
 | 장애 시나리오 통과 (WF-04 · 10 · 11) | 3/3 (공통 3회 반복 모두) | 3/3 (공통 3회 반복 모두) |
-| 정상 문의 p50 (`bench -n 5`) | 6.1초 (`d213d89` 이전, `-n 3`) | 5.50초 (p95 5.77초, 실패 0/5) |
+| 정상 문의 p50 (`bench -n 5`) | 6.1초 (`d213d89` 이전, `-n 3`) | 5.40초 (p95 5.90초, 실패 0/5) |
 
 ## 2. 한 일 (사람마다 한 줄)
 
 | 이름 | 한 일 | 커밋 |
 | --- | --- | --- |
-| 최두나 | 본체 `ticketmoa-support` 완성(입력 검사 400·주입 차단·Supervisor 라우팅·search∥payment 병렬·`/logs` 기록·fail-closed 이관), Header Auth 팀 키 Credential 고정 id, WF-11 시간 예산(조회 2.5초·이관 남은 시간·`deadline_ms`), 팀 키 환경 변수 `TM_TEAM_KEY` 하나로 통일·`.env.example`, README 시험·실행 기록·Header Auth 절, 정예진·심환석 브랜치 검토 · WF-08·11·13 5/5. 11/04: `test`에 agents·refund·search·tech 통합, 환불 2단계와 WF-03·04·12 경로 수정, 강한 불만 문의 근거 포함 이관, 하위 웹훅 표 정리, 설계서 1~8절 정리·구조도 교체 · common 17/17. 11/05: 강사 일정 반영, `tools/reindex.py` 추가, 긴급 문의 검색 범위 고정, 지식 문서 정제본 측정, 팀 VM 배포·시험 · common 51/51 (VM) | `fd8baf1` `553c419` `1440dc2` `4a3bd40` `61e256e` `66b4cff` `d213d89` `be3d054` `f9a8b0e` `88880d5` `2ad2849` `c7feaeb` |
+| 최두나 | 본체 `ticketmoa-support` 완성(입력 검사 400·주입 차단·Supervisor 라우팅·search∥payment 병렬·`/logs` 기록·fail-closed 이관), Header Auth 팀 키 Credential 고정 id, WF-11 시간 예산(조회 2.5초·이관 남은 시간·`deadline_ms`), 팀 키 환경 변수 `TM_TEAM_KEY` 하나로 통일·`.env.example`, README 시험·실행 기록·Header Auth 절, 정예진·심환석 브랜치 검토 · WF-08·11·13 5/5. 11/04: `test`에 agents·refund·search·tech 통합, 환불 2단계와 WF-03·04·12 경로 수정, 강한 불만 문의 근거 포함 이관, 하위 웹훅 표 정리, 설계서 1~8절 정리·구조도 교체 · common 17/17. 11/05: 강사 일정 반영, `tools/reindex.py`·`tools/demo.py` 추가, 긴급 문의 검색 범위 고정, 지식 문서 정제본 측정, 팀 VM 배포·시험, 가산 차단·`errorWorkflow`·`X-Api-Key` 연결 · common 50/51, team 13/13 (VM) | `fd8baf1` `553c419` `1440dc2` `4a3bd40` `61e256e` `66b4cff` `d213d89` `be3d054` `f9a8b0e` `88880d5` `2ad2849` `c7feaeb` |
 | 최강현 | `ticketmoa-agents`(attempt 3회째 분류 LLM 생략)·`ticketmoa-refund`(환불 2단계 안전장치), 설계서 2~4절 초안, 오케스트레이션 구조도, promptfoo 보안 점검 세트와 `security/`, 공격 대응 방침·보안 개념서 · 커밋 기록 기준 단위 13/13, lib 16/16, abuse 16/17 | `7a042a0` `0980621` `e9963ec` `23aa388` `6defd53` `7963e45` (개인 저장소 `hyun`) |
 | 정예진 | 11/03 `ticketmoa-index` 색인, 11/04 `ticketmoa-search`·`ticketmoa-tech` 작성, `docs/RAG-ARCHITECTURE.md` 초안(PR #6), 11/05 지식 문서 정제본, 측정 질문 38개, 청킹 비교(`##` 유지 결론) | `20545e0` `0228a7a` `ac22cc2` `b7c22e0` `45bde9a` `a846bd4` `b74afa8` |
 | 심환석 | 11/03 `ticketmoa-payment`·`handoff`·`errors`, `/logs` channel 값 제한(`normalizeChannel`), 하위 웹훅 팀 키 복원 · common 15/17(담당 파일 PR 기준), 11/04 PR #2 리뷰 반영(중복 티켓 주인 확인, payment 재시도 시간), 11/05 handoff 잘못된 요청 처리, 가산 차단 패치 스크립트(PR #13, #15) | `f5ae06f` `1ce3897` `dabd2e5` `2de999a` `cca9fe5` |
@@ -37,7 +37,7 @@
 | TM-05(이중결제 + 부정 감정)에 근거 문서가 없음 | 강한 불만이면 검색 없이 바로 이관 | 근거를 찾아 함께 이관하도록 support 수정(`d213d89`) |
 | WF-12 긴급 근거 누락: 지식 문서를 42청크로 늘리자 4회 모두 실패 | 대체 입장 문서가 검색 4위 밖으로 밀림. 본체는 상위 4개만 받음 | 긴급 문의는 대체 입장 문서로 검색 범위 고정(`2ad2849`). 로컬 3/3, VM 3/3 |
 | 지식 문서 보강안에 실제 업체 주소와 테스트 문구가 들어감 | `##` 절은 전부 색인되어 고객 답변 근거가 될 수 있음 | 출처와 가상 기준을 RAG 설계서로 옮겨 42청크로 정제, 금지어 0건 |
-| WF-01·WF-02·TM-07 간헐 이관 (`llm_unavailable`, `agents_failed`) | LLM 응답이 시간 제한(작성 2.5초, 분류 3초)을 넘긴 것으로 추정. 실행 기록의 오류 메시지는 아직 확인 전 | VM 최신 시험에서 WF-01 1회 재현(`llm_unavailable`). 기준(시간 초과 2건 이상) 미만이라 제한 유지, 실행 기록 확인 (아직) |
+| WF-01·WF-02·TM-07 간헐 이관 (`llm_unavailable`, `agents_failed`) | LLM 응답이 시간 제한(작성 2.5초, 분류 3초)을 넘긴 것으로 추정. 실행 기록의 오류 메시지는 아직 확인 전 | VM 실행 기록에서 작성 2.507초 `Request timed out.`(14:16), 검증 2.007초 `llm_unavailable`(12:19) 확인. 최신 시험은 WF-01 8.2초 1회. 제한은 유지하고 시연 전 예열 (`tools/demo.py --warm`) |
 | TM-09·10·11 실패 (가산) | 해당 차단 기능이 본체에 연결되지 않음 | PR #13의 스크립트로 `support`에 연결, VM 팀 13/13 |
 | VM 직접 SSH가 시간 초과 | 원인 확인 전 | 웹 터미널로 배포·시험 진행. 직접 SSH는 (아직) |
 | VM에서 모든 문의가 `user_lookup_failed`로 이관 | `data-api`가 꺼져 있었고, 지식 문서와 `tickets.json`이 이전 버전, OpenAI Credential ID도 달랐음 | `data-api` 실행, 파일 교체, Credential 등록 뒤 재색인 42청크 |
