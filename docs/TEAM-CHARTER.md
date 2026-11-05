@@ -36,26 +36,26 @@
 
 아직 구현하지 않은 것 (가산): 웹 화면, Ops Assistant `ticketmoa-ops`.
 
-### 구현 현황 (2026-11-05, `main` `b31ba06` 기준)
+### 구현 현황 (2026-11-05, `main` `a5c80dc` 기준)
 
 | 담당 | 저장소에 있는 것 | 남은 것 |
 | --- | --- | --- |
-| 최두나 | `ticketmoa-support`, 통합, 설계서 1절과 5~8절 초안, `README.md`, 팀 VM 배포 · 시험, 가산 차단과 `errorWorkflow` 연결 | 연결한 `support`의 VM 시험, 제출 전 문서 갱신 |
+| 최두나 | `ticketmoa-support`, 통합, 설계서 1절과 5~8절 초안, `README.md`, 팀 VM 배포 · 시험, 가산 차단과 `errorWorkflow` 연결 | WF-01 간헐 실패 원인 확인, 제출 전 문서 갱신 |
 | 최강현 | `ticketmoa-agents`, `ticketmoa-refund`, 설계서 2~4절 초안, `security/` | 시험 결과에 따른 수정이 생기면 반영 |
 | 정예진 | `ticketmoa-index`, `ticketmoa-search`, `ticketmoa-tech`, `knowledge/`, RAG 설계서, 측정 질문 38개, 청킹 비교 | VM 질문 38개 측정, 재시작 후 색인 유지 확인, NOL 링크 확인 |
 | 심환석 | `ticketmoa-payment`, `ticketmoa-handoff`, `ticketmoa-errors`, `data/`, 가산 차단 패치 스크립트 | 설계서 5~7절 확인 |
 | 김인혜 | `cases/`, `requests/`, `docs/EXECUTION-RESULT.md`, `runs/` 로컬 보고서 | 체크리스트 원문 대조, VM 값 반영 |
 
-시험 결과 (2026-11-05 12:44~12:48, 팀 VM, `main` `445ba2d`, 문서 42청크. 보고서 `runs/vm/`):
+시험 결과 (2026-11-05 14:16~14:20, 팀 VM, `main` `a5c80dc`, 문서 42청크. 보고서 `runs/vm/`):
 
 | 시험 | 결과 |
 | --- | --- |
-| 공통 시나리오 3회 | 51/51 |
+| 공통 시나리오 3회 | 50/51 (WF-01 1회 `llm_unavailable`) |
 | 팀 필수 (TM-01~08, TM-13) 1회 | 9/9 |
-| 팀 가산 (TM-09~12) 1회 | TM-12 통과, TM-09~11 실패 |
-| 정상 문의 `bench -n 5` | p50 5.45초, p95 6.00초, 실패 0/5 |
+| 팀 가산 (TM-09~12) 1회 | 4/4 |
+| 정상 문의 `bench -n 5` | p50 5.50초, p95 5.77초, 실패 0/5 |
 
-이 표는 가산 차단과 `errorWorkflow`를 넣기 전 결과다. 넣은 뒤 로컬 n8n에서는 팀 13/13, 공통 3회 49/51(WF-01 2회 실패)이었고, VM 시험은 남아 있다. 로컬 값은 `docs/EXECUTION-RESULT.md`에 있으며 VM 값과 섞지 않는다.
+모든 시험의 버전과 환경은 `docs/EXECUTION-RESULT.md` 0절에 있으며 서로 섞지 않는다.
 
 ## 4. 규칙
 
@@ -95,5 +95,5 @@
 | 11/05 | 지식 문서를 42청크 정제본으로 교체 (PR #11) | 안전 지침 보강. 출처와 가상 기준은 RAG 설계서로 옮김 |
 | 11/05 | 긴급 문의는 대체 입장 문서로 검색 범위 고정 (`2ad2849`) | 문서를 늘리자 근거가 검색 4위 밖으로 밀려 WF-12 실패 |
 | 11/05 | 팀 VM 첫 배포와 시험 (`445ba2d`) | 강사 요청. 직접 SSH가 막혀 웹 터미널로 진행 |
-| 11/05 | `support`에 가산 차단(TM-09~11)과 `errorWorkflow` 연결 | 필수 통과 뒤 가산 진행. 예기치 못한 실패도 알림을 남기기 위해 |
+| 11/05 | `support`에 가산 차단(TM-09~11)과 `errorWorkflow` 연결 (`a5c80dc`, VM 재배포) | 필수 통과 뒤 가산 진행. 예기치 못한 실패도 알림을 남기기 위해 |
 | 11/05 | WF-05 통과 기준을 `cases/common.json` 기준으로 명시 | 표와 주제 제안서의 표현 차이를 정리 |
