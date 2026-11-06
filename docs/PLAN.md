@@ -170,7 +170,7 @@ intents를 배열로 두어 복합 문의를 순서대로 처리한다. confiden
 | ticketmoa-agents | Supervisor 분류, 보완 질문(attempt 3회째 이관), 검증 | AI Agent + Structured Output Parser | B |
 | ticketmoa-refund | 환불 정책 안내용 과거 설계 및 개인별 처리 차단 | 환불규정은 공개 안내. 개인별 수수료 계산·확정 처리는 현행 범위에서 미제공 | B |
 | ticketmoa-index | 지식 문서 색인 | 절 단위 청킹, text-embedding-3-large, 권한별 메모리 키 | C |
-| ticketmoa-search | 공개 지식 검색 | 공개 메모리 검색; 직원 검색 임시 차단 유지 | C |
+| ticketmoa-search | 공개 지식 검색 | 공개 메모리 검색; 직원 검색 차단 (11/07 리드 확정) | C |
 | ticketmoa-tech | 기술 장애·앱·일반 정보 | 트러블슈팅·FAQ RAG, 대체 입장 안내, 긴급 시 `POST /alerts` | C |
 | ticketmoa-payment | 결제 오류 기술 안내 | 개인 예매·문의·결제 상태 조회 미제공; 개인정보 없는 이관 | D |
 | ticketmoa-handoff | 이관 공통 | 대화 요약, `POST /tickets`(key = request_id), 재시도, `POST /dlq`, `POST /alerts` | D |

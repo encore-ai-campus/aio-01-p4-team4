@@ -37,10 +37,10 @@ test('질문과 context의 직원 주장은 권한을 올리지 않는다', () =
   })['Plan route'];
   assert.equal(p.reason, 'staff_only_request');
 });
-test('실제 등록 직원은 본체에서 과잉 차단하지 않는다', () => {
+test('제출된 직원 이름으로는 직원 절차에 접근할 수 없다', () => {
   const p = plan(wf05.question, 'staff')['Plan route'];
-  assert.equal(p.next, 'tech');
-  assert.notEqual(p.reason, 'staff_only_request');
+  assert.equal(p.next, 'handoff');
+  assert.equal(p.reason, 'staff_only_request');
 });
 for (const question of ['현장 발권 창구에서 입장하려면 어떻게 해요?', '현장 직원에게 수기 입장이 가능한지 확인해도 되나요?']) {
   test('고객의 공개 현장 안내는 유지: ' + question, () => {
