@@ -26,6 +26,10 @@
 
 **Error Workflow 설명:** 현재 `ticketmoa-errors` 연결은 support·agents·refund·payment·handoff·ops 6개다. search·tech·index에는 설정이 없다. 예상 API/LLM 장애는 각 하위 오류 경로에서 처리하므로 WF-04 통과를 Error Trigger 발화 시험으로 대체하지 않는다. Discord의 WF-04·WF-12 수신은 확인했지만 예상 밖 실행 오류 → Error Workflow → 알림의 VM 실측은 남아 있다.
 
+**후속 반영 · Error Workflow 배포와 격리 검증:** 위 문장은 당시 미검증 상태의 기록이다. `ticketmoa-errors` (`ticketmoaErrors01`)는 기존 **4개 → 최신 9개 노드**로 운영 n8n 배포를 마쳤고 배포 후 `active: true`, Support·handoff 활성 상태를 확인했다. 배포 전 SHA-256 일치 및 `flow.py check` 통과, 기존 운영본 백업은 `backups/ticketmoa-errors-before-update.json`, 배포 소스 커밋은 `9254bff`다. Error Trigger 오류 수신, 허용 목록 기반 민감정보 제외·정규화, 실행 ID 기반 중복 알림 억제, `/alerts`·Discord 독립 알림, 캐시 장애 시 알림 계속 처리, Error Workflow 자체 재귀 방지가 구현됐다. 동시 실행의 원자적 중복 차단은 보장되지 않는다.
+
+격리 n8n **2.42.6**의 시험용 Support `ticketmoaE2ESupport`에서 미처리 오류 실행 **10**이 실패했고 Error Workflow 실행 **11**이 자동 실행됐다. 모의 `/alerts`·Discord가 모두 알림을 받았고 시험용 질문·전화번호·토큰은 포함되지 않았다. 관련 단위 테스트 **6/6** 통과 후 로컬 시험 컨테이너를 종료했다. 모의 수신 기록 주소 `http://127.0.0.1:18800/events`는 격리 시험 전용이며 운영 웹앱 주소나 운영 설정이 아니다. 운영 웹앱은 `https://aio-t4.isitsoft.kr/`이다. **운영 Support 오류 주입 자동 실행, 운영 Discord 실제 수신, 동시 실행 원자적 중복 차단은 미검증**이다.
+
 #### 남은 결함·기능 동결·담당별 완료 기준
 
 | 우선순위 | 남은 항목 | 담당 | 82일차 완료 기준 |
@@ -94,7 +98,8 @@ VM 런타임 파일 45개가 `main` `9f891eb`와 같고, 배포된 워크플로�
 | WF-05 수업 기준 | 3/3 `staff_only_request` | 통과 |
 | 팀 13개 × 1회 | **11/13**. TM-02가 기존 티켓 `T-2016`으로 `refund_already_confirmed`, 이어서 TM-03이 `no_pending_refund` | **미달**. 기존 티켓을 보존한 시험 조건의 영향이며 초기화 상태 재시험 필요 |
 | `bench -n 5` | p50 5.39초, p95 5.95초, 실패 0/5 | 통과 |
-| Error Workflow | 지정·게시 확인, 실제 자동 실행은 미실행. `errors`에 DLQ 경로 없음 | 미완료 |
+| Error Workflow (당시 회귀 시점) | 지정·게시 확인, 실제 자동 실행은 미실행. `errors`에 DLQ 경로 없음 | 당시 미완료 기록 보존 |
+| Error Workflow (후속 별도 검증) | 운영 9개 노드 배포·활성 확인. 격리 Support 실패 실행 10 → Error Workflow 자동 실행 11, 모의 `/alerts`·Discord 수신 | 격리 자동 실행 통과; 운영 Support 오류 주입·운영 Discord 수신 미검증 |
 
 원본: `runs/vm/tm-reg-common-20261106-071237.json`, `runs/vm/tm-reg-team-20261106-071331.json`, `runs/vm/bench-ticketmoa-support-20261106-071503.json`, `runs/vm/tm-reg-run-20261106-071015.log`. 앞선 회차와 합산하지 않는다.
 
@@ -139,7 +144,9 @@ VM 런타임 파일 45개가 `main` `9f891eb`와 같고, 배포된 워크플로�
 
 아래 표와 미완료 체크는 **보안 수정 전** `ticket-evidence-common-20261106-034742` 회차의 기록이다. 최신 수정본의 공식 3/3·직원 양성 대조·저장 감사 결과는 문서 맨 위 절을 따른다.
 
-**파악:** 고객은 `ticketmoa_kb_v1_all`만 검색하고, 사용자 레지스트리에서 `access_level=staff`로 확인된 직원만 고객용 키와 `ticketmoa_kb_v1_staff`를 함께 검색한다. 질문에 “나는 스태프”라고 쓰거나 context에 권한을 넣는 것은 권한 근거가 아니다. 본인 예매·문의 조회는 검색 권한과 별개로 `GET /tickets/<id>?requester=<user>`의 소유권 판정과 반환 기록의 requester 일치를 확인한다. 현재 `user`는 요청값을 신뢰하므로 실제 서비스에서는 인증된 세션과 연결해야 한다.
+**현재 프로젝트 범위:** TicketMoa는 상용 예매 서비스 전체가 아니라 AI Agent와 n8n으로 기술지원 문의를 분류·처리하고 RAG·업무 자동화·상담 이관·오류 처리를 시험하는 프로젝트다. 회원가입·로그인·세션·사용자 토큰 인증은 의도적으로 제외했다. 공개 검색과 일반 정책 안내는 허용하지만 직원 RAG와 개인 문의·결제·환불 상태는 비로그인 사용자에게 제한해야 한다. 정책 선언만으로 코드가 이 제한을 구현했다고 보지 않는다.
+
+**당시 구현 파악 (보안 수정 전):** 고객 요청은 `ticketmoa_kb_v1_all`을 검색하고, registry에서 `access_level=staff`로 판정된 경우 고객용 키와 `ticketmoa_kb_v1_staff`를 함께 검색하도록 구성돼 있었다. 질문에 “나는 스태프”라고 쓰거나 context에 권한을 넣는 것은 권한 근거가 아니다. 본인 예매·문의 조회는 `GET /tickets/<id>?requester=<user>`와 반환 기록의 requester 일치를 확인했지만, `user` 자체가 요청값이므로 이 비교만으로 호출자의 실제 신원이나 소유권을 증명하지 못한다. 로그인은 현재 프로젝트 범위가 아니므로 이 과거 경로를 인증 필요 기능으로 확장하기보다, 비로그인 접근에서 개인 기록을 제한해야 한다.
 
 공개 `onsite-entry-fallback`은 고객에게 현장 발권 창구·예매번호·본인 신분증을 통한 대체 입장을 안내하는 문서다. `staff-entry-manual`의 책임자 코드·수기 모드·스태프 단말 등 내부 절차는 직원 전용이며 고객의 응답·writer/검증 LLM 근거·로그에 전달하면 안 된다.
 
@@ -148,12 +155,12 @@ VM 런타임 파일 45개가 `main` `9f891eb`와 같고, 배포된 워크플로�
 | 보안 점검 | 확인 결과 | 판정·추가 확인 |
 | --- | --- | --- |
 | WF-05 제한 문서 | 팀 자동검사 **3/3**. 실제 route는 `자동 답변` 1회·`담당자 이관` 2회. 이전 02:21 선별 시험의 search 실행 3027·3041·3055는 고객 키·`search_staff=false`·직원 검색 미실행 확인 | **공식 route 기준 2/3, 미충족**. 현재 회차의 LLM 문맥·실행 로그까지 연결한 비노출 감사와 고객의 스태프 주장 대조는 추가 확인 필요 |
-| WF-06 타인 기록 | **3/3** `권한 없음`, `not_owner`, LLM 0회·ticket null. 답은 본인 건만 조회 가능하다는 안내이며 타인 상태·연락처 없음 | 응답 기준 통과. 실제 소유권은 payment의 API 403 및 requester 재검사로 판정하며 질문의 소유 주장으로 허용하지 않음 |
+| WF-06 타인 기록 (과거 동작) | **3/3** `권한 없음`, `not_owner`, LLM 0회·ticket null. 답은 본인 건만 조회 가능하다는 안내이며 타인 상태·연락처 없음 | 당시 응답 기준 통과 기록이다. API 403/requester 일치는 요청의 이름을 기준으로 한 데이터 판정이며, 비로그인 호출자의 실제 신원을 증명하지 않는다. 새 정책 기준 재시험 미실시 |
 | WF-07 개인정보 가림 | **3/3** 본인 조회 자동 답변, `security.masked=2`, 전화 `010-****-3307`·이메일 `d***@example.com` 실제 가림 확인 | answer 통과. 이 케이스는 ticket null이므로 이것만으로 티켓·알림 마스킹까지 통과했다고 쓰지 않음. 티켓·알림·로그 원문을 같은 request_id로 추적하는 감사는 별도 필요 |
 | WF-08 주입 | **3/3** `차단`, `injection_pattern`, `agents.used=[]`, LLM 0회·ticket null | 응답 기준 통과. 실제 티켓·알림 저장 증가 0건은 저장 스냅샷과 대조 필요. 보안 감사용 `/logs` 기록은 허용되는 정상 기록 |
 | WF-13 입력 오류 | 빈 질문·없는 사용자·501자 각 **3/3**, 총 **9/9 HTTP 400** 및 각 오류 코드 확인 | 입력 오류 응답 통과. 오류 응답에는 agents 필드가 없어 응답만으로 LLM 0회를 증명할 수 없음. 실행 경로·저장 부작용 추가 대조 필요 |
 | 정상·권한 있는 대조군 | 같은 공통 시험의 WF-01 정상 QR 및 WF-07 본인 조회는 각 3/3. 직원 역할의 두 검색 키는 단위 시험, 재색인 후 두 인덱스 검색은 smoke 확인 | 과잉 차단 대조 일부 확인. **실제 staff 사용자의 본체 요청 → 직원 문서 검색/답변 양성 대조는 보관 근거 부족, 미확인** |
-| 인증·Credential | support와 하위 웹훅은 `ticketmoa-team-key`, OpenAI는 `OpenAI (.env)`, data-api는 `ticketmoa-data-api` Credential 사용. 설계서에는 팀 키 누락·오류 HTTP 403 직접 호출 이력 있음 | 이번 보고서에 키 누락·오류 재시험 원본은 없음. 연습용 data-api는 키를 검사하지 않아 그 서비스의 잘못된 키 거절은 검증 불가. 문서에는 키 값 기록 금지 |
+| 인증·Credential | support와 하위 웹훅은 서비스 간 `ticketmoa-team-key`, OpenAI는 `OpenAI (.env)`, data-api는 `ticketmoa-data-api` Credential 사용. 로그인·세션·사용자 인증은 의도적으로 제외됐으며 팀 키는 최종 사용자 인증이 아님 | 이번 보고서에 키 누락·오류 재시험 원본은 없음. 연습용 data-api는 키를 검사하지 않아 그 서비스의 잘못된 키 거절은 검증 불가. 개인 문의·결제·환불 상태 차단은 별도 코드 확인과 새 정책 시험이 필요. 문서에는 키 값 기록 금지 |
 
 **WF-05 판정 결정:** 제출 시 공식 조건인 route `권한 없음` 또는 `담당자 이관`을 별도로 적용한다. 기존 `cases/common.json`은 문서·내부 문구 미노출만 검사하므로 그대로 보존하며, 그 PASS를 공식 통과로 대체하지 않는다. 최신 1회차 `자동 답변`은 공식 기준 실패로 기록한다. 이전 3회 이관과 합쳐 통과로 세지 않는다. `writer_staff_only_terms`·`verification_failed` 이관은 출력 방어/품질 검증 결과이고 검색 권한 차단 자체의 증거는 아니다.
 
