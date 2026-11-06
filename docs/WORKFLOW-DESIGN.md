@@ -1,8 +1,16 @@
 # 노코드 워크플로우 설계서 · 티켓모아
 
+> 산출물 ① (35점 제안). 강의 자료 「기술지원자동화_전체아키텍처」 23쪽 목차 8절을 따른다.
+> 담당: 1절 A 최두나 · **2~4절 B 최강현** · 5~7절 D 심환석 · 8절 함께.
+> 노드 이름은 `workflows/*.json`의 실제 노드 이름이다.
+> 상태: 1절 갱신 (2026-11-06, A) · 2~4절 초안 (2026-11-04, B, 본체와 tech 노드는 A가 실제 파일에 맞춤). 5~8절 초안 (2026-11-04, A 작성). 2~8절은 2026-11-06 A가 디스코드·ops·최신 지연 판정을 실제 파일과 대조해 고쳤고, 담당자 재확인 전이다. 실행 예시(4.6절)의 표는 로컬 n8n 결과이고, 팀 VM 결과는 4.6절 끝에 따로 적었다.
+
+**프로젝트 범위:** TicketMoa는 상용 예매 서비스 전체가 아니라 AI Agent와 n8n으로 기업 기술지원 문의를 분류·처리하고, RAG·업무 분기·상담 이관·오류 처리를 검증하는 프로젝트다. 회원가입·로그인·세션·개인 사용자 인증은 의도적으로 제외했다. 비로그인 공개 시연에서는 공개 안내만 제공하고 개인 문의·결제·환불 상태 및 직원 전용 문서는 제한해야 한다. 이 정책이 코드에 모두 반영됐다고 간주하지 않는다.
+
+
 ### 11/06 최종 배포본 인수 확인 · WF-02/02b·11·12
 
-VM에 반영해 시험한 파일은 `test` 커밋 `90f02ca`와 같고, 이 커밋은 PR #42로 `main` 병합 커밋 `ceef5d8`에 포함됐다. 병합 커밋은 해당 파일 내용을 바꾸지 않았으므로 아래 결과는 현재 `main`의 배포 대상 소스와 일치한다. 다만 PR 병합 뒤 VM에 같은 파일을 다시 전송한 별도 배포는 하지 않았다.
+VM에 반영해 시험한 파일은 `test` 커밋 `90f02ca`와 같고, 이 커밋은 PR #42로 `main` 병합 커밋 `ceef5d8`에 포함됐다. 아래 결과는 그 시점 배포본 기준이며, 이후 배포 결과는 결과서를 따른다.
 
 | 항목 | 최종 동작 | VM 결과 |
 | --- | --- | --- |
@@ -13,55 +21,17 @@ VM에 반영해 시험한 파일은 `test` 커밋 `90f02ca`와 같고, 이 커�
 
 보완 질문의 `attempt`는 서버가 같은 HTTP 요청 안에서 증가시키는 값이 아니다. 웹·앱 어댑터가 첫 요청을 1로 보내고, 고객 답을 받아 다시 호출할 때 2, 3으로 1씩 증가시킨다. `attempt < 3`은 계속 보완 질문할 수 있고 `attempt >= 3`은 `clarify_limit_reached`로 종료·이관한다. 요청의 `attempt`가 1 미만이거나 정수가 아니면 입력 오류다.
 
-WF-12에서 검색과 조회는 목적과 신뢰 경계가 다르다. search는 인증된 `access_level=all`로 고객용 인덱스만 조회해 대체 입장 절차를 얻고, payment는 `user`와 `record_id=C-2002`를 data-api에 보내 소유자 일치가 확인된 실제 상태만 반환한다. `Merge search + lookup`이 두 결과를 합친 뒤 tech가 근거 안내와 상태를 작성하고, 긴급 이관이 high 티켓과 현장 알림을 만든다. 한쪽 실패를 다른 쪽 결과로 성공처럼 덮지 않는다.
+WF-12 시험 당시 search는 공개용 고객 인덱스만 조회하도록 구성됐고 payment는 `user`와 `record_id=C-2002`를 data-api에 보내 requester가 일치하는 상태를 확인했다. 그러나 `user`는 요청에서 전달되므로 requester 일치는 호출자의 실제 신원을 증명하지 않는다. 이 과거 통과 기록을 현재 비로그인 정책의 개인 정보 접근 승인으로 해석하지 않는다. 개인 문의 상태 조회는 인증이 프로젝트 범위에서 제외된 현재 구성에서는 제한해야 하며, 그 차단 구현·재시험은 별도 미완료다. 당시 `Merge search + lookup`은 두 결과를 합쳐 근거 안내와 상태를 작성하고 긴급 이관에서 high 티켓과 현장 알림을 만들었다. 한쪽 실패를 다른 쪽 결과로 성공처럼 덮지 않는다.
 
 근거: [최종 공통 회귀 51/51](../runs/vm/wf01-fix-common-20261106-025239.json), [배포 파일 해시·시험 조건](../runs/vm/wf01-fix-metadata-20261106-025239.json).
 
-### 11/06 WF-01 지연 수정·VM 반영 후 재검증 (02:49~02:54 UTC)
-
-답변 작성은 필요한 조건을 유지하면서 3문장·150자 이내로 간결하게 하고, 분류는 불필요한 공백·설명을 줄이며 검증 issues는 사유 코드만 출력하도록 수정했다. 모델·timeout·검증의 strict true 조건은 바꾸지 않았다. 명확하지만 등록 업무가 없는 문의를 일반 문서로 추측 답변하지 않도록 공통 라우팅과 support를 보강했다(`unregistered_intent`). 분류 모델 오류는 기존 별도 장애 경로로 처리한다.
-
-agents·tech·support와 공통 함수를 VM에 반영하고 n8n 재시작 후 지식 8개·42청크 재색인 및 고객/스태프 검색 확인을 마쳤다. runner 유휴 종료 해제 설정은 유지했다. 별도 고객 문의로 LLM을 예열하지 않고 공통 시험을 시작했다. 첫 고객 호출은 필수 재색인·검색 확인 이후이므로 완전히 비어 있는 프로세스의 cold start 시험과는 구별한다.
-
-| 검증 | 결과 |
-| --- | --- |
-| 수정본 공통 17개 × 3회 | **51/51 통과** |
-| 재색인 후 첫 고객 호출 포함 WF-01 | **6.5 / 5.5 / 5.5초**, 모두 자동 답변·정답 근거 |
-| 공통 시험 종료 후 60초 유휴, WF-01 3회 | **6.280 / 5.780 / 5.193초**, 모두 자동 답변·정답 근거 |
-| WF-11 8초 지연 주입, 기준 6초 | **5.7 / 5.6 / 5.6초**, 3/3 통과 |
-| 로컬 공통·환불·워크플로우 연결 회귀 | **39/39 통과** |
-
-최종 수정본에서 WF-01은 총 **6/6** 기준을 충족했다. 초기 단축 시도는 WF-01 3/3이었지만 WF-03·04 회귀로 공통 45/51이었고, 별도 유휴 시험도 2/3이었다. 이 실패 자료도 보존했으며 성공 결과와 합산하지 않는다. 회귀를 고친 최종 버전만 위 표에 사용했다. 검증 조건이나 `cases/common.json` 기대값을 완화하지 않았다.
-
-보고서: [최종 공통 51/51](../runs/vm/wf01-fix-common-20261106-025239.json), [60초 유휴 후 3/3](../runs/vm/wf01-fix-idle60-20261106-025239.json), [배포 파일 해시·조건·실패 이력 목록](../runs/vm/wf01-fix-metadata-20261106-025239.json). 공통 17개와 케이스별 장애 전후 조건은 그대로 실행했고, 기존 티켓 보존을 위해 새 요청 ID를 사용해 최상위 티켓 초기화만 `--no-before`로 생략했다. WF-09 두 케이스는 같은 새 ID를 사용했다. 장애 시험 후 API 상태는 모두 `ok`로 복구했고 OpenAI Credential도 복구했다. 기존 02:21 선별 시험의 WF-01 2/3 결과는 수정 전 이력이다.
-
-
-### 11/06 추가 확인: 제한 변경 후 지연·권한·중복
-
-현재 VM 작성 모델은 **3.2초**, 분류는 **3초**, 검증은 **2초**다. tech 상위 HTTP는 **5초**, payment 상위 HTTP **2.5초**와 내부 조회 예산 **2.2초**는 별개이며 바꾸지 않았다. 과거 작성 제한 2.5초의 실측 이력은 당시 설정으로 남긴다. 작성·검증 제한 합계 5.2초가 tech 5초보다 크고, 검색 약 0.5초를 포함한 모델 제한 합계 약 8.7초도 전체 8초보다 크므로, 제한을 늘린 것만으로 정상 문의의 8초 통과를 보장하지 않는다.
-
-| 항목 | 새 VM 결과 | 판정 |
-| --- | --- | --- |
-| WF-01 정상 문의, 8초 이하·자동 답변·정답 근거 | 8.064 / 5.846 / 6.914초. 모두 자동 답변·정답 근거이나 첫 호출 시간 초과 | **2/3, 미충족** |
-| WF-11 조회 API에 8초 지연 주입, 전체 6초 이하 | 5.671 / 5.729 / 5.791초, 모두 HTTP 200·담당자 이관 `payment_failed` | **3/3** |
-| WF-05 권한 | 5.279 / 4.746 / 6.757초, 모두 이관. 팀 기존 검사·수업 route 조건 각각 3/3 | 아래 기준 차이 참조 |
-| WF-09 같은 요청 2회 | 2.362 / 2.352초, 두 응답 모두 `T-2025`, 두 번째 `duplicate=true`, 요청 key의 저장 수 0→1 | **동일 ID·실제 1건 확인** |
-
-**WF-05 기준 차이:** 팀의 `cases/common.json`은 `sources`에 `staff-entry-manual`이 없고 답에 `책임자 코드`·`수기 모드`가 없는지만 검사한다. 수업 공통 기준은 여기에 route `권한 없음` 또는 `담당자 이관`과 검색 전 권한 분리를 요구한다. 따라서 팀 검사 PASS만으로 수업 공통 기준 충족을 선언하지 않는다. 이번에는 3회 모두 route가 이관이었고, search 실행 3027·3041·3055에서 `access_level=all`, `search_staff=false`, `ticketmoa_kb_v1_all` 사용·스태프 검색 미실행을 확인했다. 마지막 이관 사유는 `verification_failed`이므로 이관 route 자체를 권한 거절 사유로 해석하지 않는다. 기대값은 변경하지 않았다.
-
-[새 원본 보고서](../runs/vm/review-limits-permissions-dedup-20261106-022157.json)에 요청·응답·HTTP 왕복·설정·VM 파일 해시·중복 저장 수와 검색 실행 증거를 함께 보관했다. 이 시험은 11/06의 **선별 시나리오 시험**이며 전체 common 17개 시험·과거 제출 기준과 합산하지 않는다. 첫 호출은 별도 예열 없이 보냈고 뒤 회차는 다른 시나리오를 사이에 두고 반복했다. n8n을 재시작한 첫 호출은 아니다. 기존 티켓·캐시를 초기화하지 않았으며 느린 API 설정은 `finally`에서 원래 `ok`로 복구했다. 이전에 로컬에서 수정한 support 로그 분류 패치는 아직 VM 미반영이므로 이 보고서를 해당 패치의 배포 시험으로 쓰지 않는다. 워크플로우 제한 값은 이번 확인에서 추가 변경하지 않았다.
-
-
-> 산출물 ① (35점 제안). 강의 자료 「기술지원자동화_전체아키텍처」 23쪽 목차 8절을 따른다.
-> 담당: 1절 A 최두나 · **2~4절 B 최강현** · 5~7절 D 심환석 · 8절 함께.
-> 노드 이름은 `workflows/*.json`의 실제 노드 이름이다.
-> 상태: 1절 초안 (2026-11-04, A) · 2~4절 초안 (2026-11-04, B, 본체와 tech 노드는 A가 실제 파일에 맞춤). 5~8절 초안 (2026-11-04, A 작성, D 확인 필요). 실행 예시(4.6절)의 표는 로컬 n8n 결과이고, 팀 VM 결과는 4.6절 끝에 따로 적었다.
+시험 회차별 결과는 [`EXECUTION-RESULT.md`](EXECUTION-RESULT.md) 맨 앞 절과 0절에 모은다. WF-01 간헐 지연은 미결이다.
 
 ## 1. 업무 시나리오 · 처리할 문의 유형
 
 ### 1.1 업무 시나리오
 
-가상의 온라인 티켓 예매 기업 티켓모아의 고객센터로 모바일티켓, 앱, 결제 오류, 입장 장애, 환불 문의가 들어온다. 이 워크플로우는 문의를 자동으로 분류하고 지식 문서와 예매 기록으로 답한다. 해결이 어렵거나 사람의 승인이 필요한 건은 요약해 상담원 티켓으로 넘긴다.
+가상의 온라인 티켓 예매 기업 티켓모아의 고객센터로 모바일티켓, 앱, 결제 오류, 입장 장애, 환불 문의가 들어온다. 이 워크플로우는 공개 지식 문서를 바탕으로 문의를 자동 분류·답변하고, 해결이 어렵거나 사람의 승인이 필요한 건은 요약해 상담원 티켓으로 넘긴다. 과거에는 요청의 `user` 이름을 기준으로 예매·문의 기록도 조회했지만, 이는 로그인 없는 현재 정책에서 개인 신원을 증명하지 않으므로 개인 상태 조회는 제한 대상이다.
 
 고객은 `POST /webhook/ticketmoa-support`로 질문을 보내고, 다음 다섯 가지 중 하나로 답을 받는다.
 
@@ -72,6 +42,8 @@ agents·tech·support와 공통 함수를 VM에 반영하고 n8n 재시작 후 �
 | `담당자 이관` | 요약 티켓을 만들어 상담원에게 넘김 | WF-03 지식 문서에 없는 문의, WF-12 공연 10분 전 입장 문제 |
 | `권한 없음` | 본인 건이 아니어서 알려 주지 않음 | WF-06 남의 문의 번호 상태 조회 |
 | `차단` | LLM을 부르기 전에 규칙으로 막음 | WF-08 프롬프트 주입 |
+
+위의 WF-06 `권한 없음`은 과거 테스트의 route 설명이다. 요청 본문의 이름과 기록의 requester가 다를 때 거절한 시험은 익명 호출자의 실제 신원을 증명하지 않으며, 새 비로그인 정책에서 개인 기록 접근을 안전하게 차단하는 검증으로 재사용하지 않는다.
 
 잘못된 입력(빈 질문, 없는 사용자, 501자 이상)은 route 없이 HTTP 400으로 거절한다 (WF-13).
 
@@ -99,7 +71,7 @@ agents·tech·support와 공통 함수를 VM에 반영하고 n8n 재시작 후 �
 - 환불 예정액 30만원 초과, 관람일 전날 17시 이후, 공연 당일 취소 요청
 - 강한 부정 감정, 고객이 상담원 연결을 직접 요청한 경우
 - 지식 문서에 근거가 없는 질문
-- 현장 스태프 전용 절차를 묻는 일반 고객 질문: `staff-entry-manual`은 `access_level`이 `staff`인 사용자만 검색한다.
+- 현장 스태프 전용 절차를 묻는 일반 고객 질문: `staff-entry-manual`은 `access_level`이 `staff`인 사용자만 검색한다. 책임자 코드·수기 모드 등 내부 절차 요청은 등록 권한이 `staff`가 아니면 검색 전에 이관한다 (`staff_only_request`). 질문이나 context의 직원 주장은 권한 근거가 아니다.
 
 ### 1.4 데이터
 
@@ -113,8 +85,9 @@ agents·tech·support와 공통 함수를 VM에 반영하고 n8n 재시작 후 �
 
 ### 1.5 가산 차단과 시험 기준
 
-- **가산 차단:** 반복 요청과 IP 차단(`rate_limit`, `geo`, `ip_blocklist`, TM-09~11)은 `support`의 주입 차단 뒤, LLM 앞에 연결했다. IP는 실제 접속 주소가 아니라 요청의 `context.client_ip`(가상 IP)로 검사한다. 웹 화면과 Ops Assistant는 구현하지 않았다.
-- **WF-05 팀 기존 자동검사 기준(수업 공통 기준과 다름):** `cases/common.json`의 기대 결과를 따른다. 일반 고객의 응답 `sources`에 `staff-entry-manual`이 없고, 답에 `책임자 코드`, `수기 모드`가 없으면 통과다. route는 정하지 않으므로, 고객용 문서로 답하거나 이관하는 것 모두 허용한다.
+- **가산 차단:** 반복 요청과 IP 차단(`rate_limit`, `geo`, `ip_blocklist`, TM-09~11)은 `support`의 주입 차단 뒤, LLM 앞에 연결했다. IP는 실제 접속 주소가 아니라 요청의 `context.client_ip`(가상 IP)로 검사한다.
+- **가산 웹 화면·운영 조회:** 시연용 웹 화면 `webapp/`은 고객 채팅(`/`), 관리자(`/admin`), 발표 분할 화면(`/demo`)을 제공한다. `ticketmoa-ops`는 티켓·알림·DLQ·로그·장애 설정을 읽기 전용으로 조회한다. 11/05 구현 기록의 확인 환경은 로컬이며, 시험 보고서는 없다. 둘 다 공통·팀 시나리오 통과 수치에 포함하지 않는다.
+- **WF-05 팀 기존 자동검사 기준(수업 공통 기준과 다름):** `cases/common.json`의 기대 결과를 따른다. 일반 고객의 응답 `sources`에 `staff-entry-manual`이 없고, 답에 `책임자 코드`, `수기 모드`가 없으면 통과다. route는 정하지 않으므로, 고객용 문서로 답하거나 이관하는 것 모두 허용한다. 수업 기준은 route `권한 없음` 또는 `담당자 이관`을 요구하므로 팀 검사 PASS를 수업 기준 통과로 세지 않는다. `b77b0e8` 배포는 실제 route가 `자동 답변` 1회, `담당자 이관` 2회로 수업 기준 2/3이었다(`runs/vm/tm-main-common-20261106-061717.json`). 보완본은 `Plan route`의 `staff_only_request` 규칙으로 3/3이다(`runs/vm/security-review-20261106-062701.json`). 시험한 표현과 대조군 기준이며, 다른 표현은 검색 권한 분리와 답변 검증이 계속 막는다.
 
 ## 2. 전체 흐름 (단계 목록)
 
@@ -201,7 +174,7 @@ flowchart TD
   L --> LP["POST /logs"]
   LP --> RJ{"Rejected?"}
   RJ -- 400 --> RI(["Reject invalid"])
-  RJ -- 그 외 --> SR(["Send result"])
+  RJ -- 그 외 --> SEND(["Send result"])
 ```
 
 이 그림은 본체 `ticketmoa-support`의 흐름이다. 답변 작성과 검증(`ticketmoa-agents-verify` 호출)은 `Call tech` 안쪽의 tech에서 일어난다.
@@ -219,7 +192,8 @@ flowchart TD
 | `ticketmoa-tech.json` | `/webhook/ticketmoa-tech` | 기술·앱·일반 답변, 대체 입장 | C | support `Call tech` 5초 (안쪽 `작성 모델` 3.2초) |
 | `ticketmoa-payment.json` | `/webhook/ticketmoa-payment` | 본인 건 조회, 남의 건 forbidden | D | support `Call payment`·`Call payment ∥` 2.5초, refund 4초 |
 | `ticketmoa-handoff.json` | `/webhook/ticketmoa-handoff` | 요약 티켓 · 알림 · DLQ | D | support `Call handoff` 최대 5.5초에서 경과 시간을 뺀 값 (최소 0.5초), refund 5초 |
-| `ticketmoa-errors.json` | Error Trigger | 오류 알림 | D | support, agents, refund, payment, handoff의 Error Workflow (7.3절) |
+| `ticketmoa-errors.json` | Error Trigger | 오류 알림 (`/alerts`, 디스코드) | D | support, agents, refund, payment, handoff, ops의 Error Workflow (7.3절) |
+| `ticketmoa-ops.json` (가산) | `/webhook/ticketmoa-ops` | 티켓·알림·DLQ·로그·장애 설정 읽기 전용 조회 | D | `webapp/` 관리자 화면. 내부 `데이터 API 읽기` 5초 |
 
 support에서 `Call handoff`만 요청 시작부터 지난 시간을 빼서 시간 제한을 계산하고, 나머지 호출은 위 고정값을 쓴다. `deadline_ms`는 하위 웹훅에 넘기는 남은 시간(ms)이다. 하위 웹훅은 실패해도 HTTP 200 + `{"error": ...}`로 돌려주고, 부르는 쪽은 오류 출력 갈래에서 이관으로 간다.
 
@@ -243,7 +217,7 @@ support에서 `Call handoff`만 요청 시작부터 지난 시간을 빼서 시�
 | 분기 노드 | 조건 | 갈래 | 기준값 |
 | --- | --- | --- | --- |
 | support `Refund confirm?` | `pending_action = refund_request`이고 `context.confirm`이 boolean이면 분류 없이 `Plan route`로, 아니면 `Call agents`로 | 2갈래 | — |
-| support `Plan route` (decideRoute) → `Route` | human_request → 이관 / angry → 관련 문서가 있으면 evidence_handoff, 없으면 이관 / 뜻은 분명한데 등록 업무 없음 → 이관 / intents 없음 · 확신도 미달 · missing → 보완 질문 / attempt ≥ 3 → 이관 / 환불 + 당일 신호 → evidence_handoff / 그 외 → 업무별 처리 | clarify · handoff · tech · tech_lookup · refund · payment · evidence_handoff 7갈래 | 확신도 0.7, 최대 3회 |
+| support `Plan route` (decideRoute) → `Route` | 등록 권한 없는 고객의 내부 절차 요청 → 이관 (`staff_only_request`) / human_request → 이관 / angry → 관련 문서가 있으면 evidence_handoff, 없으면 이관 / 뜻은 분명한데 등록 업무 없음 → 이관 / intents 없음 · 확신도 미달 · missing → 보완 질문 / attempt ≥ 3 → 이관 / 환불 + 당일 신호 → evidence_handoff / 그 외 → 업무별 처리 | clarify · handoff · tech · tech_lookup · refund · payment · evidence_handoff 7갈래 | 확신도 0.7, 최대 3회 |
 | agents `LLM 필요?` | `!statusOnly && attempt < 3`이면 Supervisor, 아니면 `규칙 분류 결과` (상태만 묻는 문의 → booking_lookup, attempt ≥ 3 → intents [] · confidence 0 · `rule_attempt_limit`) | 2갈래 | 최대 3회, LLM 0회 |
 | refund `단계 분기` | `pending_action = refund_request`이고 `context.confirm`이 boolean이면 confirm, 아니면 quote | 2갈래 | — |
 | refund `조회 결과 분기` | ok / forbidden / not_found / error | 4갈래 | payment 4초 |
@@ -329,7 +303,7 @@ WF-01 실패는 `push`와 재색인 직후 1회차에서 나왔고, 답은 정�
 - [x] 팀 VM 반영 뒤 시나리오와 시간 확인 · 2026-11-05, 위 표. 분류·검증 단독 호출 예시는 VM에서 다시 재지 않음
 - [x] tflow로 본체 흐름도와 실제 연결 비교 · 2026-11-04, `ticketmoa-support` 연결 51개 일치
 - [x] 검색 점수 기준 판단 · 정상 질문과 문서에 없는 질문의 점수가 겹쳐 기준을 두지 않고 근거 검증으로 거른다 (RAG 설계서 3.0절). WF-03·04·05의 이관은 계속 LLM 판단에 달려 있다
-- [x] 작성 제한 재검토 이력: 당시 2.5초 유지 판단 후 `be61227`에서 3.2초로 변경했다. 현재 분류 3초·검증 2초이며, 11/06 추가 시험에서도 8초 초과가 남는다. 최신 결과는 위 추가 확인 절을 따른다.
+- [x] 작성 제한 재검토 이력: 당시 2.5초 유지 판단 후 `be61227`에서 3.2초로 변경했다. 현재 분류 3초·검증 2초이며, 11/06 추가 시험에서도 8초 초과가 남는다. 최신 결과는 `EXECUTION-RESULT.md` 맨 앞 절을 따른다.
 - [x] 하위 웹훅 표(IMPLEMENTATION-PLAN)에 `ticketmoa-agents-verify` 행과 search `scope` 추가 (A 승인, 2026-11-04)
 - [x] 구조도 이미지(`images/orchestration.*`)를 실제 본체 흐름으로 다시 만들기 · 2026-11-04
 - [ ] 구조도 이미지에 가산 차단 노드 반영, tflow로 본체 연결 다시 비교 (A)
@@ -382,6 +356,8 @@ WF-02는 위 네 보고서 모두 3/3 통과다. 앞선 `common-20261105-114641.
 
 수업 `03-SCENARIOS-AND-DATA.md`의 WF-05는 제한 문서 미검색·미노출과 route `권한 없음` 또는 `담당자 이관`을 요구한다. 현재 팀 `cases/common.json`은 sources에 `staff-entry-manual`이 없고 answer에 `책임자 코드`·`수기 모드`가 없는지만 검사하며 **route 조건이 없다**. 따라서 시험 PASS만으로 수업의 권한 기준을 모두 검증했다고 쓰지 않는다. 두 VM 보고서의 실제 route는 각각 3회 모두 `담당자 이관`이었다. 검색 전 권한 분리는 search 실행의 메모리 키·hits 증거까지 필요하다. 시험 기대값은 수정하지 않으며 A·C·E가 수업 기준과 문서 설명을 맞춰야 한다.
 
+아래 오류 연결 표와 후속 요청은 이 절을 작성했을 **당시**의 점검 기록이다. 최신 운영 배포와 격리 자동 실행 결과는 7.3절을 따른다.
+
 | 점검 대상 (비교 main 기준) | 정적 확인 | 실행 확인 |
 | --- | --- | --- |
 | B `agents`·`refund` | `settings.errorWorkflow = ticketmoaErrors01`, errors의 top-level id와 일치 | 실제 예외 연동은 미확인 |
@@ -422,6 +398,7 @@ ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && FLOW_PY=~/aio-tools/Last3Mon/78/to
 | 예매 · 문의 조회 | payment `본인 건 조회` | `GET /tickets/<id>?requester=` | 예매 시스템 DB 또는 API |
 | 티켓 생성 | handoff `티켓 생성` | `POST /tickets` (`key`에 `request_id`) | Jira |
 | 긴급 · 장애 알림 | handoff `긴급 알림`, `장애 알림`, errors `장애 알림 전송` | `POST /alerts` | Slack 긴급 채널 |
+| 디스코드 알림 (가산) | handoff `디스코드 알림`, errors `디스코드 알림` | Discord 웹후크 (Credential `ticketmoa-discord`) | Slack 긴급 채널 |
 | 실패 대기열 | handoff `DLQ 저장` | `POST /dlq` | Postgres 또는 메시지 큐 |
 | 실행 기록 | support `POST /logs` | `POST /logs` | Postgres |
 | 환불 견적 상태 | refund `대기 상태 저장`, `대기 상태 읽기`, `확정 저장` | `/cache/<key>` | Postgres 또는 Redis |
@@ -434,17 +411,17 @@ ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && FLOW_PY=~/aio-tools/Last3Mon/78/to
 
 - **인증:** data-api 호출 23곳에 Credential `ticketmoa-data-api`(`X-Api-Key`, id `ticketmoaDataApi1`)를 연결했다. 헤더가 실제로 나가는 것은 임시 워크플로우로 확인했다(2026-11-05, 로컬). VM에서는 이 Credential로 공통·팀 시나리오를 통과했다. 연습용 data-api는 키를 검사하지 않으므로, 틀린 키를 거절하는지는 이 환경에서 시험할 수 없다. 운영 시스템 호출에는 시스템별 Credential을 연결한다.
 - **색인:** 지금은 In-Memory Vector Store를 쓰고, n8n을 재시작한 뒤에는 `ticketmoa-index`를 다시 호출한다. 재시작 후 데이터가 유지되는지는 아직 확인하지 않았다.
-- **신원:** 지금은 요청의 `user` 칸을 신원으로 믿는다. 운영에는 서명된 세션 토큰이 필요하다.
+- **최종 사용자 신원 범위:** 웹앱은 로그인·세션을 제공하지 않으며 요청의 `user`는 입력값이지 인증된 신원이 아니다. 로그인·세션·토큰 인증은 이 프로젝트에서 의도적으로 제외했다. 따라서 `user`/`user_id`/`access_level`만으로 개인 문의·결제·환불 상태를 조회하게 해서는 안 된다. 관련 개인 데이터 경로는 공개 데모 정책에 맞게 제한해야 하며, 실제 차단 상태는 각 워크플로우 구현과 최신 시험으로 확인한다. `X-Team-Key`는 서비스 간 호출 키이지 최종 사용자 인증이 아니다.
 
 ### 5.1 인증·시간 제한·오류 처리와 어댑터 경계
 
 | 경계 | 현재 인증 | timeout | 오류 처리 | 운영 어댑터와의 구분 |
 | --- | --- | ---: | --- | --- |
-| 고객/웹앱 → A support | `X-Team-Key` | 호출자 기준 | 형식 오류 400, 나머지 fail-closed 응답 | `channel`은 `web/app/phone/kiosk/email/other` 메타데이터일 뿐 실제 채널 전송기가 아니다. 운영 웹·앱 어댑터가 세션 인증과 `attempt` 증가를 맡는다 |
+| 고객/웹앱 → A support | `X-Team-Key` (서비스 인증) | 호출자 기준 | 형식 오류 400, 나머지 fail-closed 응답 | `channel`은 `web/app/phone/kiosk/email/other` 메타데이터일 뿐 실제 채널 전송기가 아니다. 로그인·세션을 구현한 사용자 어댑터는 이 프로젝트 범위에 없다. `attempt`는 요청 계약에 따라 호출자가 전달하며 사용자 신원을 증명하지 않는다 |
 | A → B agents/refund | `ticketmoa-team-key` | agents/refund 5초, verify는 남은 시간 0.5~5초 | HTTP 오류·읽기 실패를 보완 질문/성공으로 바꾸지 않고 이관 | B는 분류·검증·환불 규칙 어댑터이며 고객 채널에 직접 전송하지 않는다 |
 | A → C search/tech | `ticketmoa-team-key` | search/tech 5초, evidence search 2초 | 빈 근거와 검색/작성/검증 장애를 서로 다른 reason으로 보존하고 이관 | C는 고객/직원 인덱스와 답변 생성 어댑터다. Notion·PGVector 전환 계획은 미구현 |
 | A/B/C/D → data-api | `ticketmoa-data-api` (`X-Api-Key`) | 조회 최대 2초(전체 2.2초), 일반 호출 노드별 0.5~5초 | 429·5xx·timeout만 재시도, 401·403 비재시도 | 연습용 단일 API를 회원·예매·티켓·알림·로그·캐시 역할로 나눈 가짜 어댑터다. 운영 시스템별 Credential/URL로 교체해야 한다 |
-| D handoff → 알림 | data-api 인증, Discord는 별도 Credential | 알림 0.8초 | `/alerts`는 항상 남기고 Discord 실패는 본 흐름을 깨지 않음 | `venue-staff`·`cs-oncall`은 논리 채널이다. 실제 Slack/Jira 어댑터는 구현하지 않았다 |
+| D handoff·errors → 알림 | data-api 인증, Discord는 별도 Credential | 알림 0.8초 | `/alerts`는 항상 남기고 Discord 실패는 본 흐름을 깨지 않음 | `venue-staff`·`cs-oncall`은 논리 채널이다. 실제 Slack/Jira 어댑터는 구현하지 않았다 |
 
 ## 6. 연결선마다 페이로드
 
@@ -502,6 +479,10 @@ ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && FLOW_PY=~/aio-tools/Last3Mon/78/to
 | handoff `장애 알림` → data-api | `{workflow, node, severity:"critical", reason, request_id, channel:"cs-oncall", ...}` |
 | refund `대기 상태 저장` → data-api | `POST /cache/refund-pending:<user>:<booking_id>`, `{value:{status, owner, record_id, booking_id, refund, fee, rule, sources, quoted_at, expires_at}, ttl:1800}` |
 | errors `장애 알림 전송` → data-api | `{workflow, node, execution_id, at, severity:"critical", reason:"unexpected"}` |
+| handoff `디스코드 알림 내용` → `디스코드 알림` | `{content}`. 이번 실행에서 `/alerts`로 보낸 긴급·장애 알림만 보내며, 알림이 없으면 보내지 않는다. 연락처는 가린 내용만 넣는다 |
+| errors `디스코드 알림` | 워크플로우 이름, 노드, 실행 ID, 시각을 담은 문자열 |
+
+티켓 담당은 `lib/common.js`의 `ticketAssignee(category, priority)`가 정하고 티켓 `title`과 응답 `ticket.assignee`에 남는다 (`TICKET-EVIDENCE.md`). 로그의 `status`, `failure_kind`, `verification_issues`는 같은 파일의 `classifyOutcome`이 정한다. 사유 코드만 기록하고 오류 원문은 넣지 않는다.
 
 ### 6.3 시간 값 `deadline_ms`
 
@@ -560,9 +541,10 @@ WF-12 VM 실측을 축약한 가림 예시는 다음과 같다. 원본 조회에
 | 환불 확정인데 견적 없음 · 만료 | refund `확인 자격 판정` → `안내 먼저 받기` | 보완 질문, 티켓 없음 | — | 코드 |
 | 환불 금액이 바뀜 | refund `확인 재계산` → `금액 변경 안내` | 바뀐 금액 다시 안내 | 새 견적 | 코드 |
 | `/logs` 저장 실패 | support `POST /logs` 오류 출력 | 응답은 그대로 나감 | — | 코드 |
-| 예상 못 한 실행 오류 | errors `오류 수신` → `장애 알림 전송` | 부른 쪽의 오류 처리를 따름 | 알림 | 코드 |
+| 예상 못 한 실행 오류 | errors `오류 수신` → `장애 알림 전송`, `디스코드 알림` | 부른 쪽의 오류 처리를 따름 | 알림 | 코드 |
+| 디스코드 전송 실패 | handoff·errors `디스코드 알림` (`continueRegularOutput`) | 영향 없음 | `/alerts` 기록은 남음 | 코드 |
 
-확인 열의 시나리오 번호는 2026-11-04 로컬 n8n 시험으로 확인한 것이고, 코드는 노드 코드만 확인하고 그 상황을 실행해 보지는 않은 것이다.
+확인 열의 시나리오 번호는 2026-11-04 로컬 n8n 시험으로 처음 확인한 것이고, 코드는 노드 코드만 확인하고 그 상황을 실행해 보지는 않은 것이다. 이후 VM 결과는 결과서를 따른다. 디스코드 수신은 2026-11-06 VM의 WF-12·WF-04에서 확인했고, errors의 디스코드 경로는 VM에서 시험하지 않았다.
 
 ### 7.2 재시도
 
@@ -575,9 +557,12 @@ WF-12 VM 실측을 축약한 가림 예시는 다음과 같다. 원본 조회에
 
 ### 7.3 알려진 빈틈
 
-- `ticketmoa-errors`는 support, agents, refund, payment, handoff에 연결했다. tech, search, index에는 Error Workflow가 설정되어 있지 않다. 2026-11-05 로컬에서 같은 설정의 임시 워크플로우를 일부러 실패시켜 `/alerts`에 기록되는 것을 확인했다. support 자체를 실패시켜 본 적은 없다.
+- `ticketmoa-errors` (`ticketmoaErrors01`)는 기존 4개 노드에서 최신 9개 노드로 운영 n8n에 배포됐다. 배포 전 SHA-256 일치와 `flow.py check` 통과, 배포 후 `active: true` 및 Support·handoff 활성 상태를 확인했다. 기존 운영본은 `backups/ticketmoa-errors-before-update.json`에 백업했고 배포 소스 커밋은 `9254bff`다.
+- Error Trigger가 미처리 실행 오류를 받아 허용 목록 기반으로 오류 유형·워크플로우 ID·실행 ID·실패 노드를 정규화한다. 질문 원문·연락처·토큰·오류 메시지·스택은 알림에서 제외한다. 실행 ID 기반 캐시로 중복 알림을 억제하며, 캐시 장애 시 알림을 계속 시도한다. `/alerts`와 Discord는 독립 경로이고, Error Workflow 자체에 `errorWorkflow`를 설정하지 않아 재귀 실행을 막는다. **동시 실행의 원자적 중복 차단은 보장되지 않는다.**
+- 격리된 n8n **2.42.6**에서 시험용 Support `ticketmoaE2ESupport`의 실패 실행 **10**에 이어 Error Workflow 실행 **11**이 자동으로 시작했다. 모의 `/alerts`와 Discord가 모두 실행 ID 10의 알림을 수신했고 시험용 질문·전화번호·토큰은 포함되지 않았다. 관련 단위 테스트 **6/6** 통과 후 로컬 시험 컨테이너를 종료했다. `http://127.0.0.1:18800/events`는 격리 시험용 로컬 수신 기록 주소이며 운영 웹앱 주소·운영 설정이 아니다. 운영 웹앱은 `https://aio-t4.isitsoft.kr/`이다.
+- **미검증:** 운영 Support에 실제 오류를 발생시킨 자동 실행, 운영 Discord 실제 수신, 동시 실행의 원자적 중복 차단. WF-04·WF-10·WF-11은 처리된 장애 경로의 시험이며 Error Trigger 자동 실행의 근거로 쓰지 않는다. tech, search, index에는 Error Workflow를 추가하지 않았다.
 - WF-11은 5.6초에 응답해 기준 6초와 여유가 적다.
-- 현재 작성 제한은 3.2초다. 분류 3초·검증 2초 및 검색까지 합치면 전체 8초와 여유가 적고, 작성·검증 합계 5.2초는 tech HTTP 5초보다 크다. 수정 전 선별 시험은 WF-01 2/3이었으나 최종 배포본은 재색인 후 3/3과 60초 유휴 후 3/3을 통과했다. 표본이 작으므로 간헐 지연 감시는 계속한다.
+- 현재 작성 제한은 3.2초다. 분류 3초·검증 2초 및 검색까지 합치면 전체 8초와 여유가 적고, 작성·검증 합계 5.2초는 tech HTTP 5초보다 크다. 재시작 직후 첫 호출은 11/06 배포에서 8.7초(실패), `b77b0e8`에서 8.0초(통과, 경계값), WF-05 보완본에서 7.608초(통과)였고 작성 timeout 이관도 남았다. 재시작 없이 잰 통과 결과로 해결을 선언하지 않으며, **간헐 지연은 미결이다.**
 - 동시에 같은 환불을 확정하면 경쟁이 생길 수 있다. handoff에 `idempotency_key`가 필요하다 (`security/refund-threat-model.md`).
 
 ## 8. 64~79일차에서 가져온 것
@@ -595,4 +580,4 @@ WF-12 VM 실측을 축약한 가림 예시는 다음과 같다. 원본 조회에
 | 77 | 실행 로그 분석 | `lab01-example2-report.json` | support `Log record`의 `/logs` 칸, 결과서 숫자 |
 | 78 | 데이터 품질 검증 | 데이터 API 키트, `tools/flow.py`가 부르는 `flow.py` | 연습용 data-api, 시험 도구, index `Validate and make chunks` |
 
-가산 `ticketmoa-ops`의 출발 자료로 정한 79일차 Ops Assistant는 아직 쓰지 않았다.
+가산 `ticketmoa-ops`의 현재 상태는 1.5절을 본다.
