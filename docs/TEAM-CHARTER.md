@@ -34,7 +34,7 @@
 
 하지 않을 것 (범위 밖): 실제 환불 · 결제 취소 실행, 실제 Slack · Jira · 메일 발송, 로그인 · 세션, 다국어.
 
-아직 구현하지 않은 것 (가산): 웹 화면, Ops Assistant `ticketmoa-ops`.
+가산 웹 화면 `webapp/`과 Ops Assistant `ticketmoa-ops`는 11/05 구현했다. 구현 기록의 확인 환경은 로컬이고 시험 보고서는 없다.
 
 ### 구현 현황 (2026-11-05, `main` `ea1a6c9` 기준)
 
