@@ -249,6 +249,8 @@ n8n 색인 검사가 문서당 `##` 3절 이상을 요구하므로, 500/80 대�
 | VM 문서 버전 | 평가 metadata의 문서 해시 8개가 현재 VM 문서와 일치; 로컬 문서를 LF로 정규화한 해시도 VM과 8/8 일치 | 사용자가 제공한 로컬·VM 비교 결과. 기존 바이트 해시 차이는 CRLF/LF 줄바꿈 차이로 설명되며 정규화한 본문 차이는 관측되지 않음 |
 | 현재 활성 `ticketmoa-index` | ID `wd1411fe4004258e`, active `true`, 12노드; 저장소 JSON과 connections/settings 일치. 노드별 차이는 `id`, `webhookId`뿐 | 사용자가 VM에서 수행한 활성 내보내기 비교. VM Git 커밋은 확인 불가 |
 | 현재 활성 `ticketmoa-search` | ID `w1915b8090339ad9`, active `true`, 13노드; 저장소 JSON과 connections/settings 일치. 노드별 차이는 `id`, `webhookId`뿐 | 사용자가 VM에서 수행한 활성 내보내기 비교. VM Git 커밋은 확인 불가 |
+| Index/Search 파일 해시 | 로컬·VM JSON의 LF 정규화 SHA-256 일치 | 사용자가 제공한 PowerShell·Web SSH 확인 결과. VM 커밋은 미확인 |
+| 청크 메타데이터·권한 분기 설정 | 두 Data Loader가 `doc=$json.doc`, `section=$json.section`, `access_level=$json.access_level`을 사용. `access_level === "staff"`는 `ticketmoa_kb_v1_staff`, 그 외 검증된 `all`은 `ticketmoa_kb_v1_all`로 저장 | 워크플로우 설정 확인. 이는 설정 검증이며 Vector Store의 실제 청크 42개 전체 내용·메타데이터를 직접 확인한 결과는 아님 |
 | `ticketmoa-errors` 활성 상태 | 활성 워크플로우 확인됨 | 사용자가 제공한 VM 확인 결과. 실제 오류에서 자동 실행되는지는 미검증 |
 | 평가 당시 배포 소스·활성 워크플로우 | 미확인 | VM 프로젝트에 `.git`이 없어 커밋을 대조할 수 없고, 현재 활성본 비교는 과거 평가 실행에 소급 적용되지 않음 |
 | 결과 원본 | `runs/vm/rag-search-eval-20261106T063854087633Z.json`, `runs/vm/rag-search-eval-20261106T063854087633Z.csv` | VM 경로 기준; 로컬에는 원본 파일 없음 |
