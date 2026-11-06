@@ -71,7 +71,7 @@ WF-12의 위 결과는 개인정보 조회 차단 정책을 적용하기 전 실
 - 과거 구현의 환불 한도(30만원 초과), 관람일 전날 17시 이후, 공연 당일 취소 분기는 개인 기록 조회가 전제된 과거 동작이다. 이를 현재 개인별 환불 처리 기능으로 안내하지 않는다.
 - 강한 부정 감정, 고객이 상담원 연결을 직접 요청한 경우
 - 지식 문서에 근거가 없는 질문
-- 현장 스태프 전용 절차를 묻는 공개 요청: 직원 전용 검색은 임시 보안 패치로 차단되어 있다. 책임자 코드·수기 모드 등 내부 절차는 공개 답변하지 않고 제한·이관한다. 요청의 직원 주장은 권한 근거가 아니다.
+- 현장 스태프 전용 절차를 묻는 공개 요청: 로그인이 없어 직원을 증명할 수 없으므로 직원 전용 검색은 제공하지 않는다(11/07 리드 확정). 책임자 코드·수기 모드 등 내부 절차는 공개 답변하지 않고 제한·이관한다. 요청의 직원 주장은 권한 근거가 아니다.
 
 ### 1.4 데이터
 
@@ -188,7 +188,7 @@ flowchart TD
 | 〃 | `/webhook/ticketmoa-agents-verify` | 검증 Agent | B | tech `검증 호출` 남은 시간 (0.5~5초) |
 | `ticketmoa-refund.json` | `/webhook/ticketmoa-refund` | 일반 정책 응답 및 개인 환불 처리 제한 (2단계 확인은 과거 흐름) | B | support `Call refund` 5초 |
 | `ticketmoa-index.json` | `/webhook/ticketmoa-index` | 색인 | C | 수동 |
-| `ticketmoa-search.json` | `/webhook/ticketmoa-search` | 공개 문서 검색; 직원 전용 검색은 임시 보안 패치로 차단 | C | support `Call search` 5초, `Call search (evidence)` 2초 |
+| `ticketmoa-search.json` | `/webhook/ticketmoa-search` | 공개 문서 검색; 직원 전용 검색은 제공하지 않음 | C | support `Call search` 5초, `Call search (evidence)` 2초 |
 | `ticketmoa-tech.json` | `/webhook/ticketmoa-tech` | 기술·앱·일반 답변, 대체 입장 | C | support `Call tech` 5초 (안쪽 `작성 모델` 3.2초) |
 | `ticketmoa-payment.json` | `/webhook/ticketmoa-payment` | 개인 예매·문의 조회 차단 (본인/타인 구분 조회는 과거 흐름) | D | 과거 support `Call payment`·`Call payment ∥` 2.5초, refund 4초 |
 | `ticketmoa-handoff.json` | `/webhook/ticketmoa-handoff` | 요약 티켓 · 알림 · DLQ | D | support `Call handoff` 최대 5.5초에서 경과 시간을 뺀 값 (최소 0.5초), refund 5초 |
