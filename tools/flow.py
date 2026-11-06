@@ -48,4 +48,6 @@ spec.loader.exec_module(flow)
 flow.COURSE_CREDENTIALS["ticketmoaTeamKey1"] = "ticketmoa-team-key"
 # 데이터 API 호출의 X-Api-Key Credential. tools/register-team-key.sh가 같은 id로 등록한다.
 flow.COURSE_CREDENTIALS["ticketmoaDataApi1"] = "ticketmoa-data-api"
+# 장애·긴급 알림의 Discord Webhook Credential (errors·handoff). 웹후크 URL은 이 Credential에만 있다.
+flow.COURSE_CREDENTIALS["ticketmoaDiscord1"] = "ticketmoa-discord"
 sys.exit(flow.main())
