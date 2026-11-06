@@ -1,5 +1,21 @@
 # 노코드 워크플로우 설계서 · 티켓모아
 
+### 11/06 추가 확인: 제한 변경 후 지연·권한·중복
+
+현재 VM 작성 모델은 **3.2초**, 분류는 **3초**, 검증은 **2초**다. tech 상위 HTTP는 **5초**, payment 상위 HTTP **2.5초**와 내부 조회 예산 **2.2초**는 별개이며 바꾸지 않았다. 과거 작성 제한 2.5초의 실측 이력은 당시 설정으로 남긴다. 작성·검증 제한 합계 5.2초가 tech 5초보다 크고, 검색 약 0.5초를 포함한 모델 제한 합계 약 8.7초도 전체 8초보다 크므로, 제한을 늘린 것만으로 정상 문의의 8초 통과를 보장하지 않는다.
+
+| 항목 | 새 VM 결과 | 판정 |
+| --- | --- | --- |
+| WF-01 정상 문의, 8초 이하·자동 답변·정답 근거 | 8.064 / 5.846 / 6.914초. 모두 자동 답변·정답 근거이나 첫 호출 시간 초과 | **2/3, 미충족** |
+| WF-11 조회 API에 8초 지연 주입, 전체 6초 이하 | 5.671 / 5.729 / 5.791초, 모두 HTTP 200·담당자 이관 `payment_failed` | **3/3** |
+| WF-05 권한 | 5.279 / 4.746 / 6.757초, 모두 이관. 팀 기존 검사·수업 route 조건 각각 3/3 | 아래 기준 차이 참조 |
+| WF-09 같은 요청 2회 | 2.362 / 2.352초, 두 응답 모두 `T-2025`, 두 번째 `duplicate=true`, 요청 key의 저장 수 0→1 | **동일 ID·실제 1건 확인** |
+
+**WF-05 기준 차이:** 팀의 `cases/common.json`은 `sources`에 `staff-entry-manual`이 없고 답에 `책임자 코드`·`수기 모드`가 없는지만 검사한다. 수업 공통 기준은 여기에 route `권한 없음` 또는 `담당자 이관`과 검색 전 권한 분리를 요구한다. 따라서 팀 검사 PASS만으로 수업 공통 기준 충족을 선언하지 않는다. 이번에는 3회 모두 route가 이관이었고, search 실행 3027·3041·3055에서 `access_level=all`, `search_staff=false`, `ticketmoa_kb_v1_all` 사용·스태프 검색 미실행을 확인했다. 마지막 이관 사유는 `verification_failed`이므로 이관 route 자체를 권한 거절 사유로 해석하지 않는다. 기대값은 변경하지 않았다.
+
+[새 원본 보고서](../runs/vm/review-limits-permissions-dedup-20261106-022157.json)에 요청·응답·HTTP 왕복·설정·VM 파일 해시·중복 저장 수와 검색 실행 증거를 함께 보관했다. 이 시험은 11/06의 **선별 시나리오 시험**이며 전체 common 17개 시험·과거 제출 기준과 합산하지 않는다. 첫 호출은 별도 예열 없이 보냈고 뒤 회차는 다른 시나리오를 사이에 두고 반복했다. n8n을 재시작한 첫 호출은 아니다. 기존 티켓·캐시를 초기화하지 않았으며 느린 API 설정은 `finally`에서 원래 `ok`로 복구했다. 이전에 로컬에서 수정한 support 로그 분류 패치는 아직 VM 미반영이므로 이 보고서를 해당 패치의 배포 시험으로 쓰지 않는다. 워크플로우 제한 값은 이번 확인에서 추가 변경하지 않았다.
+
+
 > 산출물 ① (35점 제안). 강의 자료 「기술지원자동화_전체아키텍처」 23쪽 목차 8절을 따른다.
 > 담당: 1절 A 최두나 · **2~4절 B 최강현** · 5~7절 D 심환석 · 8절 함께.
 > 노드 이름은 `workflows/*.json`의 실제 노드 이름이다.
@@ -62,7 +78,7 @@
 ### 1.5 가산 차단과 시험 기준
 
 - **가산 차단:** 반복 요청과 IP 차단(`rate_limit`, `geo`, `ip_blocklist`, TM-09~11)은 `support`의 주입 차단 뒤, LLM 앞에 연결했다. IP는 실제 접속 주소가 아니라 요청의 `context.client_ip`(가상 IP)로 검사한다. 웹 화면과 Ops Assistant는 구현하지 않았다.
-- **WF-05 통과 기준:** `cases/common.json`의 기대 결과를 따른다. 일반 고객의 응답 `sources`에 `staff-entry-manual`이 없고, 답에 `책임자 코드`, `수기 모드`가 없으면 통과다. route는 정하지 않으므로, 고객용 문서로 답하거나 이관하는 것 모두 허용한다.
+- **WF-05 팀 기존 자동검사 기준(수업 공통 기준과 다름):** `cases/common.json`의 기대 결과를 따른다. 일반 고객의 응답 `sources`에 `staff-entry-manual`이 없고, 답에 `책임자 코드`, `수기 모드`가 없으면 통과다. route는 정하지 않으므로, 고객용 문서로 답하거나 이관하는 것 모두 허용한다.
 
 ## 2. 전체 흐름 (단계 목록)
 
@@ -164,7 +180,7 @@ flowchart TD
 | `ticketmoa-refund.json` | `/webhook/ticketmoa-refund` | 환불 2단계 확인 | B | support `Call refund` 5초 |
 | `ticketmoa-index.json` | `/webhook/ticketmoa-index` | 색인 | C | 수동 |
 | `ticketmoa-search.json` | `/webhook/ticketmoa-search` | 권한 필터 후 검색 | C | support `Call search`·`Call search ∥` 5초, `Call search (evidence)` 2초, refund 2초 |
-| `ticketmoa-tech.json` | `/webhook/ticketmoa-tech` | 기술·앱·일반 답변, 대체 입장 | C | support `Call tech` 5초 (안쪽 `작성 모델` 2.5초) |
+| `ticketmoa-tech.json` | `/webhook/ticketmoa-tech` | 기술·앱·일반 답변, 대체 입장 | C | support `Call tech` 5초 (안쪽 `작성 모델` 3.2초) |
 | `ticketmoa-payment.json` | `/webhook/ticketmoa-payment` | 본인 건 조회, 남의 건 forbidden | D | support `Call payment`·`Call payment ∥` 2.5초, refund 4초 |
 | `ticketmoa-handoff.json` | `/webhook/ticketmoa-handoff` | 요약 티켓 · 알림 · DLQ | D | support `Call handoff` 최대 5.5초에서 경과 시간을 뺀 값 (최소 0.5초), refund 5초 |
 | `ticketmoa-errors.json` | Error Trigger | 오류 알림 | D | support, agents, refund, payment, handoff의 Error Workflow (7.3절) |
@@ -277,7 +293,7 @@ WF-01 실패는 `push`와 재색인 직후 1회차에서 나왔고, 답은 정�
 - [x] 팀 VM 반영 뒤 시나리오와 시간 확인 · 2026-11-05, 위 표. 분류·검증 단독 호출 예시는 VM에서 다시 재지 않음
 - [x] tflow로 본체 흐름도와 실제 연결 비교 · 2026-11-04, `ticketmoa-support` 연결 51개 일치
 - [x] 검색 점수 기준 판단 · 정상 질문과 문서에 없는 질문의 점수가 겹쳐 기준을 두지 않고 근거 검증으로 거른다 (RAG 설계서 3.0절). WF-03·04·05의 이관은 계속 LLM 판단에 달려 있다
-- [x] `작성 모델` 시간 제한 2.5초 재검토 · 제한 합계가 이미 약 8초이고, VM 공통 3회의 시간 초과형 실패가 기준(2건 이상) 미만이라 유지한다. 간헐 실패는 계속 확인한다
+- [x] 작성 제한 재검토 이력: 당시 2.5초 유지 판단 후 `be61227`에서 3.2초로 변경했다. 현재 분류 3초·검증 2초이며, 11/06 추가 시험에서도 8초 초과가 남는다. 최신 결과는 위 추가 확인 절을 따른다.
 - [x] 하위 웹훅 표(IMPLEMENTATION-PLAN)에 `ticketmoa-agents-verify` 행과 search `scope` 추가 (A 승인, 2026-11-04)
 - [x] 구조도 이미지(`images/orchestration.*`)를 실제 본체 흐름으로 다시 만들기 · 2026-11-04
 - [ ] 구조도 이미지에 가산 차단 노드 반영, tflow로 본체 연결 다시 비교 (A)
@@ -309,7 +325,7 @@ WF-01 실패는 `push`와 재색인 직후 1회차에서 나왔고, 답은 정�
 | 검증 HTTP 호출 실패 | tech `검증 호출` 오류 → `답변 결정` → `verification_timeout` | 위 네 보고서의 WF-01에서는 이 사유가 없다. 현재 코드는 상태 코드가 없으면 모두 이 사유로 묶으므로 실제 timeout 여부는 실행 오류를 확인해야 한다 |
 | 전체 응답 시간 초과 | 답·검증은 통과했지만 시험 도구의 `max_seconds: 8` 초과 | 로컬 14:07 3회차: 자동 답변, 기대 문서 포함, `llm_calls: 3`, `reason: ""` |
 
-**따라서 최근 실패를 검증 Agent의 오판으로 단정해 프롬프트·통과 기준을 완화하지 않는다.** VM 실패는 분류 3,522ms + 검색 482ms + tech 2,709ms + 이관 256ms, 응답 내부 `total_ms: 7103`, 시험 시간 7.3초다. 로컬 작성 실패의 tech도 2,647~2,677ms다. tech `작성 모델`의 timeout 2,500ms와 가까워 작성 모델 시간 제한이 원인 후보지만, n8n 실행 오류가 없어 timeout·429·인증 오류 중 무엇인지는 확정할 수 없다. `llm_calls`는 코드가 기록한 횟수이며 제공자 실제 재시도 횟수의 증거는 아니다.
+**따라서 최근 실패를 검증 Agent의 오판으로 단정해 프롬프트·통과 기준을 완화하지 않는다.** VM 실패는 분류 3,522ms + 검색 482ms + tech 2,709ms + 이관 256ms, 응답 내부 `total_ms: 7103`, 시험 시간 7.3초다. 로컬 작성 실패의 tech도 2,647~2,677ms다. 당시 tech `작성 모델`의 timeout 2,500ms(현재 3,200ms)와 가까워 작성 모델 시간 제한이 원인 후보지만, n8n 실행 오류가 없어 timeout·429·인증 오류 중 무엇인지는 확정할 수 없다. `llm_calls`는 코드가 기록한 횟수이며 제공자 실제 재시도 횟수의 증거는 아니다.
 
 시간만 실패한 로컬 3회차는 분류 2,285ms + 검색 1,737ms + tech 3,770ms, 내부 합계 7,874ms다. 시험 도구는 HTTP 전체 시간을 **반올림 전에** 8초와 비교하고 결과에는 소수 첫째 자리로 저장한다(`Last3Mon/78/tools/flow.py` 574~575, 697행). 표시가 8.0초여도 `passed:false`와 `problems`의 시간 초과 판정을 유지한다. 정확히 몇 ms 초과했는지는 이 보고서로 복원할 수 없다. 예진 담당의 작성·검색 지연 분석에 이 수치를 전달할 수 있다.
 
@@ -491,7 +507,7 @@ ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && FLOW_PY=~/aio-tools/Last3Mon/78/to
 
 - `ticketmoa-errors`는 support, agents, refund, payment, handoff에 연결했다. tech, search, index에는 Error Workflow가 설정되어 있지 않다. 2026-11-05 로컬에서 같은 설정의 임시 워크플로우를 일부러 실패시켜 `/alerts`에 기록되는 것을 확인했다. support 자체를 실패시켜 본 적은 없다.
 - WF-11은 5.6초에 응답해 기준 6초와 여유가 적다.
-- 답변 작성 시간 제한 2.5초 때문에 정상 문의도 가끔 이관된다 (4.7절).
+- 현재 작성 제한은 3.2초다. 분류 3초·검증 2초 및 검색까지 합치면 전체 8초와 여유가 없고, 작성·검증 합계 5.2초는 tech HTTP 5초보다 크다. 11/06 재시험도 WF-01 2/3으로 아직 미충족이다.
 - 동시에 같은 환불을 확정하면 경쟁이 생길 수 있다. handoff에 `idempotency_key`가 필요하다 (`security/refund-threat-model.md`).
 
 ## 8. 64~79일차에서 가져온 것
