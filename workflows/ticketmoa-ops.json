@@ -90,7 +90,7 @@
       "parameters": {
         "url": "=http://data-api:8800{{ $json.path }}",
         "options": {
-          "timeout": 3000,
+          "timeout": 5000,
           "response": {
             "response": {
               "fullResponse": true,
@@ -101,7 +101,7 @@
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
       },
-      "notes": "【역할】 데이터 API를 GET으로 읽는다.\n【입력】 {path}.\n【처리】 GET http://data-api:8800<path> (X-Api-Key Credential), 3초.\n【출력】 {statusCode, body}.\n【실패 시】 오류 출력으로 결과 조립에 넘긴다 (HTTP 200 + error).",
+      "notes": "【역할】 데이터 API를 GET으로 읽는다.\n【입력】 {path}.\n【처리】 GET http://data-api:8800<path> (X-Api-Key Credential), 5초.\n【출력】 {statusCode, body}.\n【실패 시】 오류 출력으로 결과 조립에 넘긴다 (HTTP 200 + error).",
       "notesInFlow": false,
       "onError": "continueErrorOutput",
       "credentials": {
