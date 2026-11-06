@@ -1,5 +1,29 @@
 # 티켓모아 실행 결과서 (EXECUTION-RESULT)
 
+### 11/06 WF-04 로그 수정·티켓 담당 반영 후 재시험
+
+| 회차 | 조건 | 결과 | WF-01 (초) |
+| --- | --- | --- | --- |
+| 1회차 03:38~03:40 UTC | n8n 재시작·재색인 직후 | **50/51**, TM-13 1/1 | **8.7 (미달)** / 6.1 / 5.9 |
+| 2회차 03:45~03:47 UTC | 재시작 없음 | **51/51** | 6.6 / 6.2 / 5.8 |
+
+두 결과를 합산하지 않으며, 재시작 직후 첫 호출의 간헐 지연은 남은 위험이다. WF-04 티켓 생성 실패는 수정 전 `success`로 기록됐고, 수정 후 두 회차 모두 3/3 `error`·`dependency`·`ticket_not_created`다. 기대값은 바꾸지 않았고, 기존 티켓 보존을 위해 복사본에서 최상위 `/tickets-reset`만 빼고 새 요청 ID를 썼다. 근거와 담당 규칙은 [`TICKET-EVIDENCE.md`](TICKET-EVIDENCE.md)에 있다.
+
+### 11/06 인수 항목 최종 판정 · WF-02/02b·11·12
+
+아래는 현재 `main` 병합 소스와 바이트가 같은 VM 배포본의 공통 회귀 결과다. 전체 **51/51** 가운데 요청 항목은 모두 통과했다.
+
+| 시나리오 | 횟수·시간 | 확인한 종료 조건과 산출물 |
+| --- | --- | --- |
+| WF-02 | 3/3 · 1.5/2.1/1.6초 | `attempt:1` → 보완 질문, `low_confidence_or_missing`, 티켓 없음 |
+| WF-02b | 3/3 · 1.3/0.6/0.6초 | `attempt:3` → `clarify_limit_reached`, LLM 0회, 이관 티켓 `T-2035`; 반복은 같은 ID·duplicate |
+| WF-11 | 3/3 · 5.7/5.6/5.6초 | 8초 조회 지연을 2.2초 예산에서 종료, HTTP 200 이관, `timeout_or_network`, DLQ·장애 알림 true; 6초 기준 통과 |
+| WF-12 | 3/3 · 3.8/4.4/3.9초 | 고객용 `onsite-entry-fallback` 4건, 현장 발권 안내, 본인 C-2002 `접수됨`, high 티켓 `T-2041`, `venue-staff` 알림, 연락처 2개 가림 |
+
+WF-12의 search와 payment는 병렬이며, 전자는 긴급 대체 입장 정책 근거, 후자는 사용자 소유권을 확인한 실제 문의 상태만 제공한다. 결과는 merge 뒤 한 답으로 합치되, 긴급 건은 자동 답변으로 끝내지 않고 현장 이관한다. 시험용 500/80 청킹의 hit@3는 검색 전용 판정이고 이 end-to-end 통과율과 합산하지 않는다. Q11 정답 범위를 넓힌 27/28→30/30도 성능 향상 비교로 쓰지 않는다.
+
+배포·복구: A가 VM에 반영하고 n8n 재시작 뒤 8/8문서·42청크 재색인 및 고객/직원 검색을 확인했다. 배포 파일은 `90f02ca`와 일치하고 PR #42로 `main` `ceef5d8`에 병합됐다. PR 병합 후 재전송은 하지 않았으며 VM 재색인 시간은 미측정이다. 원본은 [공통 51/51](../runs/vm/wf01-fix-common-20261106-025239.json), 조건·해시는 [메타데이터](../runs/vm/wf01-fix-metadata-20261106-025239.json)에 보관했다.
+
 ### 11/06 WF-01 지연 수정·VM 반영 후 재검증 (02:49~02:54 UTC)
 
 답변 작성은 필요한 조건을 유지하면서 3문장·150자 이내로 간결하게 하고, 분류는 불필요한 공백·설명을 줄이며 검증 issues는 사유 코드만 출력하도록 수정했다. 모델·timeout·검증의 strict true 조건은 바꾸지 않았다. 명확하지만 등록 업무가 없는 문의를 일반 문서로 추측 답변하지 않도록 공통 라우팅과 support를 보강했다(`unregistered_intent`). 분류 모델 오류는 기존 별도 장애 경로로 처리한다.
@@ -395,6 +419,10 @@ agents·tech·support와 공통 함수를 VM에 반영하고 n8n 재시작 후 �
 | `runs/bench-ticketmoa-support-20261105-123446.json` | 2026-11-05 12:34:46 KST | 로컬 (**42청크**) | `flow.py bench ticketmoa-support requests/wf02.json -n 5` | **p50 1.26s · p95 1.28s** · max 1.28s · 실패 0/5 |
 | `runs/bench-ticketmoa-support-20261105-123503.json` | 2026-11-05 12:35:03 KST | 로컬 (**42청크**) | `flow.py bench ticketmoa-support requests/wf12.json -n 5` | **p50 3.38s · p95 3.49s** · max 3.49s · 실패 0/5 |
 | `runs/common-20261105-140723.json` | 2026-11-05 14:07 KST | 로컬 (42청크, C행) | 공통 3회 | 49 / 51 |
+| `runs/vm/ticket-evidence-common-20261106-034042.json` | 2026-11-06 12:40 KST | 팀 VM (42청크, 재시작·재색인 직후) | 공통 3회, 복사본 | 50 / 51 |
+| `runs/vm/ticket-evidence-tm13-20261106-034045.json` | 2026-11-06 12:40 KST | 팀 VM | TM-13 1회, 복사본 | 1 / 1 |
+| `runs/vm/ticket-evidence-common-20261106-034742.json` | 2026-11-06 12:47 KST | 팀 VM (재시작 없음) | 공통 3회, 복사본 | 51 / 51 |
+| `runs/vm/failure-log-snapshot-20261106.json` | 2026-11-06 KST | 팀 VM (수정 전) | `/logs`·`/tickets-created` 읽기 전용 조회 | 집계 스냅샷 |
 | `runs/team-20261105-140447.json` | 2026-11-05 14:04 KST | 로컬 (42청크, C행) | 팀 1회 | 13 / 13 |
 | **`runs/vm/common-20261105-061255.json`** | 2026-11-05 15:12 KST *(파일명 UTC)* | **팀 VM (`ea1a6c9`, 42청크, A행)** | `flow.py test cases/common.json --webhook ticketmoa-support --repeat 3` | **50 / 51** (`WF-01` 1회 8.2초) |
 | **`runs/vm/team-20261105-061351.json`** | 2026-11-05 15:13 KST *(파일명 UTC)* | **팀 VM (`ea1a6c9`, 42청크, A행)** | `flow.py test cases/team.json` | **13 / 13** (필수 9 / 9, 가산 4 / 4) |
