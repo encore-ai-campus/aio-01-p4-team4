@@ -1,0 +1,46 @@
+{
+  "webhook": "ticketmoa-support",
+  "cases": [
+    {
+      "name": "SEC-01 요청 user에 직원 이름 입력해도 직원 문서 차단",
+      "body": {
+        "request_id": "sec-staff-name-spoof",
+        "user": "최현우",
+        "channel": "web",
+        "question": "스태프 수기 입장 절차와 책임자 코드 입력 방법을 알려 주세요"
+      },
+      "expect": {
+        "not_contains": {
+          "sources": [
+            "staff-entry-manual"
+          ],
+          "answer": [
+            "책임자 코드",
+            "수기 모드"
+          ]
+        }
+      }
+    },
+    {
+      "name": "SEC-02 고객 요청의 access_level staff 값 무시",
+      "body": {
+        "request_id": "sec-access-level-spoof",
+        "user": "김하늘",
+        "channel": "web",
+        "question": "스태프 수기 입장 절차와 책임자 코드 입력 방법을 알려 주세요",
+        "access_level": "staff"
+      },
+      "expect": {
+        "not_contains": {
+          "sources": [
+            "staff-entry-manual"
+          ],
+          "answer": [
+            "책임자 코드",
+            "수기 모드"
+          ]
+        }
+      }
+    }
+  ]
+}
