@@ -167,7 +167,7 @@ n8n 색인 검사가 문서당 `##` 3절 이상을 요구하므로, 500/80 대�
 
 다음 구현 위험은 로컬 검색 평가와 별개로 최종 배포/실패 상황에서 추가 검증이 필요하다.
 
-- 로컬에서 42청크를 색인하고 38문항을 검색했다. 정답 절을 맞힌 결과로 보아 `doc`·`section`이 첫 항목으로 반복되지는 않았다. 2026-11-06 VM에서는 8개 문서·42청크 재색인과 고객·직원 검색 복구를 확인했지만, **42개 청크 전체의 본문·메타데이터 일치 여부는 미검증**이다.
+- 로컬에서 42청크를 색인하고 38문항을 검색했다. 정답 절을 맞힌 결과로 보아 `doc`·`section`이 첫 항목으로 반복되지는 않았다. 2026-11-06 VM에서는 8개 문서·42청크 재색인과 고객·직원 검색 복구를 확인했지만, **42개 청크 전체의 실제 저장 본문·메타데이터 일치 여부는 미검증**이다. 현재 VM의 활성 index/search 설정은 저장소본과 대조해 일치했으며, 이는 실행 당시 저장된 청크 내용을 증명하지 않는다.
 - `Build result`의 문서·청크 수는 검증 단계 값이며, Vector Store에 실제 저장된 수가 아니다. 두 Store 분기의 완료를 합쳐 한 번만 응답하는지와 저장 실패 수 집계도 미검증이다.
 - `clearStore: true`는 색인 시 기존 Memory Key를 지운다. 새 색인이 완전히 성공하기 전에 실패하면 기존 인덱스 대신 비었거나 일부만 저장된 상태가 될 수 있다.
 
@@ -188,21 +188,24 @@ n8n 색인 검사가 문서당 `##` 3절 이상을 요구하므로, 500/80 대�
 
 | 운영·확장 지표 | 값 | 상태/가정 |
 |---|---:|---|
-| 정제본 로컬 재색인 시간 | 약 5.9초 | 검색 확인 포함, 1회 측정; VM 재색인 시간은 재지 않음 |
+| 정제본 로컬 재색인 시간 | 약 5.9초 | 검색 확인 포함, 1회 측정 |
+| 팀 VM 재색인 스크립트 경과 | 2.222초 | 2026-11-06 07:20:44 UTC 시작, `uv run ... tools/reindex.py` 종료 기준; 임베딩 및 후속 검색 확인을 포함한 1회 측정, 순수 색인 시간 아님 |
 | 문서 전체 토큰 | 5,783토큰(기존 4,045) | `tcost count`, `o200k_base` |
 | 임베딩 비용 추산 | US$0.00075179(기존 US$0.00052585) | 파일 전체 토큰 × 표준 공식 요금, 실제 API 비용 아님 |
 | 청킹 비교 실험 입력·비용 | 19,459토큰 / US$0.00252967 | 로컬 Python, 표준 가격 기준, 실제 청구액 아님 |
 | 롤백 완료 시간 | 미측정 | 현재 자동 롤백 미구현 |
 | 문서 10배 규모 | 약 80문서·420절 청크 | 정제본 8문서·42절의 산술 추산; 측정값 아님 |
 | 벡터 수치 데이터 하한 | 약 4.92 MiB | 420 × 3,072 × 4바이트(float32)만 계산; 문자열·메타데이터·런타임 오버헤드 제외 |
+| 문서 100배 규모 | 약 800문서·4,200절 청크 | 정제본 8문서·42절이 선형으로 증가한다고 가정한 산술 추산; 측정값 아님 |
+| 벡터 수치 데이터 하한 (100배) | 약 49.2 MiB | 4,200 × 3,072 × 4바이트(float32)만 계산; 문자열·메타데이터·런타임 오버헤드 제외 |
 
-**미해결 항목**: 실제 API 청구 토큰·비용, n8n 개별 실행 ID, 단일 응답·실패 집계, `clearStore` 실패 복구, VM 점수 분포와 문항별 상세 검색 결과, VM 배포 소스·활성 검색 워크플로우 버전, 문서 해시 차이 원인, 메타데이터 전체 일치 여부, 재시작 후 색인 유지 여부, 재시작 직후 WF-01 지연의 원인, `tech`·`search`·`index`의 Error Workflow 미설정 의도. 정제본 로컬 **42청크 / hit@3 27/28(35문항)·30/30(38문항) / 스태프 노출 0건 / 재색인 약 5.9초**, 500/80 비교, VM 공통·팀 시나리오와 38문항 평가 요약은 측정됐으므로 미완료 목록에서 제외한다.
+**미해결 항목**: 실제 API 청구 토큰·비용, n8n 개별 실행 ID, 단일 응답·실패 집계, `clearStore` 실패 복구, VM 점수 분포와 문항별 상세 검색 결과, VM Git 커밋 및 과거 평가 당시 활성 워크플로우, 실제 저장된 42개 청크의 본문·메타데이터·저장소 분리 검증, 재시작 전후 인덱스 유지 여부, 실패 롤백 시간, 재시작 직후 WF-01 지연 원인, `tech`·`search`·`index`의 Error Workflow 미설정 의도와 실제 오류 자동 실행 여부. 현재 VM 문서 해시와 index/search 활성 설정은 확인되어 남은 목록에서 제외한다. 정제본 로컬 `42청크 / hit@3 27/28(35문항)·30/30(38문항) / 스태프 노출 0건 / 재색인 약 5.9초`, 500/80 비교, VM 공통·팀 시나리오와 38문항 평가 요약은 측정됐으므로 미완료 목록에서 제외한다.
 
 모델 차원 및 요금은 [OpenAI 공식 가이드](https://developers.openai.com/api/docs/guides/embeddings/)와 [모델 가격](https://developers.openai.com/api/docs/models/text-embedding-3-large)을 참고했다. 실측이 추가되면 `실행일시 / 환경 / 실행 ID / 문서 커밋 / 모델 / 비용`과 함께 갱신한다.
 
 ### 5.1 실측 기록과 검증 계획
 
-**최종 배포 대상 소스 확인 (2026-11-06 11:49~11:54 KST).** A가 agents·tech·support와 공통 함수를 VM에 반영하고 n8n을 재시작한 뒤 문서 8/8(고객 7, 직원 1)·42청크를 재색인했다. `store_output_received`와 고객/직원 검색을 확인했고, 이어 공통 회귀 **51/51**을 통과했다. VM 파일 해시는 `test` `90f02ca`와 일치하며 이 소스는 PR #42의 `main` 병합 `ceef5d8`에 포함됐다. 병합 뒤 같은 파일을 재전송하지는 않았다. VM 재색인 경과 시간과 재시작 전후 인덱스 유지율은 **미측정**이다.
+**최종 배포 대상 소스 확인 (2026-11-06 11:49~11:54 KST).** A가 agents·tech·support와 공통 함수를 VM에 반영하고 n8n을 재시작한 뒤 문서 8/8(고객 7, 직원 1)·42청크를 재색인했다. `store_output_received`와 고객/직원 검색을 확인했고, 이어 공통 회귀 **51/51**을 통과했다. VM 파일 해시는 `test` `90f02ca`와 일치하며 이 소스는 PR #42의 `main` 병합 `ceef5d8`에 포함됐다. 병합 뒤 같은 파일을 재전송하지는 않았다. **이 배포 당시의 재색인 경과 시간**과 재시작 전후 인덱스 유지율은 미측정이다. 후속 VM 재색인 시간은 2026-11-06 07:20 UTC 기록을 참조한다.
 
 | 최종 확인 | 결과 | 근거 |
 |---|---|---|
@@ -224,9 +227,9 @@ n8n 색인 검사가 문서당 `##` 3절 이상을 요구하므로, 500/80 대�
 
 따라서 과거 6/6 통과 기록은 해당 배포본의 결과로 유지한다. 이후 별도 실행에서는 8초 초과가 다시 관측됐으며, 뒤의 재시작 없는 시험은 통과했지만 간헐 지연 원인과 재시작 직후 동작은 미해결이다. `8.0초`로 반올림해 기준을 통과한 결과처럼 쓰지 않고, 측정 원자료의 **8.064초**와 **8.7초**를 각각 기록한다.
 
-**현재 저장소 워크플로우 설정 점검 (VM 활성본과 동일하다는 확인은 아님).** `ticketmoa-tech.json`의 작성 모델 제한은 3,200ms, `ticketmoa-agents.json`의 검증 모델 제한은 2,000ms다. `ticketmoa-support.json`의 `Call tech`는 HTTP timeout 5,000ms를 설정하지만 요청 본문에 `deadline_ms`를 포함하지 않는다. `ticketmoa-tech.json`은 값이 없으면 자체 마감 시각을 현재 시각+5,000ms로 만든다. 따라서 현재 저장소 코드에서는 상위 HTTP 5초와 하위 기본 마감 5초가 별개로 작동하며, 지원 워크플로우에서 남은 전체 시간 예산을 전달하지 않는다. `Call refund`의 `deadline_ms: 4800`은 환불 호출 값이므로 tech에 전달되는 값으로 해석하지 않는다. VM의 실행 당시 활성본이 이 로컬 파일과 같은지는 확인되지 않았다.
+**현재 저장소의 tech/support 설정 점검 (VM 활성본과 비교하지 않음).** `ticketmoa-tech.json`의 작성 모델 제한은 3,200ms, `ticketmoa-agents.json`의 검증 모델 제한은 2,000ms다. `ticketmoa-support.json`의 `Call tech`는 HTTP timeout 5,000ms를 설정하지만 요청 본문에 `deadline_ms`를 포함하지 않는다. `ticketmoa-tech.json`은 값이 없으면 자체 마감 시각을 현재 시각+5,000ms로 만든다. 따라서 현재 저장소 코드에서는 상위 HTTP 5초와 하위 기본 마감 5초가 별개로 작동하며, 지원 워크플로우에서 남은 전체 시간 예산을 전달하지 않는다. `Call refund`의 `deadline_ms: 4800`은 환불 호출 값이므로 tech에 전달되는 값으로 해석하지 않는다. 현재 VM에서 비교한 활성본은 index/search뿐이며, tech·agents·support의 VM 활성본 일치 여부와 과거 실행 당시 설정은 확인되지 않았다.
 
-**Error Workflow 및 재시작 요구사항.** 현재 JSON에서 `ticketmoa-tech`, `ticketmoa-search`, `ticketmoa-index`에는 `settings.errorWorkflow`가 설정되어 있지 않다. `ticketmoa-support`와 `ticketmoa-agents`는 `ticketmoaErrors01`을 지정한다. 구현계획은 `ticketmoa-errors` Error Workflow 게시를 요구하고, 팀 차터는 C 담당에게 재시작 후 색인 유지 확인을 맡기며 In-Memory 색인은 재기동 뒤 사라질 수 있어 재색인하도록 기록한다. 세 워크플로우의 미설정이 의도된 예외인지 정한 근거는 찾지 못했다. 노드별 오류 출력·fail-closed 경로가 처리하지 못하는 미처리 실행 오류는 중앙 Error Workflow에 전달되지 않을 수 있으므로, 설정 의도와 오류 경로 확인이 남아 있다. 재시작 뒤 재색인 및 양쪽 검색 복구는 확인했지만, 재색인 없이 색인이 유지되는지는 확인하지 않았다.
+**Error Workflow 및 재시작 요구사항.** 사용자가 제공한 VM 확인 결과 ticketmoa-errors는 활성 상태다. 저장소 JSON에서 ticketmoa-tech, ticketmoa-search, ticketmoa-index에는 settings.errorWorkflow가 없고, ticketmoa-support와 ticketmoa-agents는 ticketmoaErrors01을 지정한다. 미설정이 의도된 예외인지 정한 근거는 확인되지 않았다. 실제 미처리 오류에서 Error Workflow가 자동 실행되는지는 시험하지 않았다. 재시작 후 재색인 및 양쪽 검색 복구는 확인했지만, 재색인 전 색인 유지 여부는 확인하지 않았다.
 
 **VM 검색 평가 (2026-11-06, `ticketmoa-search`; 원자료: VM JSON summary 출력).** 평가 결과 JSON·CSV 원본은 이 로컬 checkout에서 확인할 수 없어 아래는 제공된 summary만 기록한다. 문항별 상세 검색 결과나 점수 분포를 확인한 것으로 보지 않는다.
 
@@ -243,11 +246,16 @@ n8n 색인 검사가 문서당 `##` 3절 이상을 요구하므로, 500/80 대�
 | 무근거 질문 | 4문항 모두 검색 결과 있음 | 검색 전용 기록이며 점수·문서·절의 상세는 원자료 미회수로 미확인; 생성 답변 안전성은 평가하지 않음 |
 | 외부 출처 질문 | 2문항에서 비승인 문서 0건, 외부 출처 0건 | 검색 결과 범위만 평가; 생성 답변 안전성은 평가하지 않음 |
 | 사후 재채점 | S30 29/30, S28 27/28, W30 30/30 | 기존 VM JSON의 저장된 top3를 재채점; 새 검색 API 호출 없음 |
-| VM 문서 버전 | 평가 JSON metadata에 문서 8개의 SHA-256이 기록됨. 로컬 해시와 다름 | 줄바꿈 차이인지 본문 차이인지 미확인 |
-| 배포 소스·활성 워크플로우 버전 | 확인 불가 | 실행 summary에 VM Git 커밋 또는 n8n 활성 workflow 버전 근거가 제공되지 않음 |
+| VM 문서 버전 | 평가 metadata의 문서 해시 8개가 현재 VM 문서와 일치; 로컬 문서를 LF로 정규화한 해시도 VM과 8/8 일치 | 사용자가 제공한 로컬·VM 비교 결과. 기존 바이트 해시 차이는 CRLF/LF 줄바꿈 차이로 설명되며 정규화한 본문 차이는 관측되지 않음 |
+| 현재 활성 `ticketmoa-index` | ID `wd1411fe4004258e`, active `true`, 12노드; 저장소 JSON과 connections/settings 일치. 노드별 차이는 `id`, `webhookId`뿐 | 사용자가 VM에서 수행한 활성 내보내기 비교. VM Git 커밋은 확인 불가 |
+| 현재 활성 `ticketmoa-search` | ID `w1915b8090339ad9`, active `true`, 13노드; 저장소 JSON과 connections/settings 일치. 노드별 차이는 `id`, `webhookId`뿐 | 사용자가 VM에서 수행한 활성 내보내기 비교. VM Git 커밋은 확인 불가 |
+| `ticketmoa-errors` 활성 상태 | 활성 워크플로우 확인됨 | 사용자가 제공한 VM 확인 결과. 실제 오류에서 자동 실행되는지는 미검증 |
+| 평가 당시 배포 소스·활성 워크플로우 | 미확인 | VM 프로젝트에 `.git`이 없어 커밋을 대조할 수 없고, 현재 활성본 비교는 과거 평가 실행에 소급 적용되지 않음 |
 | 결과 원본 | `runs/vm/rag-search-eval-20261106T063854087633Z.json`, `runs/vm/rag-search-eval-20261106T063854087633Z.csv` | VM 경로 기준; 로컬에는 원본 파일 없음 |
 
 VM W30은 기존 평가의 넓은 Q11 기준을 그대로 보여 주는 참고값이고, S30은 동일한 positive 30개에서 Q11에 원래 1절만 인정한 대표값이다. S28은 Q01~Q28만 보는 보조값이다. S30 29/30과 W30 30/30의 차이는 Q11 정답 허용 범위 차이이며 검색 성능 변화가 아니다. S28 27/28과 기존 로컬 27/28도 환경·문서 버전이 달라 직접 성능 비교하지 않는다. 이번 재채점은 저장된 top3에 대한 사후 채점이며 새 검색 API를 호출하지 않았다.
+
+**후속 VM 재색인 (2026-11-06 07:20:44–07:20:47 UTC, `aio-t4`).** 사용자가 Web SSH에서 `TIMEFORMAT='elapsed_seconds=%3R'; time uv run --env-file .env tools/reindex.py`를 실행해 제공한 터미널 출력 기준, 명령 경과는 **2.222초**였다. 문서 **8/8**(일반 7, 스태프 1), 청크 **42개**(최소 116·중앙값 229·최대 432자), 색인 결과 `store_output_received`; 후속 검색은 일반·스태프 색인 모두 `True`, 결과 3건이었다. 이 시간은 `uv` 실행부터 `tools/reindex.py`의 색인 API 호출과 후속 검색 확인까지 포함하며 순수 벡터 색인 시간으로 분리되지 않는다. 실행 ID와 Git 커밋은 터미널 출력에 없고 활성 워크플로우 버전도 대조하지 않았다. 이 결과는 재색인·검색 복구 성공을 확인하지만 재시작 후 인덱스 유지나 실패 시 롤백을 증명하지 않는다.
 
 500토큰/80토큰 overlap 비교는 로컬 Python 검색 실험이고, 위 VM n8n 회귀와 판정 범위가 다르다. A/B 모두 수정본 positive 30문항 hit@3 30/30이었으며 B는 여러 원문 절 중 정답 절이 포함되면 맞다고 세는 더 넓은 판정을 썼다. 또한 27/28 뒤 Q11 정답 절을 넓혀 얻은 30/30을 전후 성능 향상으로 비교하지 않는다. 이 수치는 생성 답변·긴급 티켓·알림의 통과율도 아니다.
 
@@ -300,9 +308,9 @@ WF-01 실패는 `push`와 재색인 직후 1회차에서 나왔고 답은 정상
 - **청킹 결정**: 2.1절 비교에서 B가 기준을 넘지 못해 `##` 절 청킹을 유지한다.
 - **점수 기준**: 정상 최저 0.460과 무근거 최고 0.519가 교차하므로 **임계값 없음**을 유지하고 문서 근거·역할·업무 상태 검증으로 걸러낸다.
 - **VM 회귀·재시작 확인 (2026-11-06):** 한 배포본에서 WF-01 6/6, WF-11 3/3, 공통 51/51 및 8개 문서·42청크 재색인과 고객/스태프 검색 복구를 확인했다. 이후 별도 재시작 직후 공통 시험에서 WF-01 첫 호출 8.7초(내부 8,484ms)로 8초 기준을 넘겼고, 같은 회차 나머지 2회는 통과했다. 뒤의 재시작 없는 단독 시험은 5/5 통과했으나 7.2초·7.3초 호출이 있어 지연 원인과 재시작 직후 위험은 미해결이다. 실행별 버전 귀속 근거는 5.1절 참조. WF-05 시험은 기존 팀 검사와 수업 route 기준이 다르므로 포괄적인 권한 안전성 증명으로 확대하지 않는다 (`docs/daily/DAY80.md`, `docs/EXECUTION-RESULT.md`).
-- **완료한 VM 검색 평가 (2026-11-06):** 원래 실행은 W30 30/30이었다. 기존 top3 사후 재채점은 S30 29/30 대표값, S28 27/28 보조값, W30 30/30 참고값이다. strict 기준에서 실패한 문항은 Q11이며, top3에는 정답 문서의 2절·5절이 있었지만 원래 정답 1절은 없었다. S30/W30 차이는 채점 범위 차이이지 성능 변화가 아니다. 요청/API 오류 0건과 직원 정보·본문 누출, no_ground·no_external_leak 결과는 기존 JSON summary에 기록된 검색 전용 결과다. 세부 top3 및 no_ground 점수는 summary만으로 분석하지 않았다. VM metadata에는 문서 8개의 SHA-256이 기록됐고 로컬 해시와 다르나 원인은 미확인이다. 평가 시각·실행 ID·CSV 해시·결과 경로는 5.1절 참조; VM 배포 소스와 활성 검색 워크플로우 버전도 미확인이다.
-- **남은 측정·확인:** VM 점수 분포와 문항별 top-3 상세, 평가 당시 지식 문서 해시 목록 대조(줄바꿈 차이인지 본문 차이인지), VM 배포 소스·활성 워크플로우 버전, 재시작 전후 인덱스 유지 여부, 재색인 경과 시간, 실패 시 롤백 시간. WF-01 및 WF-11은 이후 워크플로우·문서·환경 변경 시 해당 버전에서 다시 수행한다.
-- **추가 확인 필요:** 실제 API 청구 토큰·비용, WF-01 간헐 지연 원인과 `deadline_ms` 예산 전달 효과, `tech`·`search`·`index`에 Error Workflow를 두지 않은 설계 의도. 로컬 재색인 약 5.9초와 VM 재색인 성공은 확인됐지만 VM 재색인 경과 시간은 미측정이다. 재시작 전후 색인 유지 여부, 실패 롤백 시간, VM 평가 당시 지식 문서 해시 차이 원인과 배포/활성 워크플로우 버전도 남아 있다.
+- **완료한 VM 검색 평가 (2026-11-06):** 원래 실행은 W30 30/30이었다. 기존 top3 사후 재채점은 S30 29/30 대표값, S28 27/28 보조값, W30 30/30 참고값이다. strict 기준 실패 문항은 Q11이며 top3에는 정답 문서의 2절·5절이 있었지만 원래 정답 1절은 없었다. S30/W30 차이는 채점 범위 차이지 성능 변화가 아니다. 요청/API 오류 0건, 직원 정보·본문 누출, no_ground·no_external_leak 결과는 기존 JSON summary에 기록된 검색 전용 결과다. 세부 top3 및 no_ground 점수는 summary만으로 분석하지 않았다. 평가 metadata 해시 8개는 현재 VM 파일과 일치하며, LF 정규화한 현재 로컬 문서와 VM 문서도 8/8 일치한다. 현재 활성 index/search 설정은 저장소본과 비교했으나 평가 당시 활성본이나 VM Git 커밋의 증거는 아니다. 평가 세부는 5.1절 참조.
+- **남은 측정·확인:** 실제 저장소 42개 청크 전체의 본문·메타데이터와 일반/직원 저장소 분리를 대조, VM Git 커밋 및 평가 당시 활성 워크플로우 확인, 재시작 전후 인덱스 유지 여부, 실패 시 롤백 시간. 현재 문서 해시와 활성 index/search 설정은 확인했으나 과거 평가에 소급 적용하지 않는다. WF-01 및 WF-11은 이후 워크플로우·문서·환경 변경 시 해당 버전에서 다시 수행한다.
+- **추가 확인 필요:** 실제 API 청구 토큰·비용, WF-01 간헐 지연 원인과 deadline_ms 예산 전달 효과, tech·search·index에 Error Workflow를 두지 않은 설계 의도, ticketmoa-errors의 실제 미처리 오류 자동 실행. 재색인 스크립트 시간은 VM에서 2.222초로 1회 측정했으며 로컬 약 5.9초와 범위가 달라 직접 비교하지 않는다.
 - 금전·신분증·안전 관련 정책을 변경할 때에는 해당 테스트·상담원 이관 흐름·환불 계산 로직과 함께 검토한다.
 
 ### 5.3 재시작 후 재색인·권한 검색 복구 절차
@@ -325,8 +333,41 @@ ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run --env-file .env tools/reind
 
 1. `ticketmoa-search`에 `access_level: staff`와 직원 전용 절을 겨냥한 검색어를 보내 `staff-entry-manual`의 기대 `doc`·`section`이 검색되는지 확인한다. 직원 키는 고객용 `ticketmoa_kb_v1_all`, 직원용 `ticketmoa_kb_v1_staff`를 함께 검색한다.
 2. 일반 고객 계정으로 기존 `WF-05 권한 없는 문서`를 실행한다. `staff-entry-manual`, `책임자 코드`, `수기 모드`가 `sources`와 답변에 나오지 않아야 한다. 이 확인은 저장소에 있는 `cases/common.json`의 기대 조건을 사용한다.
-3. n8n 실행 데이터에서 각 Data Loader 입력과 Vector Store 문서 메타데이터의 `{doc, section, access_level}` 값을 확인한다. 검색 웹훅 응답은 `access_level` 메타데이터를 내보내지 않으므로 응답만으로 메타데이터 전체를 검증할 수 없다.
-4. 마지막으로 `cases/common.json`을 기존 도구로 반복 실행해 WF-01의 8초와 WF-11의 6초 기준을 확인하고, WF-05 고객 권한 조건도 함께 확인한다.
+3. n8n의 성공한 색인 실행 상세에서 `Validate and make chunks`의 42개 출력과 Loader 입력을 확인한다. 이는 저장 전 예상 입력의 증거이지 Vector Store 실제 저장 데이터의 증거는 아니다. 워크플로우 JSON에는 Loader의 본문·메타데이터 표현식이 각 chunk의 `$json.text`·`$json.doc`·`$json.section`·`$json.access_level`을 참조하도록 적혀 있지만, Default Data Loader는 LangChain sub-node다. n8n은 sub-node 표현식이 여러 입력 item을 item별로 반복 평가하지 않고 첫 item 기준으로 해석된다고 설명한다. 따라서 42개를 일괄 전달하는 이 구조에서 실제 본문·메타데이터가 chunk별로 보존된다고 코드 표현식만으로 단정할 수 없다. 이 항목은 실제 Loader/저장 데이터 검증의 핵심 위험이다. [n8n sub-node 표현식 동작](https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.vectorstoreinmemory/)
+4. 실제 저장 레코드 검토는 별도 승인 후 n8n Simple Vector Store의 Get Many를 각 Memory Key에 대해 읽기 전용으로 사용한다. 검색 노드의 top_k는 최대 8이라 42개 전수를 확인할 수 없다. Get Many도 질의 기반 top-N 조회이므로 해당 n8n 버전에서 limit을 42보다 크게 주었을 때 전체 항목을 반환하는지 확인하고, 결과 수와 고유한 doc/section 42쌍, access_level, 본문을 기대 목록과 대조해야 한다. 조회는 Insert/clearStore 없이 해야 하며 임베딩 API 요청·비용이 생길 수 있어 승인 전 실행하지 않는다.
+5. 실행 상세 또는 Get Many가 42개를 전부 내보내지 않거나 전수성을 보장하지 않으면 전체 저장 내용을 확인한 것으로 간주하지 않는다. Simple Vector Store 데이터는 n8n 프로세스 메모리에 있고 셸/워크플로우 export에서 직접 덤프되지 않는다. 별도 진단 워크플로우나 격리된 복제 환경이 필요하면 D·리드와 승인 및 방법을 먼저 정한다. 이번에는 만들거나 실행하지 않는다.
+예상 청크 명세를 다시 만들 때는 아래 읽기 전용 명령으로 각 Markdown의 문서명·절·권한과 본문 해시를 출력할 수 있다. 이 명세는 색인 코드에서 기대하는 입력을 재구성할 뿐, Vector Store에 실제 저장된 데이터의 증거는 아니다. 실행 결과가 8문서·일반 37청크·직원 5청크·총 42청크인지 먼저 확인한다.
+```bash
+cd /home/toor/aio-01-p4-team4
+python3 - <<'PY'
+from pathlib import Path
+import hashlib, re
+rows=[]
+for path in sorted(Path('knowledge').glob('*.md')):
+    text=path.read_text(encoding='utf-8')
+    m=re.search(r'^>\s*access_level:\s*(all|staff)\b', text, re.I|re.M)
+    sections=list(re.finditer(r'^##\s+(.+)\s*$', text, re.M))
+    if not m or len(sections)<3:
+        raise SystemExit(f'invalid document: {path.name}')
+    for i, heading in enumerate(sections):
+        end=sections[i+1].start() if i+1<len(sections) else len(text)
+        body=text[heading.end():end].strip()
+        if not body:
+            raise SystemExit(f'empty section: {path.stem} / {heading.group(1).strip()}')
+        section=heading.group(1).strip()
+        chunk=f'# {path.stem}\n## {section}\n{body}'
+        rows.append((path.stem, section, m.group(1).lower(), len(chunk), hashlib.sha256(chunk.encode()).hexdigest()))
+for row in rows:
+    print('\t'.join(map(str,row)))
+public=sum(r[2]=='all' for r in rows)
+staff=sum(r[2]=='staff' for r in rows)
+print(f'EXPECTED_ONLY docs={len(list(Path("knowledge").glob("*.md")))} public_chunks={public} staff_chunks={staff} total_chunks={len(rows)}')
+if (public,staff,len(rows))!=(37,5,42):
+    raise SystemExit('expected chunk manifest does not match 37/5/42')
+PY
+```
+
+6. 마지막으로 `cases/common.json`을 기존 도구로 반복 실행해 WF-01의 8초와 WF-11의 6초 기준을 확인하고, WF-05 고객 권한 조건도 함께 확인한다.
 
 ```bash
 ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && FLOW_PY=~/aio-tools/Last3Mon/78/tools/flow.py uv run --env-file .env tools/flow.py test cases/common.json --webhook ticketmoa-support --repeat 3'"
