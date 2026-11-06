@@ -227,6 +227,8 @@ n8n 색인 검사가 문서당 `##` 3절 이상을 요구하므로, 500/80 대�
 
 따라서 과거 6/6 통과 기록은 해당 배포본의 결과로 유지한다. 이후 별도 실행에서는 8초 초과가 다시 관측됐으며, 뒤의 재시작 없는 시험은 통과했지만 간헐 지연 원인과 재시작 직후 동작은 미해결이다. `8.0초`로 반올림해 기준을 통과한 결과처럼 쓰지 않고, 측정 원자료의 **8.064초**와 **8.7초**를 각각 기록한다.
 
+**강사 지시에 따른 후속 WF-01 지연 평가 방식:** 재시작 직후 첫 요청은 콜드 스타트 시간으로 별도 기록하고, 8초 기준의 후속 응답 평가는 그 다음 호출부터 한다. 첫 요청의 시간과 원시 결과는 보고서에서 제외하지 않는다. 전체 공통 시나리오 통과 수와 워밍 상태 호출의 지연 결과를 분리해 표기하며, `cases/common.json`의 기대값이나 기존 실행 결과를 소급 변경하지 않는다. 이 방식으로 새 VM 측정을 수행한 결과는 아직 없다.
+
 **현재 저장소의 tech/support 설정 점검 (VM 활성본과 비교하지 않음).** `ticketmoa-tech.json`의 작성 모델 제한은 3,200ms, `ticketmoa-agents.json`의 검증 모델 제한은 2,000ms다. `ticketmoa-support.json`의 `Call tech`는 HTTP timeout 5,000ms를 설정하지만 요청 본문에 `deadline_ms`를 포함하지 않는다. `ticketmoa-tech.json`은 값이 없으면 자체 마감 시각을 현재 시각+5,000ms로 만든다. 따라서 현재 저장소 코드에서는 상위 HTTP 5초와 하위 기본 마감 5초가 별개로 작동하며, 지원 워크플로우에서 남은 전체 시간 예산을 전달하지 않는다. `Call refund`의 `deadline_ms: 4800`은 환불 호출 값이므로 tech에 전달되는 값으로 해석하지 않는다. 현재 VM에서 비교한 활성본은 index/search뿐이며, tech·agents·support의 VM 활성본 일치 여부와 과거 실행 당시 설정은 확인되지 않았다.
 
 **Error Workflow 및 재시작 요구사항.** 사용자가 제공한 VM 확인 결과 ticketmoa-errors는 활성 상태다. 저장소 JSON에서 ticketmoa-tech, ticketmoa-search, ticketmoa-index에는 settings.errorWorkflow가 없고, ticketmoa-support와 ticketmoa-agents는 ticketmoaErrors01을 지정한다. 미설정이 의도된 예외인지 정한 근거는 확인되지 않았다. 실제 미처리 오류에서 Error Workflow가 자동 실행되는지는 시험하지 않았다. 재시작 후 재색인 및 양쪽 검색 복구는 확인했지만, 재색인 전 색인 유지 여부는 확인하지 않았다.
