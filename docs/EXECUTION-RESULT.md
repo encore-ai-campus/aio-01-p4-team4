@@ -1,5 +1,14 @@
 # 티켓모아 실행 결과서 (EXECUTION-RESULT)
 
+### 11/06 WF-04 로그 수정·티켓 담당 반영 후 재시험
+
+| 회차 | 조건 | 결과 | WF-01 (초) |
+| --- | --- | --- | --- |
+| 1회차 03:38~03:40 UTC | n8n 재시작·재색인 직후 | **50/51**, TM-13 1/1 | **8.7 (미달)** / 6.1 / 5.9 |
+| 2회차 03:45~03:47 UTC | 재시작 없음 | **51/51** | 6.6 / 6.2 / 5.8 |
+
+두 결과를 합산하지 않으며, 재시작 직후 첫 호출의 간헐 지연은 남은 위험이다. WF-04 티켓 생성 실패는 수정 전 `success`로 기록됐고, 수정 후 두 회차 모두 3/3 `error`·`dependency`·`ticket_not_created`다. 기대값은 바꾸지 않았고, 기존 티켓 보존을 위해 복사본에서 최상위 `/tickets-reset`만 빼고 새 요청 ID를 썼다. 근거와 담당 규칙은 [`TICKET-EVIDENCE.md`](TICKET-EVIDENCE.md)에 있다.
+
 ### 11/06 인수 항목 최종 판정 · WF-02/02b·11·12
 
 아래는 현재 `main` 병합 소스와 바이트가 같은 VM 배포본의 공통 회귀 결과다. 전체 **51/51** 가운데 요청 항목은 모두 통과했다.
@@ -410,6 +419,10 @@ agents·tech·support와 공통 함수를 VM에 반영하고 n8n 재시작 후 �
 | `runs/bench-ticketmoa-support-20261105-123446.json` | 2026-11-05 12:34:46 KST | 로컬 (**42청크**) | `flow.py bench ticketmoa-support requests/wf02.json -n 5` | **p50 1.26s · p95 1.28s** · max 1.28s · 실패 0/5 |
 | `runs/bench-ticketmoa-support-20261105-123503.json` | 2026-11-05 12:35:03 KST | 로컬 (**42청크**) | `flow.py bench ticketmoa-support requests/wf12.json -n 5` | **p50 3.38s · p95 3.49s** · max 3.49s · 실패 0/5 |
 | `runs/common-20261105-140723.json` | 2026-11-05 14:07 KST | 로컬 (42청크, C행) | 공통 3회 | 49 / 51 |
+| `runs/vm/ticket-evidence-common-20261106-034042.json` | 2026-11-06 12:40 KST | 팀 VM (42청크, 재시작·재색인 직후) | 공통 3회, 복사본 | 50 / 51 |
+| `runs/vm/ticket-evidence-tm13-20261106-034045.json` | 2026-11-06 12:40 KST | 팀 VM | TM-13 1회, 복사본 | 1 / 1 |
+| `runs/vm/ticket-evidence-common-20261106-034742.json` | 2026-11-06 12:47 KST | 팀 VM (재시작 없음) | 공통 3회, 복사본 | 51 / 51 |
+| `runs/vm/failure-log-snapshot-20261106.json` | 2026-11-06 KST | 팀 VM (수정 전) | `/logs`·`/tickets-created` 읽기 전용 조회 | 집계 스냅샷 |
 | `runs/team-20261105-140447.json` | 2026-11-05 14:04 KST | 로컬 (42청크, C행) | 팀 1회 | 13 / 13 |
 | **`runs/vm/common-20261105-061255.json`** | 2026-11-05 15:12 KST *(파일명 UTC)* | **팀 VM (`ea1a6c9`, 42청크, A행)** | `flow.py test cases/common.json --webhook ticketmoa-support --repeat 3` | **50 / 51** (`WF-01` 1회 8.2초) |
 | **`runs/vm/team-20261105-061351.json`** | 2026-11-05 15:13 KST *(파일명 UTC)* | **팀 VM (`ea1a6c9`, 42청크, A행)** | `flow.py test cases/team.json` | **13 / 13** (필수 9 / 9, 가산 4 / 4) |
