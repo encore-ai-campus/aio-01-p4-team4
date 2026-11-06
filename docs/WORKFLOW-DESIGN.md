@@ -67,7 +67,7 @@ WF-12에서 검색과 조회는 목적과 신뢰 경계가 다르다. search는 
 - 환불 예정액 30만원 초과, 관람일 전날 17시 이후, 공연 당일 취소 요청
 - 강한 부정 감정, 고객이 상담원 연결을 직접 요청한 경우
 - 지식 문서에 근거가 없는 질문
-- 현장 스태프 전용 절차를 묻는 일반 고객 질문: `staff-entry-manual`은 `access_level`이 `staff`인 사용자만 검색한다.
+- 현장 스태프 전용 절차를 묻는 일반 고객 질문: `staff-entry-manual`은 `access_level`이 `staff`인 사용자만 검색한다. 책임자 코드·수기 모드 등 내부 절차 요청은 등록 권한이 `staff`가 아니면 검색 전에 이관한다 (`staff_only_request`). 질문이나 context의 직원 주장은 권한 근거가 아니다.
 
 ### 1.4 데이터
 
@@ -83,7 +83,7 @@ WF-12에서 검색과 조회는 목적과 신뢰 경계가 다르다. search는 
 
 - **가산 차단:** 반복 요청과 IP 차단(`rate_limit`, `geo`, `ip_blocklist`, TM-09~11)은 `support`의 주입 차단 뒤, LLM 앞에 연결했다. IP는 실제 접속 주소가 아니라 요청의 `context.client_ip`(가상 IP)로 검사한다.
 - **가산 웹 화면·운영 조회:** 시연용 웹 화면 `webapp/`은 고객 채팅(`/`), 관리자(`/admin`), 발표 분할 화면(`/demo`)을 제공한다. `ticketmoa-ops`는 티켓·알림·DLQ·로그·장애 설정을 읽기 전용으로 조회한다. 11/05 구현 기록의 확인 환경은 로컬이며, 시험 보고서는 없다. 둘 다 공통·팀 시나리오 통과 수치에 포함하지 않는다.
-- **WF-05 팀 기존 자동검사 기준(수업 공통 기준과 다름):** `cases/common.json`의 기대 결과를 따른다. 일반 고객의 응답 `sources`에 `staff-entry-manual`이 없고, 답에 `책임자 코드`, `수기 모드`가 없으면 통과다. route는 정하지 않으므로, 고객용 문서로 답하거나 이관하는 것 모두 허용한다. 수업 기준은 route `권한 없음` 또는 `담당자 이관`을 요구하므로 팀 검사 PASS를 수업 기준 통과로 세지 않는다. 11/06 최신 공통 시험의 실제 route는 `자동 답변` 1회, `담당자 이관` 2회로 수업 기준 **2/3, 미충족**이다(`runs/vm/tm-main-common-20261106-061717.json`).
+- **WF-05 팀 기존 자동검사 기준(수업 공통 기준과 다름):** `cases/common.json`의 기대 결과를 따른다. 일반 고객의 응답 `sources`에 `staff-entry-manual`이 없고, 답에 `책임자 코드`, `수기 모드`가 없으면 통과다. route는 정하지 않으므로, 고객용 문서로 답하거나 이관하는 것 모두 허용한다. 수업 기준은 route `권한 없음` 또는 `담당자 이관`을 요구하므로 팀 검사 PASS를 수업 기준 통과로 세지 않는다. `b77b0e8` 배포는 실제 route가 `자동 답변` 1회, `담당자 이관` 2회로 수업 기준 2/3이었다(`runs/vm/tm-main-common-20261106-061717.json`). 보완본은 `Plan route`의 `staff_only_request` 규칙으로 3/3이다(`runs/vm/security-review-20261106-062701.json`). 시험한 표현과 대조군 기준이며, 다른 표현은 검색 권한 분리와 답변 검증이 계속 막는다.
 
 ## 2. 전체 흐름 (단계 목록)
 
@@ -213,7 +213,7 @@ support에서 `Call handoff`만 요청 시작부터 지난 시간을 빼서 시�
 | 분기 노드 | 조건 | 갈래 | 기준값 |
 | --- | --- | --- | --- |
 | support `Refund confirm?` | `pending_action = refund_request`이고 `context.confirm`이 boolean이면 분류 없이 `Plan route`로, 아니면 `Call agents`로 | 2갈래 | — |
-| support `Plan route` (decideRoute) → `Route` | human_request → 이관 / angry → 관련 문서가 있으면 evidence_handoff, 없으면 이관 / 뜻은 분명한데 등록 업무 없음 → 이관 / intents 없음 · 확신도 미달 · missing → 보완 질문 / attempt ≥ 3 → 이관 / 환불 + 당일 신호 → evidence_handoff / 그 외 → 업무별 처리 | clarify · handoff · tech · tech_lookup · refund · payment · evidence_handoff 7갈래 | 확신도 0.7, 최대 3회 |
+| support `Plan route` (decideRoute) → `Route` | 등록 권한 없는 고객의 내부 절차 요청 → 이관 (`staff_only_request`) / human_request → 이관 / angry → 관련 문서가 있으면 evidence_handoff, 없으면 이관 / 뜻은 분명한데 등록 업무 없음 → 이관 / intents 없음 · 확신도 미달 · missing → 보완 질문 / attempt ≥ 3 → 이관 / 환불 + 당일 신호 → evidence_handoff / 그 외 → 업무별 처리 | clarify · handoff · tech · tech_lookup · refund · payment · evidence_handoff 7갈래 | 확신도 0.7, 최대 3회 |
 | agents `LLM 필요?` | `!statusOnly && attempt < 3`이면 Supervisor, 아니면 `규칙 분류 결과` (상태만 묻는 문의 → booking_lookup, attempt ≥ 3 → intents [] · confidence 0 · `rule_attempt_limit`) | 2갈래 | 최대 3회, LLM 0회 |
 | refund `단계 분기` | `pending_action = refund_request`이고 `context.confirm`이 boolean이면 confirm, 아니면 quote | 2갈래 | — |
 | refund `조회 결과 분기` | ok / forbidden / not_found / error | 4갈래 | payment 4초 |
@@ -553,7 +553,7 @@ WF-12 VM 실측을 축약한 가림 예시는 다음과 같다. 원본 조회에
 
 - `ticketmoa-errors`는 support, agents, refund, payment, handoff에 연결했다. tech, search, index에는 Error Workflow가 설정되어 있지 않다. 2026-11-05 로컬에서 같은 설정의 임시 워크플로우를 일부러 실패시켜 `/alerts`에 기록되는 것을 확인했다. support 자체를 실패시켜 본 적은 없다.
 - WF-11은 5.6초에 응답해 기준 6초와 여유가 적다.
-- 현재 작성 제한은 3.2초다. 분류 3초·검증 2초 및 검색까지 합치면 전체 8초와 여유가 적고, 작성·검증 합계 5.2초는 tech HTTP 5초보다 크다. 재시작 직후 첫 호출은 11/06 배포에서 8.7초(실패), 최신 배포에서 8.0초(통과, 경계값)였고 작성 timeout 이관도 남았다. 재시작 없이 잰 통과 결과로 해결을 선언하지 않으며, **간헐 지연은 미결이다.**
+- 현재 작성 제한은 3.2초다. 분류 3초·검증 2초 및 검색까지 합치면 전체 8초와 여유가 적고, 작성·검증 합계 5.2초는 tech HTTP 5초보다 크다. 재시작 직후 첫 호출은 11/06 배포에서 8.7초(실패), `b77b0e8`에서 8.0초(통과, 경계값), WF-05 보완본에서 7.608초(통과)였고 작성 timeout 이관도 남았다. 재시작 없이 잰 통과 결과로 해결을 선언하지 않으며, **간헐 지연은 미결이다.**
 - 동시에 같은 환불을 확정하면 경쟁이 생길 수 있다. handoff에 `idempotency_key`가 필요하다 (`security/refund-threat-model.md`).
 
 ## 8. 64~79일차에서 가져온 것
