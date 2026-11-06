@@ -1,0 +1,81 @@
+# 티켓 담당·저장 근거 · 티켓모아
+
+환불 처리 단계, 티켓 담당, 저장 위치, 장애 로그 확인 결과를 이 문서 하나에서 본다. 숫자는 시험 원본에서 옮기고, 시험 기대값은 바꾸지 않는다.
+
+## 1. 환불은 세 단계로 나눈다
+
+| 단계 | 누가 | 조건 | 남는 것 | 티켓 | 근거 |
+| --- | --- | --- | --- | --- | --- |
+| 환불 안내 | 규칙(Code) | 본인 예매, 예외 아님 | `/cache` 견적 `pending` (30분) | 없음 (`ticket: null`) | TM-02, `refund_quote_pending_confirm` |
+| 환불 요청 티켓 | 규칙(Code) | 같은 예매 + boolean `context.confirm=true` + 재계산 일치 | `/tickets-created`, 견적 `confirmed` | `refund` 1건 | TM-03, `refund_confirmed` |
+| 예외 이관 티켓 | 규칙(Code) | 관람 당일, 환불 예정액 30만원 초과 | `/tickets-created` | `refund_exception` 1건 | TM-06 `show_day_cancel`, TM-13 `over_limit` |
+| 실제 취소·환불 | 상담원 | 티켓을 받은 뒤 | 이 시스템에 없음 | 해당 없음 | 호출 노드 없음 |
+
+- 티켓 생성은 환불 완료가 아니다. 답변은 "실제 취소와 환불은 상담원이 처리합니다"로 안내한다.
+- 워크플로우 전체의 호출 주소에 취소·환불 실행 API가 없다. `security/refund-ontology.json`의 `forbidden_actions`에도 실제 예매 취소와 결제 취소가 있다.
+- 실제 환불 실행은 시험하거나 실행한 적이 없다. 상담원이 처리했다는 기록도 이 시스템에는 남지 않는다.
+
+## 2. 티켓 담당
+
+담당은 `lib/common.js`의 `ticketAssignee(category, priority)` 규칙으로 정한다. LLM이나 고객이 보낸 값으로 정하지 않는다.
+
+| 조건 (위에서부터 적용) | 담당 | 해당 티켓 |
+| --- | --- | --- |
+| `priority=high` | 현장 스태프 | 공연 직전 입장 장애 (WF-12) |
+| `category=scalping_report` | 보안팀 | 암표 신고 |
+| 그 밖의 모든 경우 | CS 상담원 | `refund`, `refund_exception`, `payment_error`, 상담원 연결, 미분류 `unknown` (WF-02b·03·10) |
+
+- 담당은 역할까지만 정한다. 개인 배정과 처리 상태 변경은 이 시스템 범위 밖이다.
+- 응답의 `ticket.assignee`와 저장되는 `title`(`[refund · 담당 CS 상담원] ...`)에 남는다. 데이터 API는 `title, requester, category, priority`만 저장해 별도 담당 칸이 없다.
+- 티켓을 만들지 못하면 DLQ 항목의 `assignee`에 남는다.
+
+## 3. 저장 위치
+
+| 내용 | 위치 | 묶는 값 | 유지 기간 |
+| --- | --- | --- | --- |
+| 티켓 | 데이터 API `GET /tickets-created` | `key`=`request_id`, `ticket_id` | 메모리, 재시작 또는 `/tickets-reset`까지 |
+| 환불 견적 | 데이터 API `/cache/refund-pending:<user>:<booking_id>` | 사용자, 예매 | 30분 |
+| 긴급·장애 알림 | 데이터 API `GET /alerts` | `request_id`, `ticket_id` | 메모리 |
+| 실패 대기열 | 데이터 API `GET /dlq` | `item.id`=`request_id` | 메모리 |
+| 실행 기록 | 데이터 API `GET /logs?source=live` | `request_id`, `ticket` | 메모리 |
+| 시험 원본 | 저장소 `runs/`, `runs/vm/` | 보고서 파일 | 저장소에 영구 |
+
+연습용 데이터 API는 메모리에만 저장한다. 데이터 API를 재시작하면 티켓과 로그가 사라지므로, 영구 근거는 `runs/vm/`의 스냅샷이다.
+
+## 4. VM 확인 상태
+
+**수정본 배포 완료, 공통 50/51 (WF-01 1건 미달).** 2026-11-06 03:38~03:40 UTC 재시험 결과다.
+
+| 항목 | 결과 |
+| --- | --- |
+| 배포본 해시 | support `d9ed571daa0d`, handoff `e8b895015bcb`, common `ecadb347d5d8`. 로컬과 일치 |
+| 재색인 | 문서 8/8, 42청크, 고객·직원 검색 확인 |
+| 공통 17개 × 3회 | **50/51.** 미달은 재시작·재색인 직후 첫 WF-01 8.7초 (기준 8초). 2·3회차는 6.1초, 5.9초 |
+| WF-04 로그 | 3/3 `error`, `dependency`, `error_message=ticket_not_created`. 사유 `unregistered_intent`는 유지 |
+| 티켓 담당 | 새 티켓 8건의 `title`에 저장. WF-12 `현장 스태프`, TM-13·WF-02b·03·05·09·10·11 `CS 상담원` |
+| 응답 `ticket.assignee` | WF-12 `현장 스태프`, TM-13 `CS 상담원` 등 티켓이 있는 응답에서 확인 |
+| 기존 티켓 보존 | 전체 초기화 없이 41→49건. `T-2016`(`refund`) 유지 |
+| 시험 후 상태 | 장애 설정 모두 `ok`, OpenAI Credential 복구 |
+
+- 시험 방법: `cases/common.json` 기대값은 바꾸지 않았다. 기존 티켓을 지우지 않으려고 임시 복사본에서 최상위 `/tickets-reset`만 빼고 요청 ID 앞에 `ev033521-`를 붙였다.
+- 이번 수정은 로그 분류와 티켓 담당만 바꿨고 WF-01이 지나는 분류·검색·작성 단계는 바꾸지 않았다. 첫 호출의 분류는 3.5초, tech는 4.5초로 2·3회차(분류 1.7~1.8초, tech 3.5~3.8초)보다 길었다. 근본 원인은 확인하지 못했고, 이전 51/51 결과와 합산하지 않는다.
+- 담당 규칙이 적용된 환불 티켓은 `refund_exception`(`T-2049`)만 VM에서 확인했다. `refund` 요청 티켓은 같은 코드 경로지만 이번에 새로 만들지 않았다.
+
+원본: [공통 50/51](../runs/vm/ticket-evidence-common-20261106-034042.json), [TM-13](../runs/vm/ticket-evidence-tm13-20261106-034045.json), [로그·티켓](../runs/vm/ticket-evidence-logs-tickets-20261106-034045.json).
+
+아래 표는 수정 배포 **전** 읽기 전용 조회 결과다. 원본은 [스냅샷](../runs/vm/failure-log-snapshot-20261106.json)에 있다.
+
+| 장애 경로 | VM `/logs` 기록 | 판정 |
+| --- | --- | --- |
+| 분류 LLM 멈춤 (WF-10) | `error`, `agents_failed`, `dependency` 6건, 티켓 `T-2039` 등 | 확인 |
+| 조회 API 지연 (WF-11) | `error`, `payment_failed`, `dependency` 6건 | 확인 |
+| 작성 LLM timeout | `error`, `llm_unavailable`, `dependency` 1건, 티켓 `T-2034`. 측정 중 자연 발생 | 확인 (1건) |
+| 검증 품질 거절 | `error`, `verification_failed`, `verification_rejected` 3건. `verification_issues` 보존 | 확인 |
+| 근거 없는 정상 이관 대조 | WF-03 `unregistered_intent`는 `success` | 확인 |
+| 티켓 API 장애 (WF-04) | **`success`로 기록됨.** 사유가 `unregistered_intent`로 남아 장애로 분류되지 않음 | **버그, 위 재시험에서 수정 확인** |
+| 검증 호출 timeout (`verification_timeout`) | 0건 | VM 미확인, 로컬 단위 시험만 |
+| 검증 LLM 장애 (`issues: llm_unavailable`) | 0건 | VM 미확인, 로컬 단위 시험만 |
+
+당시 `/tickets-created`는 41건이다. 환불 3단계 시험의 `T-2016`(`refund`), `T-2018`·`T-2019`(`refund_exception`)가 카테고리까지 일치한다. 이 티켓들은 담당 규칙 이전에 만들어져 `title`에 담당이 없다.
+
+로컬 단위 시험은 42/42, `flow.py check`는 오류 없음이다. SSH 경로(포트 45622)가 2026-11-06 12:15 KST부터 시간 초과라 이번 배포는 웹 터미널에서 했고, 해시로 로컬과 같음을 확인했다.
