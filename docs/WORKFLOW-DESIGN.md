@@ -5,10 +5,10 @@
 > 노드 이름은 `workflows/*.json`의 실제 노드 이름이다.
 > 상태: 1절 갱신 (2026-11-06, A) · 2~4절 초안 (2026-11-04, B, 본체와 tech 노드는 A가 실제 파일에 맞춤). 5~8절 초안 (2026-11-04, A 작성). 2~8절은 2026-11-06 A가 디스코드·ops·최신 지연 판정을 실제 파일과 대조해 고쳤고, 담당자 재확인 전이다. 실행 예시(4.6절)의 표는 로컬 n8n 결과이고, 팀 VM 결과는 4.6절 끝에 따로 적었다.
 
-**프로젝트 범위:** TicketMoa는 상용 예매 서비스 전체가 아니라 AI Agent와 n8n으로 기업 기술지원 문의를 분류·처리하고, RAG·업무 분기·상담 이관·오류 처리를 검증하는 프로젝트다. 회원가입·로그인·세션·개인 사용자 인증은 의도적으로 제외했다. 비로그인 공개 시연에서는 공개 안내만 제공하고 개인 문의·결제·환불 상태 및 직원 전용 문서는 제한해야 한다. 이 정책이 코드에 모두 반영됐다고 간주하지 않는다.
+**프로젝트 범위:** TicketMoa는 상용 예매 서비스 전체가 아니라 AI Agent와 n8n으로 기업 기술지원 문의를 분류·처리하고, RAG·업무 분기·상담 이관·오류 처리를 검증하는 프로젝트다. 회원가입·로그인·세션·개인 사용자 인증은 의도적으로 제외했다. 현재 공개 시연은 공개 안내와 기술지원, 일반 환불·결제 정책 안내 및 개인정보 없는 이관을 제공한다. 개인 문의·결제·환불 상태 조회와 직원 전용 문서 검색은 제공하지 않는다. 2026-11-06 개인정보 차단 선택 시험은 6/6 PASS로 보고됐지만 전체 팀 회귀나 외부 API 미호출을 검증한 것은 아니다.
 
 
-### 11/06 최종 배포본 인수 확인 · WF-02/02b·11·12
+### 과거 최종 배포본 인수 기록 (11/06 당시) · WF-02/02b·11·12
 
 VM에 반영해 시험한 파일은 `test` 커밋 `90f02ca`와 같고, 이 커밋은 PR #42로 `main` 병합 커밋 `ceef5d8`에 포함됐다. 아래 결과는 그 시점 배포본 기준이며, 이후 배포 결과는 결과서를 따른다.
 
@@ -17,13 +17,13 @@ VM에 반영해 시험한 파일은 `test` 커밋 `90f02ca`와 같고, 이 커�
 | WF-02 (`attempt: 1`) | 정보 부족·저신뢰이면 필요한 화면·메시지·공연일·예매번호를 묻고 `보완 질문` | **3/3**, 1.5 / 2.1 / 1.6초 |
 | WF-02b (`attempt: 3`) | 최대 횟수에서는 분류 LLM을 호출하지 않고 이관 | **3/3**, 1.3 / 0.6 / 0.6초, `llm_calls: 0`, 같은 요청은 `T-2035` 재사용 |
 | WF-11 | 본인 조회 API가 8초 지연되면 조회 예산 안에서 끊고 실패를 숨기지 않은 채 이관·DLQ·장애 알림 | **3/3**, 5.7 / 5.6 / 5.6초(6초 기준) |
-| WF-12 | 긴급 QR 검색은 고객용 `onsite-entry-fallback`으로 범위를 좁히고, 본인 문의 조회는 별도 payment 경로로 병렬 실행한 뒤 답을 합침 | **3/3**, 3.8 / 4.4 / 3.9초. 현장 발권 근거 4건, C-2002 실제 상태 `접수됨`, `priority: high`, `venue-staff` 알림 확인 |
+| WF-12 (과거 배포본) | 긴급 QR 검색과 개인 문의 조회를 병렬 실행해 합쳤던 당시 동작. 현재는 개인 문의 조회를 제공하지 않으며, 공개 입장 안내와 개인정보 없는 이관만 범위에 둠 | **과거 3/3**, 3.8 / 4.4 / 3.9초. 당시 현장 발권 근거, C-2002 상태, high 티켓과 알림 확인. 현행 정책의 전체 WF-12 경로 검증으로 보지 않음 |
 
 보완 질문의 `attempt`는 서버가 같은 HTTP 요청 안에서 증가시키는 값이 아니다. 웹·앱 어댑터가 첫 요청을 1로 보내고, 고객 답을 받아 다시 호출할 때 2, 3으로 1씩 증가시킨다. `attempt < 3`은 계속 보완 질문할 수 있고 `attempt >= 3`은 `clarify_limit_reached`로 종료·이관한다. 요청의 `attempt`가 1 미만이거나 정수가 아니면 입력 오류다.
 
-WF-12 시험 당시 search는 공개용 고객 인덱스만 조회하도록 구성됐고 payment는 `user`와 `record_id=C-2002`를 data-api에 보내 requester가 일치하는 상태를 확인했다. 그러나 `user`는 요청에서 전달되므로 requester 일치는 호출자의 실제 신원을 증명하지 않는다. 이 과거 통과 기록을 현재 비로그인 정책의 개인 정보 접근 승인으로 해석하지 않는다. 개인 문의 상태 조회는 인증이 프로젝트 범위에서 제외된 현재 구성에서는 제한해야 하며, 그 차단 구현·재시험은 별도 미완료다. 당시 `Merge search + lookup`은 두 결과를 합쳐 근거 안내와 상태를 작성하고 긴급 이관에서 high 티켓과 현장 알림을 만들었다. 한쪽 실패를 다른 쪽 결과로 성공처럼 덮지 않는다.
+WF-12의 위 결과는 개인정보 조회 차단 정책을 적용하기 전 실행이다. 당시 search는 공개용 고객 인덱스를 조회했고 payment는 요청 `user`와 `record_id=C-2002`를 data-api에 보내 requester 일치를 확인했다. 요청의 `user`는 호출자의 신원을 증명하지 않으므로 이를 현재 개인 정보 접근 승인으로 해석하지 않는다. 현재 개인 상태 조회는 제공하지 않고, 2026-11-06 팀 VM에서 SEC-03~06 및 TM-02·03의 선택 실행 6/6 PASS가 보고됐다. 원본 JSON은 로컬에서 확인되지 않았고 외부 API 미호출은 별도로 검증되지 않았다. 당시 `Merge search + lookup` 결과와 긴급 high 티켓·현장 알림은 과거 동작 이력으로 보존한다. 한쪽 실패를 다른 쪽 결과로 성공처럼 덮지 않는다.
 
-근거: [최종 공통 회귀 51/51](../runs/vm/wf01-fix-common-20261106-025239.json), [배포 파일 해시·시험 조건](../runs/vm/wf01-fix-metadata-20261106-025239.json).
+근거: [당시 공통 회귀 51/51](../runs/vm/wf01-fix-common-20261106-025239.json), [배포 파일 해시·시험 조건](../runs/vm/wf01-fix-metadata-20261106-025239.json). 이후 전체 회귀와 선택 개인정보 차단 시험은 `EXECUTION-RESULT.md`에 회차별로 구분해 기록한다.
 
 시험 회차별 결과는 [`EXECUTION-RESULT.md`](EXECUTION-RESULT.md) 맨 앞 절과 0절에 모은다. WF-01 간헐 지연은 미결이다.
 
@@ -37,13 +37,13 @@ WF-12 시험 당시 search는 공개용 고객 인덱스만 조회하도록 구�
 
 | route | 뜻 | 대표 시나리오 |
 | --- | --- | --- |
-| `자동 답변` | 문서나 본인 기록을 근거로 바로 답함 | WF-01 "모바일티켓 QR이 회색으로만 나오고 안 떠요" |
+| `자동 답변` | 공개 지식 문서를 근거로 바로 답함 | WF-01 "모바일티켓 QR이 회색으로만 나오고 안 떠요" |
 | `보완 질문` | 정보가 부족해 되물음 (3회째는 이관) | WF-02 "어제부터 계속 안 돼요" |
 | `담당자 이관` | 요약 티켓을 만들어 상담원에게 넘김 | WF-03 지식 문서에 없는 문의, WF-12 공연 10분 전 입장 문제 |
-| `권한 없음` | 본인 건이 아니어서 알려 주지 않음 | WF-06 남의 문의 번호 상태 조회 |
+| `권한 없음` | 로그인·본인 확인을 제공하지 않으므로 개인 상태 조회를 일괄 제한 (`personal_lookup_unavailable`) | WF-06은 과거 소유자 불일치 시험. 현행 차단 선택 범위는 SEC-03~06, TM-02·03 |
 | `차단` | LLM을 부르기 전에 규칙으로 막음 | WF-08 프롬프트 주입 |
 
-위의 WF-06 `권한 없음`은 과거 테스트의 route 설명이다. 요청 본문의 이름과 기록의 requester가 다를 때 거절한 시험은 익명 호출자의 실제 신원을 증명하지 않으며, 새 비로그인 정책에서 개인 기록 접근을 안전하게 차단하는 검증으로 재사용하지 않는다.
+위의 WF-06 `권한 없음`과 `not_owner`는 과거 테스트의 route 설명이다. 요청 본문의 이름과 기록의 requester가 다를 때 거절한 시험은 익명 호출자의 실제 신원을 증명하지 않는다. 새 정책은 이름·`user_id`·`access_level`을 본인 확인으로 취급하지 않고 개인 조회 자체를 제한한다.
 
 잘못된 입력(빈 질문, 없는 사용자, 501자 이상)은 route 없이 HTTP 400으로 거절한다 (WF-13).
 
@@ -56,22 +56,22 @@ WF-12 시험 당시 search는 공개용 고객 인덱스만 조회하도록 구�
 | 모바일티켓·입장 장애 | `tech_issue` | QR이 안 떠요, 게이트 인식 실패 | 자동 답변. 공연 30분 이내 입장 문제는 긴급 이관 + 현장 알림 | `mobile-ticket-troubleshooting`, `onsite-entry-fallback` |
 | 앱·계정 오류 | `account_issue` | 로그인 반복, 인증 문자 미수신 | 자동 답변 | `app-login-troubleshooting` |
 | 공연장 이용 정보 | `general_info` | 주차, 입장 시간 | 자동 답변 | `venue-faq` |
-| 예매·문의 조회 | `booking_lookup` | C-2002 어떻게 됐어요? | 본인 건만 자동 답변, 남의 건은 권한 없음 | 예매 기록 조회 |
-| 결제 오류 | `payment_error` | 이중결제, 결제됐는데 예매 없음 | 조회 후 항상 이관 | `payment-error-guide` |
+| 예매·문의 조회 | `booking_lookup` | C-2002 어떻게 됐어요? | 개인 기록 조회는 제공하지 않고 `권한 없음` (`personal_lookup_unavailable`) | 개인 기록을 검색하지 않음 |
+| 결제 오류 | `payment_error` | 이중결제, 결제됐는데 예매 없음 | 공개 해결 방법 안내 또는 개인 정보 없이 이관. 결제·예매 기록 조회는 제공하지 않음 | `payment-error-guide` |
 | 부정 예매 제한 | `fair_booking` | 매크로 의심 제한, 해외 접속 차단 | 사유는 자동 답변, 이의 신청은 이관 | `fair-booking-policy` |
 | 암표 신고 | `scalping_report` | 웃돈 판매 신고 | 항상 이관 | `fair-booking-policy` |
-| 환불 | `refund_request` | 취소하면 얼마 돌려받아요? | 1차 금액 안내 → 고객 확정 후 환불 요청 티켓 | `refund-policy` |
+| 환불 | `refund_request` | 취소하면 얼마 돌려받아요? | 일반 환불 규정은 공개 안내. 예매별 환불액·진행 상태·확정 처리는 제공하지 않고 `personal_lookup_unavailable`로 차단 | `refund-policy` |
 | 상담원 요청 | `human_request` | 상담원 연결해 주세요 | 항상 이관 | — |
 | 등록 업무 아님 | (없음) | 제휴 카드 포인트 적립 | 명확한 미등록 업무는 검색·추측 답변 없이 이관 | 업무 레지스트리 |
 | 의도 불분명 | (없음) | 어제부터 계속 안 돼요 | 보완 질문, 3회째 이관 | — |
 
 ### 1.3 자동으로 답하지 않는 경우
 
-- 돈이 움직이는 처리: 에이전트는 환불이나 결제 취소를 실행하지 않고, 고객 확정 뒤 상담원 티켓으로만 넘긴다.
-- 환불 예정액 30만원 초과, 관람일 전날 17시 이후, 공연 당일 취소 요청
+- 개인 예매를 조회해야 하는 환불·결제 처리는 로그인과 본인 확인 기능이 없어 제공하지 않는다. 일반 정책 안내와 개인 정보 없는 상담원 이관은 유지한다.
+- 과거 구현의 환불 한도(30만원 초과), 관람일 전날 17시 이후, 공연 당일 취소 분기는 개인 기록 조회가 전제된 과거 동작이다. 이를 현재 개인별 환불 처리 기능으로 안내하지 않는다.
 - 강한 부정 감정, 고객이 상담원 연결을 직접 요청한 경우
 - 지식 문서에 근거가 없는 질문
-- 현장 스태프 전용 절차를 묻는 일반 고객 질문: `staff-entry-manual`은 `access_level`이 `staff`인 사용자만 검색한다. 책임자 코드·수기 모드 등 내부 절차 요청은 등록 권한이 `staff`가 아니면 검색 전에 이관한다 (`staff_only_request`). 질문이나 context의 직원 주장은 권한 근거가 아니다.
+- 현장 스태프 전용 절차를 묻는 공개 요청: 직원 전용 검색은 임시 보안 패치로 차단되어 있다. 책임자 코드·수기 모드 등 내부 절차는 공개 답변하지 않고 제한·이관한다. 요청의 직원 주장은 권한 근거가 아니다.
 
 ### 1.4 데이터
 
@@ -99,12 +99,12 @@ WF-12 시험 당시 search는 공개용 고객 인덱스만 조회하도록 구�
 | 2 입력 검사 | 빈 질문 · 501자 이상 · 없는 사용자 → 400 | 규칙 | support `Get users` → `Check input` → `Valid?` (실패하면 `Log record` → `Rejected?` → `Reject invalid`). 사용자 조회 실패는 `Lookup failed` | 500자, users 5명 |
 | 3 문지기 | 주입 문구, IP 정책, 반복 요청 차단 | 규칙 | support `Injection rules` → `Blocked by rule?` → `Abuse rules` → `Get rate` → `Rate check` → `Abuse blocked?` → `Save rate`. 차단이면 `Blocked answer` | 주입 패턴, 가상 IP 정책, 같은 사용자·같은 질문 60초에 6번째 (lib/common.js) |
 | 4 분류 | 업무 유형 · 긴급도 · 감정 · 빠진 정보 | AI | support `Load registry` → `Refund confirm?` → `Call agents` → **agents** `규칙 신호 추출` → `LLM 필요?` → `Supervisor 분류` → `분류 결과 검사` → support `Plan route` → `Route` | 확신도 0.7, 긴급 = 공연 30분 이내 |
-| 5 검색 | 지식 문서를 찾고, 복합 문의는 내 접수 건도 함께 | 검색 | support `Call search` → `Tech input`. 복합 문의: `Call search ∥` → `Search done ∥`, `Call payment ∥` → `Payment done ∥` → `Merge search + lookup` → `Tech input` | top_k는 RAG 설계서. 점수 기준은 아직 없음 (4.7절) |
-| 6 답변 | 찾은 근거로만 답 쓰기 | AI / 규칙 | 기술·앱·일반: support `Call tech` → **tech** `처리 준비` → `공연 직전?` → `근거 있음?` → `작성 시간 있음?` → `답변 작성` → `작성 결과 검사` → `작성 통과?` → support `Collect tech`. 환불: `Call refund` → **refund** 규칙 문장 → `Collect refund`. 조회·결제: `Call payment` → `Collect payment` | 근거 없으면 이관 |
+| 5 검색 | 공개 지식 문서 검색. 개인 문의·결제 기록을 함께 조회하지 않음 | 검색 | support `Call search` → `Tech input`. 과거 WF-12의 `Call payment ∥` → `Merge search + lookup`은 이력이며 현재 공개 경로에서는 사용하지 않음 | top_k는 RAG 설계서. 점수 기준은 아직 없음 (4.7절) |
+| 6 답변 | 공개 근거로 답변하거나 개인 데이터가 필요한 요청을 제한 | AI / 규칙 | 기술·앱·일반: `Call tech` 경로. 일반 환불 규정 안내만 허용. 개인 환불액·진행 상태·확정, 개인 예매·결제 조회는 `personal_lookup_unavailable`로 차단 | 근거 없으면 이관 |
 | 7 검증 | 근거 · 정책 · 개인정보 다시 확인 | AI | tech `검증 시간 있음?` → `검증 호출` → **agents-verify** `검증 프롬프트 조립` → `검증할 내용 있음?` → `검증 Agent` → `검증 결과 검사` → tech `답변 결정` | 셋 다 true여야 통과 |
 | 8 갈림길 · 기록 | 답 또는 이관, 기록 남기기, 응답 | 규칙 | support `Needs handoff?` → `Handoff input` → `Call handoff` → `Collect ticket` → `Build response` → `Log record` → `POST /logs` → `Rejected?` → `Send result`. DLQ와 알림은 handoff가 처리 | 기록에 질문 원문·연락처 없음 |
 
-환불은 4단계에서 갈라져 `ticketmoa-refund`로 간다. 1차 요청은 금액만 안내하고(ticket null), 2차 요청은 `Refund confirm?`이 `context.pending_action`과 boolean `context.confirm`을 확인해 분류 LLM 없이 바로 보낸다. 같은 사용자·같은 예매·30분 안의 견적이고 `confirm === true`일 때만 환불 요청 티켓을 만든다. 실제 취소는 상담원이 한다. 당일 취소 문의(`signals.show_day`)는 `Call search (evidence)` → `Evidence handoff answer`로 규정 근거를 찾아 이관한다. 강한 불만 문의도 같은 경로로 해당 업무 문서(레지스트리 `kb_scope`)를 찾아 이관한다. 긴급 문의(`urgency=high`)는 `Call search`와 `Call search ∥`가 `scope`를 `onsite-entry-fallback`으로 좁혀, 검색 순위와 상관없이 대체 입장 근거를 받는다.
+**과거 구현 이력:** 환불은 4단계에서 `ticketmoa-refund`로 분기해 1차 금액 안내, 2차 `context.pending_action`·`context.confirm` 확인 후 티켓 생성(`/cache` 견적 30분)을 했다. 이는 개인 예매 조회에 의존하는 과거 흐름이며 현재 공개 서비스 기능이 아니다. 현재는 일반 환불 규정만 안내하고 개인별 금액·상태·확정 요청은 제한한다. 당일 취소·강한 불만·긴급 입장 문의의 공개 규정 근거 검색과 개인정보 없는 이관은 별도로 유지한다.
 
 ## 3. 흐름도 · 워크플로우 파일 표
 
@@ -186,11 +186,11 @@ flowchart TD
 | `ticketmoa-support.json` | `/webhook/ticketmoa-support` | 본체: 1~3단계, 라우팅, 병렬, 8단계 | A | — |
 | `ticketmoa-agents.json` | `/webhook/ticketmoa-agents` | 분류 (Supervisor) | B | support `Call agents` 5초 |
 | 〃 | `/webhook/ticketmoa-agents-verify` | 검증 Agent | B | tech `검증 호출` 남은 시간 (0.5~5초) |
-| `ticketmoa-refund.json` | `/webhook/ticketmoa-refund` | 환불 2단계 확인 | B | support `Call refund` 5초 |
+| `ticketmoa-refund.json` | `/webhook/ticketmoa-refund` | 일반 정책 응답 및 개인 환불 처리 제한 (2단계 확인은 과거 흐름) | B | support `Call refund` 5초 |
 | `ticketmoa-index.json` | `/webhook/ticketmoa-index` | 색인 | C | 수동 |
-| `ticketmoa-search.json` | `/webhook/ticketmoa-search` | 권한 필터 후 검색 | C | support `Call search`·`Call search ∥` 5초, `Call search (evidence)` 2초, refund 2초 |
+| `ticketmoa-search.json` | `/webhook/ticketmoa-search` | 공개 문서 검색; 직원 전용 검색은 임시 보안 패치로 차단 | C | support `Call search` 5초, `Call search (evidence)` 2초 |
 | `ticketmoa-tech.json` | `/webhook/ticketmoa-tech` | 기술·앱·일반 답변, 대체 입장 | C | support `Call tech` 5초 (안쪽 `작성 모델` 3.2초) |
-| `ticketmoa-payment.json` | `/webhook/ticketmoa-payment` | 본인 건 조회, 남의 건 forbidden | D | support `Call payment`·`Call payment ∥` 2.5초, refund 4초 |
+| `ticketmoa-payment.json` | `/webhook/ticketmoa-payment` | 개인 예매·문의 조회 차단 (본인/타인 구분 조회는 과거 흐름) | D | 과거 support `Call payment`·`Call payment ∥` 2.5초, refund 4초 |
 | `ticketmoa-handoff.json` | `/webhook/ticketmoa-handoff` | 요약 티켓 · 알림 · DLQ | D | support `Call handoff` 최대 5.5초에서 경과 시간을 뺀 값 (최소 0.5초), refund 5초 |
 | `ticketmoa-errors.json` | Error Trigger | 오류 알림 (`/alerts`, 디스코드) | D | support, agents, refund, payment, handoff, ops의 Error Workflow (7.3절) |
 | `ticketmoa-ops.json` (가산) | `/webhook/ticketmoa-ops` | 티켓·알림·DLQ·로그·장애 설정 읽기 전용 조회 | D | `webapp/` 관리자 화면. 내부 `데이터 API 읽기` 5초 |
@@ -232,11 +232,11 @@ support에서 `Call handoff`만 요청 시작부터 지난 시간을 빼서 시�
 
 ### 4.3 병렬
 
-support `Route`의 `tech_lookup` 갈래만 `Call search ∥`와 `Call payment ∥`로 동시에 간다. 두 결과는 `Search done ∥`, `Payment done ∥`를 거쳐 `Merge search + lookup`에서 합쳐져 `Tech input`으로 간다. 조회가 필요 없는 기술 문의는 `tech` 갈래에서 `Call search`만 부른다. WF-12(공연 10분 전 QR + C-2002 확인)가 이 병렬로 대체 입장 근거와 접수 상태를 한 답에 담는다.
+과거 `tech_lookup` 흐름은 `Call search ∥`와 `Call payment ∥`를 병렬 실행하고 `Merge search + lookup`에서 대체 입장 근거와 C-2002 상태를 합쳤다(WF-12). 이 결과는 당시 시험 이력이며 개인 조회가 허용되는 현행 경로가 아니다. 현재 공개 기술 문의는 공개 검색을 사용하고 개인 기록이 필요한 조회 갈래는 제공하지 않는다.
 
 ### 4.4 루프
 
-n8n 안에서 되도는 루프는 만들지 않는다. 보완 질문은 요청 사이의 루프다. 채널 어댑터가 고객의 후속 답을 새 요청으로 보내며 `attempt`를 1씩 올린다. `attempt` 1·2에서는 정보가 계속 부족하면 보완 질문하고, `attempt >= 3`에서는 보완 질문 대신 이관한다(WF-02, WF-02b). 최대 횟수에서는 분류 LLM도 부르지 않아 반복 요청이 비용을 쌓지 못한다(agents `LLM 필요?`). 환불 2단계도 요청 두 번으로 나눈 루프이며, 상태는 `/cache`의 견적(`refund-pending:<user>:<booking_id>`, 30분)에 둔다.
+n8n 안에서 되도는 루프는 만들지 않는다. 보완 질문은 요청 사이의 루프다. 채널 어댑터가 고객의 후속 답을 새 요청으로 보내며 `attempt`를 1씩 올린다. `attempt` 1·2에서는 정보가 계속 부족하면 보완 질문하고, `attempt >= 3`에서는 보완 질문 대신 이관한다(WF-02, WF-02b). 최대 횟수에서는 분류 LLM도 부르지 않아 반복 요청이 비용을 쌓지 못한다(agents `LLM 필요?`). 환불 2단계와 `/cache`의 `refund-pending:<user>:<booking_id>`는 과거 구현 이력이며 현재 비로그인 서비스에서 제공하지 않는다.
 
 ### 4.5 보안 장치 (B 담당 부분)
 
@@ -367,11 +367,25 @@ WF-02는 위 네 보고서 모두 3/3 통과다. 앞선 `common-20261105-114641.
 
 환석 담당에게 필요한 사항: Error Workflow의 DLQ 경로를 완성한 뒤, 게시된 워크플로우의 **처리되지 않은 실제 오류**로 실행 ID·실패 노드·알림·DLQ를 대조한다. 예상된 모델 실패는 `continueErrorOutput`에서 HTTP 200으로 처리되므로 Error Trigger 검증과 구별한다. WF-04의 티켓 API 장애 경로도 별도다. errors·tech 파일은 담당자가 수정한다.
 
-#### 4.8.5 VM 재검증 상태와 후속 실행
+#### 4.8.5 당시 로컬 점검 기록과 후속 운영본 확인
 
-현재 세션에서 `ssh aio-t4`는 별칭 해석 실패, SSH 설정 읽기·WSL 실행은 접근 거절로 VM에 연결하지 못했다. **이번 수정본은 VM 미배포·미검증**이다. 공용 컨테이너와 장애 스위치는 변경하지 않았다.
+**당시 로컬 점검 기록:** `ssh aio-t4` 별칭 해석 실패와 SSH 설정 읽기·WSL 실행 접근 거절로 그 세션에서는 VM에 연결하지 못했다. 따라서 “수정본 미배포·미검증”은 그 시점 로컬 점검의 상태를 뜻한다. 이후 운영 등록본 확인 결과를 포함한 현재 상태로 오해하지 않는다. 그 점검에서 공용 컨테이너와 장애 스위치는 변경하지 않았다.
 
-접속 가능한 환경에서는 B 파일만 반영하고, 팀 공지 후 `flow.py check` → `push` → 재시작 대기 → 기존 `tools/reindex.py`로 재색인한다. 최신 main 전체 반영은 A 담당이다. VM에서 아래를 확인하고 E가 새 보고서를 기존 결과와 구별해 보관한다.
+**이후 사용자가 제공한 VM Web SSH 점검 기록:**
+
+| 운영 워크플로우 | 등록 노드 수 | 보고된 확인 내용 |
+| --- | ---: | --- |
+| `ticketmoa-errors` | 9 | 운영 반영 확인 |
+| `ticketmoa-support` | 45 | 운영 등록본이 최신 로컬 코드와 일치 |
+| `ticketmoa-payment` | 11 | 운영 등록본이 최신 로컬 코드와 일치 |
+| `ticketmoa-refund` | 38 | 운영 등록본이 최신 로컬 코드와 일치 |
+| `ticketmoa-handoff` | 33 | 운영 등록본이 최신 로컬 코드와 일치 |
+| `ticketmoa-index` | 12 | 운영 등록본이 최신 로컬 코드와 일치 |
+| `ticketmoa-search` | 13 | 운영 등록본이 최신 로컬 코드와 일치 |
+
+이 기록은 등록본의 반영·구성 비교 결과이며 각 워크플로우의 런타임 동작 전체가 통과했다는 증거는 아니다. 개인정보 차단 선택 웹훅 시험 6/6 PASS는 별도 실행 결과이며 범위와 한계는 [실행 결과서](EXECUTION-RESULT.md)에 정리한다. 해당 선택 실행의 원본 JSON은 현재 로컬에서 확인되지 않는다. 제공된 기록에는 위 운영본 확인의 정확한 시각이 없어 배포 시각을 특정하지 않는다.
+
+아래 `ticketmoa-agents.json` 명령은 당시 제안된 B 담당 검증 계획이다. 이번에 제공된 운영본 목록에는 `ticketmoa-agents`와 `ticketmoa-tech`가 없으므로, 두 워크플로우의 현재 운영 상태나 이 계획의 실행 여부는 여기서 확인된 것으로 보지 않는다. 추후 실행 전 VM 등록본과 로컬 파일을 다시 비교하고 팀 공지를 확인해야 한다. 최신 전체 회귀와 선택 시험의 결과는 [실행 결과서](EXECUTION-RESULT.md)를 기준으로 한다.
 
 1. 정상 근거 답변, 근거 밖 답변, 정책 위반 답변을 `ticketmoa-agents-verify`로 호출해 `{ok, issues, llm_calls}`를 확인한다. 비정상 답을 통과시키지 않는다.
 2. 같은 문서·청킹·질문·기대값으로 WF-01 및 공통 3회, 팀 필수 9개를 실행한다. `bench` 성공을 공통 통과로 대체하지 않는다.
@@ -394,14 +408,14 @@ ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && FLOW_PY=~/aio-tools/Last3Mon/78/to
 
 | 하는 일 | 노드 | 연습용 | 운영이면 |
 | --- | --- | --- | --- |
-| 사용자 · 권한 조회 | support `Get users` | `GET /employees` | 회원 DB 또는 회원 API |
-| 예매 · 문의 조회 | payment `본인 건 조회` | `GET /tickets/<id>?requester=` | 예매 시스템 DB 또는 API |
+| 데모 사용자 데이터 조회 | support `Get users` | `GET /employees` (요청 이름·ID는 인증된 신원이 아님) | 실제 인증이 있는 회원 DB/API는 미구현 |
+| 예매 · 문의 조회 | payment `본인 건 조회` (과거 경로) | `GET /tickets/<id>?requester=` | 현재 비로그인 공개 범위에서는 조회 미제공 |
 | 티켓 생성 | handoff `티켓 생성` | `POST /tickets` (`key`에 `request_id`) | Jira |
 | 긴급 · 장애 알림 | handoff `긴급 알림`, `장애 알림`, errors `장애 알림 전송` | `POST /alerts` | Slack 긴급 채널 |
 | 디스코드 알림 (가산) | handoff `디스코드 알림`, errors `디스코드 알림` | Discord 웹후크 (Credential `ticketmoa-discord`) | Slack 긴급 채널 |
 | 실패 대기열 | handoff `DLQ 저장` | `POST /dlq` | Postgres 또는 메시지 큐 |
 | 실행 기록 | support `POST /logs` | `POST /logs` | Postgres |
-| 환불 견적 상태 | refund `대기 상태 저장`, `대기 상태 읽기`, `확정 저장` | `/cache/<key>` | Postgres 또는 Redis |
+| 환불 견적 상태 | refund `대기 상태 저장`, `대기 상태 읽기`, `확정 저장` (과거 경로) | `/cache/<key>` | 현재 비로그인 공개 범위에서는 개인별 견적·확정 미제공 |
 | 생성 티켓 확인 | handoff `중복 주인 조회`, refund `생성 티켓 확인` | `GET /tickets-created` | Jira 검색 |
 | 벡터 저장소 | index `Store public chunks`, `Store staff chunks`, search `일반 저장소 검색`, `스태프 저장소 검색` | In-Memory Vector Store | PGVector (Supabase) |
 | 지식 문서 | index `Index webhook` | `knowledge/` 내용을 요청에 담아 전달 | Notion |
@@ -411,7 +425,7 @@ ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && FLOW_PY=~/aio-tools/Last3Mon/78/to
 
 - **인증:** data-api 호출 23곳에 Credential `ticketmoa-data-api`(`X-Api-Key`, id `ticketmoaDataApi1`)를 연결했다. 헤더가 실제로 나가는 것은 임시 워크플로우로 확인했다(2026-11-05, 로컬). VM에서는 이 Credential로 공통·팀 시나리오를 통과했다. 연습용 data-api는 키를 검사하지 않으므로, 틀린 키를 거절하는지는 이 환경에서 시험할 수 없다. 운영 시스템 호출에는 시스템별 Credential을 연결한다.
 - **색인:** 지금은 In-Memory Vector Store를 쓰고, n8n을 재시작한 뒤에는 `ticketmoa-index`를 다시 호출한다. 재시작 후 데이터가 유지되는지는 아직 확인하지 않았다.
-- **최종 사용자 신원 범위:** 웹앱은 로그인·세션을 제공하지 않으며 요청의 `user`는 입력값이지 인증된 신원이 아니다. 로그인·세션·토큰 인증은 이 프로젝트에서 의도적으로 제외했다. 따라서 `user`/`user_id`/`access_level`만으로 개인 문의·결제·환불 상태를 조회하게 해서는 안 된다. 관련 개인 데이터 경로는 공개 데모 정책에 맞게 제한해야 하며, 실제 차단 상태는 각 워크플로우 구현과 최신 시험으로 확인한다. `X-Team-Key`는 서비스 간 호출 키이지 최종 사용자 인증이 아니다.
+- **최종 사용자 신원 범위:** 웹앱은 로그인·세션을 제공하지 않으며 요청의 `user`는 입력값이지 인증된 신원이 아니다. 로그인·세션·토큰 인증은 의도적으로 제외했다. Support는 개인 조회를 `personal_lookup_unavailable`로 제한하고 Payment·Refund 직접 경로도 차단한다. 2026-11-06 VM에서 SEC-03~06 및 TM-02·03 선택 시험 6/6 PASS가 보고됐지만, 원본 JSON은 로컬 미확보이며 외부 API 미호출은 별도 검증되지 않았다. 전체 팀 13개 재검증으로 해석하지 않는다. `user`/`user_id`/`access_level`은 본인 확인이 아니며 `X-Team-Key`는 서비스 간 호출 키이지 최종 사용자 인증이 아니다.
 
 ### 5.1 인증·시간 제한·오류 처리와 어댑터 경계
 
@@ -530,16 +544,17 @@ WF-12 VM 실측을 축약한 가림 예시는 다음과 같다. 원본 조회에
 | 근거로 답할 수 없음 | tech `작성 결과 검사`, `답변 결정` | 담당자 이관, sources 빈 목록 | 티켓 | WF-03 |
 | 답변 모델 실패 · 시간 초과 | tech `작성 실패 결과` | 담당자 이관 (`llm_unavailable`) | 티켓 | 반복 시험 |
 | tech 호출 실패 | support `Collect tech` | 담당자 이관 (`tech_failed`) | 티켓 | 코드 |
-| 예매 조회 느림 · 실패 | payment `조회 판정` (2.2초 안에 재시도), support `Collect payment` | 담당자 이관 (`payment_failed`) | 티켓 또는 DLQ | WF-11 |
-| 남의 건 조회 | payment `조회 판정` | 권한 없음, 상태 · 연락처 없음 | `/logs` | WF-06 |
+| 개인 예매 조회 요청 (현행 정책) | support / payment 공개 경로 제한 | `권한 없음` (`personal_lookup_unavailable`); 개인 기록 조회 제공 안 함 | 비식별 로그 정책 적용 | SEC-03~06, TM-02·03 선택 실행 |
+| 예매 조회 지연 · 실패 (과거 경로) | payment `조회 판정` (당시 2.2초 예산), support `Collect payment` | 과거 `payment_failed` 이관 | 티켓 또는 DLQ | 과거 WF-11 |
+| 남의 건 조회 (과거 경로) | payment `조회 판정` | 과거 `not_owner` 거부; 현재는 requester 대조 전에 개인 조회 전체 제한 | `/logs` | 과거 WF-06 |
 | 티켓 API 실패 | handoff `티켓 판정` → `DLQ 저장` → `장애 알림` | HTTP 200, 담당자 이관, ticket null | DLQ 1건, 알림 1건 | WF-04 |
 | 같은 `request_id` 재요청 | handoff `티켓 생성` | 담당자 이관, 같은 티켓, `duplicate: true` | 티켓 1건 | WF-09 |
 | 다른 사용자의 `request_id` 재사용 | handoff `중복 주인 판정` | ticket null (`request_id_conflict`) | — | 코드 |
 | 티켓 API 401 · 403 | handoff `티켓 판정` | 재시도 없이 ticket null (`auth_failed`) | DLQ, 알림 | 코드 |
 | handoff 호출 실패 | support `Collect ticket` | 담당자 이관, 접수 번호는 추후 안내 | `/logs` | 코드 |
 | 환불 호출 실패 | support `Collect refund` | 담당자 이관 (`refund_failed`) | 티켓 | 코드 |
-| 환불 확정인데 견적 없음 · 만료 | refund `확인 자격 판정` → `안내 먼저 받기` | 보완 질문, 티켓 없음 | — | 코드 |
-| 환불 금액이 바뀜 | refund `확인 재계산` → `금액 변경 안내` | 바뀐 금액 다시 안내 | 새 견적 | 코드 |
+| 환불 견적 없음 · 만료 (과거 경로) | refund `확인 자격 판정` → `안내 먼저 받기` | 과거 보완 질문, 티켓 없음; 현재 개인 환불 확인 경로 미제공 | — | 과거 코드 |
+| 환불 금액 변경 (과거 경로) | refund `확인 재계산` → `금액 변경 안내` | 과거 변경 금액 안내; 현재 개인별 계산 미제공 | 새 견적 | 과거 코드 |
 | `/logs` 저장 실패 | support `POST /logs` 오류 출력 | 응답은 그대로 나감 | — | 코드 |
 | 예상 못 한 실행 오류 | errors `오류 수신` → `장애 알림 전송`, `디스코드 알림` | 부른 쪽의 오류 처리를 따름 | 알림 | 코드 |
 | 디스코드 전송 실패 | handoff·errors `디스코드 알림` (`continueRegularOutput`) | 영향 없음 | `/alerts` 기록은 남음 | 코드 |
