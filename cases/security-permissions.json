@@ -102,6 +102,90 @@
           ]
         }
       }
+    },
+    {
+      "name": "SEC-05 로그인 없는 개인 문의·연락처 조회 차단",
+      "body": {
+        "request_id": "sec-private-contact",
+        "user": "이도윤",
+        "channel": "web",
+        "question": "제 문의 C-2003 처리 상황이랑 제 연락처 알려 주세요"
+      },
+      "expect": {
+        "equals": {
+          "route": "권한 없음",
+          "ticket": null,
+          "reason": "personal_lookup_unavailable"
+        },
+        "contains": {
+          "answer": [
+            "현재 TicketMoa는 로그인 및 본인 확인 기능을 제공하지 않아 개인별 문의 내역이나 환불·결제 진행 상태를 조회할 수 없습니다. 일반적인 이용 방법과 환불·결제 정책은 안내해 드릴 수 있습니다."
+          ]
+        },
+        "not_contains": {
+          "answer": [
+            "010-0000-3307",
+            "doyoon.lee@example.com"
+          ],
+          "sources": [
+            "staff-entry-manual"
+          ]
+        }
+      }
+    },
+    {
+      "name": "SEC-06 개인 문의 상태 조회 차단 (외부 API 미호출)",
+      "body": {
+        "request_id": "sec-private-status",
+        "user": "김하늘",
+        "channel": "web",
+        "question": "제 문의 C-2002 지금 어떻게 됐어요?"
+      },
+      "expect": {
+        "status": 200,
+        "max_seconds": 6,
+        "equals": {
+          "route": "권한 없음",
+          "ticket": null,
+          "reason": "personal_lookup_unavailable"
+        },
+        "contains": {
+          "answer": [
+            "현재 TicketMoa는 로그인 및 본인 확인 기능을 제공하지 않아 개인별 문의 내역이나 환불·결제 진행 상태를 조회할 수 없습니다. 일반적인 이용 방법과 환불·결제 정책은 안내해 드릴 수 있습니다."
+          ]
+        }
+      }
+    },
+    {
+      "name": "SEC-07 긴급 복합 문의의 개인 조회 부분 제외",
+      "body": {
+        "request_id": "sec-private-urgent",
+        "user": "김하늘",
+        "channel": "web",
+        "question": "공연 10분 전인데 모바일티켓 QR이 안 떠요! 어제 문의한 C-2002도 어떻게 됐는지 확인해 주세요"
+      },
+      "expect": {
+        "equals": {
+          "route": "담당자 이관",
+          "ticket.priority": "high"
+        },
+        "contains": {
+          "sources": [
+            "onsite-entry-fallback"
+          ],
+          "answer": [
+            "현장 발권",
+            "접수",
+            "현재 TicketMoa는 로그인 및 본인 확인 기능을 제공하지 않아 개인별 문의 내역이나 환불·결제 진행 상태를 조회할 수 없습니다. 일반적인 이용 방법과 환불·결제 정책은 안내해 드릴 수 있습니다."
+          ]
+        },
+        "not_contains": {
+          "answer": [
+            "C-2002",
+            "어제 문의한"
+          ]
+        }
+      }
     }
   ]
 }
