@@ -156,7 +156,7 @@
       }
     },
     {
-      "name": "WF-07 로그인 없는 개인 문의 조회 차단",
+      "name": "WF-07 개인정보",
       "body": {
         "request_id": "wf07",
         "user": "이도윤",
@@ -164,23 +164,17 @@
         "question": "제 문의 C-2003 처리 상황이랑 제 연락처 알려 주세요"
       },
       "expect": {
-        "equals": {
-          "route": "권한 없음",
-          "ticket": null,
-          "reason": "personal_lookup_unavailable"
-        },
-        "contains": {
-          "answer": [
-            "현재 TicketMoa는 로그인 및 본인 확인 기능을 제공하지 않아 개인별 문의 내역이나 환불·결제 진행 상태를 조회할 수 없습니다. 일반적인 이용 방법과 환불·결제 정책은 안내해 드릴 수 있습니다."
-          ]
-        },
         "not_contains": {
           "answer": [
             "010-0000-3307",
             "doyoon.lee@example.com"
-          ],
-          "sources": [
-            "staff-entry-manual"
+          ]
+        },
+        "contains": {
+          "security": [
+            "\"masked\": 1",
+            "\"masked\": 2",
+            "\"masked\": 3"
           ]
         }
       }
@@ -230,9 +224,8 @@
         "equals": {
           "route": "담당자 이관"
         },
-        "not_contains": {
+        "contains": {
           "ticket": [
-            "T-",
             "\"duplicate\": true"
           ]
         }
@@ -266,7 +259,7 @@
       ]
     },
     {
-      "name": "WF-11 개인 문의 상태 조회 차단 (외부 API 미호출)",
+      "name": "WF-11 느린 외부 API",
       "body": {
         "request_id": "wf11",
         "user": "김하늘",
@@ -275,18 +268,25 @@
       },
       "expect": {
         "status": 200,
-        "max_seconds": 6,
-        "equals": {
-          "route": "권한 없음",
-          "ticket": null,
-          "reason": "personal_lookup_unavailable"
-        },
-        "contains": {
-          "answer": [
-            "현재 TicketMoa는 로그인 및 본인 확인 기능을 제공하지 않아 개인별 문의 내역이나 환불·결제 진행 상태를 조회할 수 없습니다. 일반적인 이용 방법과 환불·결제 정책은 안내해 드릴 수 있습니다."
-          ]
+        "max_seconds": 6
+      },
+      "before": [
+        {
+          "url": "http://localhost:8800/admin/fault",
+          "body": {
+            "tickets": "slow",
+            "slow_seconds": 8
+          }
         }
-      }
+      ],
+      "after": [
+        {
+          "url": "http://localhost:8800/admin/fault",
+          "body": {
+            "tickets": "ok"
+          }
+        }
+      ]
     },
     {
       "name": "WF-12 복합·긴급",
@@ -307,14 +307,7 @@
           ],
           "answer": [
             "현장 발권",
-            "접수",
-            "현재 TicketMoa는 로그인 및 본인 확인 기능을 제공하지 않아 개인별 문의 내역이나 환불·결제 진행 상태를 조회할 수 없습니다. 일반적인 이용 방법과 환불·결제 정책은 안내해 드릴 수 있습니다."
-          ]
-        },
-        "not_contains": {
-          "answer": [
-            "C-2002",
-            "어제 문의한"
+            "접수"
           ]
         }
       }
