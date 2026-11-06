@@ -11,6 +11,7 @@
 - n8n 2.42.6, OpenAI `gpt-4.1-mini`, `text-embedding-3-large`, In-Memory Vector Store
 - 외부 서비스는 연습용 데이터 API(`http://localhost:8800`)만 쓴다: 예매·상담 조회 `GET /tickets/<id>?requester=`, 티켓 `POST /tickets`, 알림 `POST /alerts`, 기록 `POST /logs`, 실패 대기열 `POST /dlq`, 캐시 `/cache/<key>`
 - Ollama, Supabase, 실제 Slack·Jira는 쓰지 않는다 (가산은 리드가 따로 정한다)
+- 예외 (가산, 리드 허용 2026-11-06, #35): `ticketmoa-errors`·`ticketmoa-handoff`는 장애·긴급 알림을 디스코드로도 보낼 수 있다. `/alerts` 기록을 대신하지 않고, 전송이 실패해도 워크플로우는 정상 종료한다. 연락처는 가린 내용만 보낸다.
 
 ## 3. 공통 계약 (리드 허락 없이 바꾸지 않는다)
 
@@ -40,7 +41,7 @@ route 값: "자동 답변" | "보완 질문" | "담당자 이관" | "권한 없�
 
 ## 5. n8n 워크플로우를 만들 때
 
-- **처음부터 JSON을 새로 쓰지 않는다.** 과정 실습의 정답 워크플로우(`~/aio-01d4-stu/Last3Mon/<일차>/reference/*.json`)를 복사해 이름·경로·노드를 고친다. 노드 `type`·`typeVersion`은 reference에 있는 것만 쓴다.
+- **처음부터 JSON을 새로 쓰지 않는다.** 과정 실습의 정답 워크플로우(`~/aio-01d4-stu/Last3Mon/<일차>/reference/*.json`)를 복사해 이름·경로·노드를 고친다. 노드 `type`·`typeVersion`은 reference에 있는 것만 쓴다. 예외는 2장의 디스코드 알림에 쓰는 `n8n-nodes-base.discord` v2뿐이다.
 - 워크플로우 이름과 웹훅 경로는 `ticketmoa-`로 시작한다.
 - 하위 워크플로우는 Execute Workflow가 아니라 **HTTP Request로 웹훅을 부른다** (팀원마다 n8n 워크플로우 ID가 다르다). HTTP Request에는 timeout(5초)과 오류 출력을 둔다.
 - 규칙으로 정할 수 있는 것(길이, 권한, 중복, 점수 기준, 금액 한도, attempt 횟수)은 Code·If·Switch로 한다. LLM은 분류·답변·검증에만 쓴다.
@@ -54,7 +55,7 @@ route 값: "자동 답변" | "보완 질문" | "담당자 이관" | "권한 없�
 
 ## 6. 절대 하지 않는 것
 
-- API 키·토큰을 워크플로우 JSON, 문서, 코드, 커밋에 넣는 것. 키는 n8n Credential에만 있다 (이름: `OpenAI (.env)`(id `openAiCourse0001`, `Last3Mon/65/n8n/register-credentials.sh`로 등록), `ticketmoa-data-api`(X-Api-Key), `ticketmoa-team-key`(X-Team-Key))
+- API 키·토큰을 워크플로우 JSON, 문서, 코드, 커밋에 넣는 것. 키는 n8n Credential에만 있다 (이름: `OpenAI (.env)`(id `openAiCourse0001`, `Last3Mon/65/n8n/register-credentials.sh`로 등록), `ticketmoa-data-api`(X-Api-Key), `ticketmoa-team-key`(X-Team-Key), `ticketmoa-discord`(id `ticketmoaDiscord1`, Discord 웹후크 URL))
 - 실제 사람의 이름·연락처를 쓰는 것. 가짜 데이터는 `010-0000-xxxx`, `@example.com`
 - 응답·로그에 연락처 원문을 남기는 것 (가린 개수는 `security.masked`)
 - `cases/common.json`의 기대 결과를 결과에 맞춰 고치는 것
