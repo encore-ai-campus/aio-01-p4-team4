@@ -50,4 +50,12 @@ flow.COURSE_CREDENTIALS["ticketmoaTeamKey1"] = "ticketmoa-team-key"
 flow.COURSE_CREDENTIALS["ticketmoaDataApi1"] = "ticketmoa-data-api"
 # 장애·긴급 알림의 Discord Webhook Credential (errors·handoff). 웹후크 URL은 이 Credential에만 있다.
 flow.COURSE_CREDENTIALS["ticketmoaDiscord1"] = "ticketmoa-discord"
-sys.exit(flow.main())
+# 수업 원본은 유지하고 팀 시험에서 복구 실패가 후속 시험으로 이어지지 않게 한다.
+from flow_hooks import HookFailure, install_strict_hooks
+
+install_strict_hooks(flow)
+try:
+    sys.exit(flow.main())
+except HookFailure as error:
+    print(f"{flow.BAD} {error}", file=sys.stderr)
+    sys.exit(2)

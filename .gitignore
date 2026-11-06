@@ -2,3 +2,6 @@
 *.key
 node_modules/
 .DS_Store
+backups/
+cache/
+__pycache__/

@@ -77,7 +77,7 @@ WF-11처럼 티켓 API가 지연되면 응답은 `ticket: null`과 DLQ로 끝나
 | 근거 없는 정상 이관 대조 | WF-03 `unregistered_intent`는 `success` | 확인 |
 | 티켓 API 장애 (WF-04) | **`success`로 기록됨.** 사유가 `unregistered_intent`로 남아 장애로 분류되지 않음 | **버그, 위 재시험에서 수정 확인** |
 | 검증 호출 timeout (`verification_timeout`) | 0건 | VM 미확인, 로컬 단위 시험만 |
-| 검증 LLM 장애 (`issues: llm_unavailable`) | 0건 | VM 미확인, 로컬 단위 시험만 |
+| 검증 LLM 장애 (`issues: llm_unavailable`) | 당시 0건. 이후 재시작 측정에서 1건 (`error`, `dependency`, `verification_failed`, 티켓 `T-2057`, `runs/vm/wf01-restart-20261106.json`) | 자연 발생 1건 확인. 실패 원인은 미확인 |
 
 당시 `/tickets-created`는 41건이다. 환불 3단계 시험의 `T-2016`(`refund`), `T-2018`·`T-2019`(`refund_exception`)가 카테고리까지 일치한다. 이 티켓들은 담당 규칙 이전에 만들어져 `title`에 담당이 없다.
 
