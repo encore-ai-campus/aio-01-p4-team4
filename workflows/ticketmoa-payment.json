@@ -38,9 +38,9 @@
         0
       ],
       "parameters": {
-        "jsCode": "\nconst b = $input.first().json.body || {};\nconst record_id = String(b.record_id || '').toUpperCase();\n// 본체는 payment를 2.5초에 끊는다. deadline_ms(남은 ms)가 오면 그만큼, 없으면 2.2초 안에 답한다.\nconst budget = Number(b.deadline_ms) > 0 ? Math.min(Number(b.deadline_ms), 2200) : 2200;\nconst deadline_ms = Date.now() + budget; // 이 워크플로우 안에서는 절대 시각으로 쓴다\nreturn [{ json: { request_id: b.request_id || '', user: String(b.user || ''), record_id, deadline_ms, try_no: 1, valid: /^C-\\d{4}$/.test(record_id) && !!b.user } }];"
+        "jsCode": "const input = $input.first().json || {};\nconst b = input.body && typeof input.body === 'object' ? input.body : {};\nreturn [{ json: {\n  request_id: typeof b.request_id === 'string' ? b.request_id.slice(0, 100) : '',\n  route: '권한 없음',\n  answer: '현재 TicketMoa는 로그인 및 본인 확인 기능을 제공하지 않아 개인별 문의 내역이나 환불·결제 진행 상태를 조회할 수 없습니다. 일반적인 이용 방법과 환불·결제 정책은 안내해 드릴 수 있습니다.',\n  record: null,\n  forbidden: true,\n  personal_lookup_unavailable: true,\n  sources: [],\n  ticket: null,\n} }];"
       },
-      "notes": "【역할】 입력을 정리하고 재시도 상태를 시작한다.\n【입력】 요청 본문.\n【처리】 문의번호 형식(C-0000)만 URL에 넣는다. 다른 값은 조회하지 않는다.\n【출력】 {request_id, user, record_id, deadline_ms, try_no:1, valid}.",
+      "notes": "비로그인 서비스 정책: 개인별 문의·결제 상태 조회를 항상 차단한다. 이 노드에서 데이터 API를 호출하지 않는다.",
       "notesInFlow": false
     },
     {
@@ -289,7 +289,7 @@
       "main": [
         [
           {
-            "node": "형식 정상?",
+            "node": "조회 결과 응답",
             "type": "main",
             "index": 0
           }
