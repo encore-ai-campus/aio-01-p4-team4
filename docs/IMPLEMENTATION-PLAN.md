@@ -9,7 +9,7 @@
 2. **가짜로 끝까지 이어 놓기**: 모든 하위 워크플로우를 "고정된 가짜 답만 돌려주는" 빈 껍데기로 먼저 만들어 본체에 연결한다. 이 시점에 400·차단 시나리오가 통과한다.
 3. **껍데기를 하나씩 진짜로 바꾸기**: 각자 자기 파일만 채운다. 채울 때마다 공통 시나리오를 다시 돌린다.
 4. **예외·보안 붙이기**: 재시도, DLQ, 중복, 권한, 마스킹.
-5. **동결 후 시험과 문서**: 82일차 11시 이후에는 워크플로우를 고치지 않는다.
+5. **동결 후 시험과 문서**: 81일차 8교시에 기능을 동결하고, 82일차 11시 이후에는 워크플로우를 고치지 않는다. 설계서는 80일차부터 초안을 만들어 구현에 맞춰 고친다.
 
 이렇게 하면 다섯 명이 서로 기다리지 않고 동시에 일할 수 있다. 다른 사람 파일이 아직 껍데기여도 내 파일은 시험할 수 있기 때문이다.
 
@@ -46,16 +46,19 @@ route: 자동 답변 | 보완 질문 | 담당자 이관 | 권한 없음 | 차단
 
 | 웹훅 | 받는 것 | 돌려주는 것 | 만드는 사람 |
 | --- | --- | --- | --- |
-| `ticketmoa-agents` | `{request_id, user, question, attempt, context, registry}` | `{intents, entities, sentiment, urgency, confidence, missing}` | B |
-| `ticketmoa-search` | `{query, access_level, top_k}` | `{hits:[{doc, section, score, text}]}` | C |
-| `ticketmoa-tech` (기술 장애·앱·일반 정보) | `{request_id, user, question, urgency, hits}` | `{route, answer, sources, alert}` | C |
-| `ticketmoa-refund` | `{request_id, user, booking_id, context}` | `{route, answer, sources, pending_action}` | B |
-| `ticketmoa-payment` (결제 오류·예매 조회) | `{request_id, user, record_id}` | `{status, record (가림), forbidden}` | D |
-| `ticketmoa-handoff` | `{request_id, user, summary, category, priority}` | `{ticket, duplicate, dlq, alert}` | D |
+| `ticketmoa-agents` | `{request_id, user, question, attempt, context, registry}` | `{intents, entities, sentiment, urgency, confidence, clarity, missing, clarify_question, signals, llm_calls}` | B |
+| `ticketmoa-agents-verify` (답변 검증) | `{question, answer, hits}` | `{ok, issues, llm_calls}` | B |
+| `ticketmoa-search` | `{query, access_level, top_k, scope(선택: 찾을 문서 이름 목록)}` | `{hits:[{doc, section, score, text}]}` | C |
+| `ticketmoa-tech` (기술 장애·앱·일반 정보) | `{request_id, user, question, access_level, urgency, hits}` | `{route, answer, sources, alert}` | C |
+| `ticketmoa-refund` | `{request_id, user, question, access_level, record_id, booking_id, context, deadline_ms}` | `{route, answer, sources, ticket, pending_action}` | B |
+| `ticketmoa-payment` (결제 오류·예매 조회) | `{request_id, user, record_id, deadline_ms(선택)}` | `{status, record (가림), forbidden}` | D |
+| `ticketmoa-handoff` | `{request_id, user, summary, category, priority, alert, deadline_ms}` | `{ticket, duplicate, dlq, alert}` | D |
 
 모든 하위 웹훅은 실패해도 **200 + `{"error": "..."}`** 로 돌려주고, 본체는 HTTP Request에 timeout(예: 5초)을 두고 실패하면 이관으로 간다.
 
-**끝 표시**: 위 표를 다섯 명이 모두 확인 (바꾸면 이 표부터 고친다. 설계서 3절은 구현 뒤 이 표로 쓴다).
+`deadline_ms`는 웹훅마다 뜻이 다르다. `ticketmoa-refund`, `ticketmoa-payment`, `ticketmoa-handoff`에 넘기는 값은 남은 시간(ms)이다. `ticketmoa-tech`는 이 칸을 절대 시각으로 읽으므로, 지금처럼 보내지 않거나 같은 뜻으로 맞춘 뒤 보낸다.
+
+**끝 표시**: 위 표를 다섯 명이 모두 확인 (바꾸면 이 표부터 고치고, 설계서도 이 표에 맞춘다).
 
 ## 2단계 · 가짜로 끝까지 이어 놓기 (80일차 5교시)
 
@@ -78,7 +81,7 @@ route: 자동 답변 | 보완 질문 | 담당자 이관 | 권한 없음 | 차단
 | ③ | 병렬: 검색 + 예매 조회 두 갈래 | 검증 Agent (답이 근거 안에 있는지, 아니면 이관) | `ticketmoa-tech` (QR·앱 트러블슈팅·공연장 FAQ, 긴급 시 대체 입장 + 알림) | `ticketmoa-payment` (본인 건만, 남의 건 403 → 권한 없음) | 81일차 출발점 기록 |
 | ④ | 복합 문의 합치기 (WF-12) | `ticketmoa-refund` (1차 금액 안내 → 2차 확인 시 티켓) | 검색 점수 기준 재서 정하기 | 출력·로그 마스킹 (`masked` 개수) | 팀 시나리오 실행 |
 
-**끝 표시 (81일차 4교시)**: WF-01, 02, 02b, 03, 05, 06, 07, 11, 12 통과.
+**끝 표시 (81일차 4교시 중간 점검)**: WF-01, 02, 02b, 03, 05, 06, 07, 11, 12 통과.
 
 ## 4단계 · 예외와 보안 (81일차 5~7교시)
 
@@ -91,14 +94,14 @@ route: 자동 답변 | 보완 질문 | 담당자 이관 | 권한 없음 | 차단
 | A | 실행 기록 `POST /logs` (개인정보 없이) | — |
 | A·D | 설계서 5~7절 페이로드 표 | — |
 
-**끝 표시 (81일차 8교시 중간 점검)**: 공통 14개 전부 통과 목표. 7개 미만이면 82일차에 가산을 하지 않는다.
+**끝 표시 (81일차 8교시 발표 ②·기능 동결)**: 공통 14개 전부 통과 목표. 7개 미만이면 82일차에 가산을 하지 않는다.
 
 ## 5단계 · 동결·시험·문서 (82일차)
 
 | 시각 | A | B | C | D | E |
 | --- | --- | --- | --- | --- | --- |
 | ~11:00 | 마지막 버그 수정 승인 | 프롬프트 안정화 | 색인 재생성 확인 | 장애 시나리오 재확인 | 전체 시험 `--repeat 3`, `bench` |
-| 11:00~14:50 | README, 최종 병합, `tscan`, **제출** | 설계서 2~4절 | RAG 설계서 (잰 값) | 설계서 5~7절 | 결과서 (실패 사례 2건+) |
+| 11:00~14:50 | README, 최종 병합, `tscan`, **제출** | 설계서 2~4절 마무리 | RAG 설계서 마무리 (잰 값) | 설계서 5~7절 마무리 | 결과서 (실패 사례 2건+) |
 | 14:00~ | 발표 진행 | 시연 보조 | 시연 보조 | 시연 보조 | 시연 (리드 노트북) |
 
 ## 남은 수업을 어디에 쓰나
@@ -124,6 +127,6 @@ tscan staged                               # 4. 커밋 전 비밀 검사
 git add workflows/ticketmoa-<내파일>.json && git commit -m "무엇 · common N/14" && git push
 ```
 
-다른 사람 작업을 내 n8n에서 보려면 `git pull` 후 `uv run tools/flow.py push workflows/*.json`, 색인은 `ticketmoa-index`를 한 번 다시 돌린다.
+다른 사람 작업을 내 n8n에서 보려면 `git pull` 후 `uv run tools/flow.py push workflows/*.json`, 10초 뒤 `uv run --env-file .env tools/reindex.py`로 색인을 다시 돌린다.
 
 > `flow.py`는 저장소의 `tools/flow.py`를 쓴다 (78일차 `flow.py` + `X-Team-Key`). 키는 `.env`의 `TM_TEAM_KEY`로만 (`uv run --env-file .env ...`).

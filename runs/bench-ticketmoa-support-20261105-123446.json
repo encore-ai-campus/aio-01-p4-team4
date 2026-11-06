@@ -1,0 +1,169 @@
+{
+  "webhook": "ticketmoa-support",
+  "request": {
+    "request_id": "wf02",
+    "user": "이도윤",
+    "channel": "web",
+    "question": "어제부터 계속 안 돼요",
+    "attempt": 1
+  },
+  "n": 5,
+  "p50": 1.26,
+  "p95": 1.279,
+  "max": 1.279,
+  "failures": 0,
+  "runs": [
+    {
+      "run": 1,
+      "status": 200,
+      "seconds": 1.279,
+      "response": {
+        "request_id": "wf02",
+        "route": "보완 질문",
+        "answer": "어떤 문제인지 조금 더 알려 주세요. 예: 어떤 화면에서 어떤 메시지가 보이는지, 공연 날짜와 예매 번호.",
+        "sources": [],
+        "ticket": null,
+        "agents": {
+          "used": [
+            "ticketmoa-agents"
+          ],
+          "llm_calls": 1,
+          "intents": [],
+          "confidence": 0.3
+        },
+        "security": {
+          "blocked_by": "",
+          "reason": "",
+          "masked": 0
+        },
+        "timings": {
+          "total_ms": 1172,
+          "agents_ms": 1128
+        },
+        "reason": "low_confidence_or_missing"
+      }
+    },
+    {
+      "run": 2,
+      "status": 200,
+      "seconds": 1.186,
+      "response": {
+        "request_id": "wf02",
+        "route": "보완 질문",
+        "answer": "어떤 문제인지 조금 더 알려 주세요. 예: 어떤 화면에서 어떤 메시지가 보이는지, 공연 날짜와 예매 번호.",
+        "sources": [],
+        "ticket": null,
+        "agents": {
+          "used": [
+            "ticketmoa-agents"
+          ],
+          "llm_calls": 1,
+          "intents": [],
+          "confidence": 0.4
+        },
+        "security": {
+          "blocked_by": "",
+          "reason": "",
+          "masked": 0
+        },
+        "timings": {
+          "total_ms": 1092,
+          "agents_ms": 1044
+        },
+        "reason": "low_confidence_or_missing"
+      }
+    },
+    {
+      "run": 3,
+      "status": 200,
+      "seconds": 1.26,
+      "response": {
+        "request_id": "wf02",
+        "route": "보완 질문",
+        "answer": "어떤 문제인지 조금 더 알려 주세요. 예: 어떤 화면에서 어떤 메시지가 보이는지, 공연 날짜와 예매 번호.",
+        "sources": [],
+        "ticket": null,
+        "agents": {
+          "used": [
+            "ticketmoa-agents"
+          ],
+          "llm_calls": 1,
+          "intents": [],
+          "confidence": 0.3
+        },
+        "security": {
+          "blocked_by": "",
+          "reason": "",
+          "masked": 0
+        },
+        "timings": {
+          "total_ms": 1129,
+          "agents_ms": 1076
+        },
+        "reason": "low_confidence_or_missing"
+      }
+    },
+    {
+      "run": 4,
+      "status": 200,
+      "seconds": 1.134,
+      "response": {
+        "request_id": "wf02",
+        "route": "보완 질문",
+        "answer": "어떤 문제인지 조금 더 알려 주세요. 예: 어떤 화면에서 어떤 메시지가 보이는지, 공연 날짜와 예매 번호.",
+        "sources": [],
+        "ticket": null,
+        "agents": {
+          "used": [
+            "ticketmoa-agents"
+          ],
+          "llm_calls": 1,
+          "intents": [],
+          "confidence": 0.3
+        },
+        "security": {
+          "blocked_by": "",
+          "reason": "",
+          "masked": 0
+        },
+        "timings": {
+          "total_ms": 1002,
+          "agents_ms": 929
+        },
+        "reason": "low_confidence_or_missing"
+      }
+    },
+    {
+      "run": 5,
+      "status": 200,
+      "seconds": 1.263,
+      "response": {
+        "request_id": "wf02",
+        "route": "보완 질문",
+        "answer": "어떤 문제인지 조금 더 알려 주세요. 예: 어떤 화면에서 어떤 메시지가 보이는지, 공연 날짜와 예매 번호.",
+        "sources": [],
+        "ticket": null,
+        "agents": {
+          "used": [
+            "ticketmoa-agents"
+          ],
+          "llm_calls": 1,
+          "intents": [
+            "tech_issue"
+          ],
+          "confidence": 0.6
+        },
+        "security": {
+          "blocked_by": "",
+          "reason": "",
+          "masked": 0
+        },
+        "timings": {
+          "total_ms": 1114,
+          "agents_ms": 1066
+        },
+        "reason": "low_confidence_or_missing"
+      }
+    }
+  ]
+}

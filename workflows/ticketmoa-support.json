@@ -140,13 +140,21 @@
         "url": "http://data-api:8800/employees",
         "options": {
           "timeout": 5000
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "position": [
         220,
         0
       ],
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaDataApi1",
+          "name": "ticketmoa-data-api"
+        }
+      }
     },
     {
       "name": "Check input",
@@ -165,7 +173,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "parameters": {
-        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst ROUTES = {\n  AUTO: '자동 답변',\n  CLARIFY: '보완 질문',\n  HANDOFF: '담당자 이관',\n  FORBIDDEN: '권한 없음',\n  BLOCKED: '차단',\n};\n\nfunction maskPII(text) {\n  let masked = 0;\n  let out = String(text == null ? '' : text);\n  out = out.replace(/\\b(01[016789])[-.\\s]?(\\d{3,4})[-.\\s]?(\\d{4})\\b/g, (_, a, _b, c) => { masked++; return `${a}-****-${c}`; });\n  out = out.replace(/\\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b/g, (_, first, domain) => { masked++; return `${first}***@${domain}`; });\n  return { text: out, masked };\n}\n\nfunction buildResponse(p) {\n  const x = p || {};\n  const m = maskPII(x.answer || '');\n  const security = Object.assign({ blocked_by: '', reason: '', masked: 0 }, x.security || {});\n  security.masked = (security.masked || 0) + m.masked;\n  return {\n    request_id: x.request_id || '',\n    route: x.route || ROUTES.HANDOFF,\n    answer: m.text,\n    sources: Array.isArray(x.sources) ? x.sources.map(s => ({ doc: s.doc, section: s.section, score: s.score })) : [],\n    ticket: x.ticket === undefined ? null : x.ticket,\n    agents: x.agents || {},\n    security,\n    timings: x.timings || {},\n    reason: x.reason || '',\n  };\n}\n// ↑ lib/common.js 복사 끝\n\nconst body = $('Question webhook').first().json.body || {};\nreturn [{ json: buildResponse({\n  request_id: body.request_id,\n  route: ROUTES.BLOCKED,\n  answer: '보안 정책상 처리할 수 없는 요청입니다. 예매·티켓 관련 문의를 다시 남겨 주세요.',\n  sources: [],\n  ticket: null,\n  agents: { used: [], llm_calls: 0 },\n  security: { blocked_by: $json.blocked_by, reason: $json.reason, masked: 0 },\n  timings: { total_ms: Date.now() - $json.started_at },\n  reason: $json.reason,\n}) }];\n"
+        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst ROUTES = {\n  AUTO: '자동 답변',\n  CLARIFY: '보완 질문',\n  HANDOFF: '담당자 이관',\n  FORBIDDEN: '권한 없음',\n  BLOCKED: '차단',\n};\n\nfunction maskPII(text) {\n  let masked = 0;\n  let out = String(text == null ? '' : text);\n  out = out.replace(/\\b(01[016789])[-.\\s]?(\\d{3,4})[-.\\s]?(\\d{4})\\b/g, (_, a, _b, c) => { masked++; return `${a}-****-${c}`; });\n  out = out.replace(/\\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b/g, (_, first, domain) => { masked++; return `${first}***@${domain}`; });\n  return { text: out, masked };\n}\n\nfunction buildResponse(p) {\n  const x = p || {};\n  const m = maskPII(x.answer || '');\n  const security = Object.assign({ blocked_by: '', reason: '', masked: 0 }, x.security || {});\n  security.masked = (security.masked || 0) + m.masked;\n  return {\n    request_id: x.request_id || '',\n    route: x.route || ROUTES.HANDOFF,\n    answer: m.text,\n    sources: Array.isArray(x.sources) ? x.sources.map(s => ({ doc: s.doc, section: s.section, score: s.score })) : [],\n    ticket: x.ticket === undefined ? null : x.ticket,\n    agents: x.agents || {},\n    security,\n    timings: x.timings || {},\n    reason: x.reason || '',\n  };\n}\n// ↑ lib/common.js 복사 끝\n\nconst body = $('Question webhook').first().json.body || {};\nreturn [{ json: buildResponse({\n  request_id: body.request_id,\n  route: ROUTES.BLOCKED,\n  answer: ({\n    geo: '현재 지역에서는 예매할 수 없습니다. 일부 공연은 공연사 요청으로 국내 접속에서만 예매할 수 있습니다. 해외 체류 중이면 [마이페이지 > 해외 예매 인증]에서 본인인증을 마친 뒤 이용해 주세요 (공연마다 허용 여부가 다릅니다). VPN·프록시 접속은 부정 접속으로 판단될 수 있습니다.',\n    ip_blocklist: '부정 접속이 의심되어 이 접속 환경에서는 문의를 처리할 수 없습니다. 본인이라면 고객센터에서 본인 확인 후 해제를 요청해 주세요.',\n    rate_limit: '같은 요청이 짧은 시간에 반복되어 잠시 제한되었습니다. 1분 뒤 다시 시도해 주세요.',\n  })[$json.blocked_by] || '보안 정책상 처리할 수 없는 요청입니다. 예매·티켓 관련 문의를 다시 남겨 주세요.',\n  sources: [],\n  ticket: null,\n  agents: { used: [], llm_calls: 0 },\n  security: { blocked_by: $json.blocked_by, reason: $json.reason, masked: 0 },\n  timings: { total_ms: Date.now() - $json.started_at },\n  reason: $json.reason,\n}) }];\n"
       },
       "position": [
         1320,
@@ -229,7 +237,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "parameters": {
-        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst ROUTES = {\n  AUTO: '자동 답변',\n  CLARIFY: '보완 질문',\n  HANDOFF: '담당자 이관',\n  FORBIDDEN: '권한 없음',\n  BLOCKED: '차단',\n};\n\nconst MAX_ATTEMPT = 3;           // 3회째 보완 질문 대신 이관\n\nconst CONFIDENCE_MIN = 0.7;      // 미만이면 보완 질문\n\nfunction parseAgentJson(raw, required, fallback) {\n  const fb = { ok: false, value: fallback || {} };\n  let obj = raw;\n  if (typeof raw === 'string') {\n    const s = raw.replace(/```(?:json)?/gi, '');\n    const start = s.indexOf('{');\n    const end = s.lastIndexOf('}');\n    if (start < 0 || end <= start) return fb;\n    try { obj = JSON.parse(s.slice(start, end + 1)); } catch (e) { return fb; }\n  }\n  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return fb;\n  for (const k of required || []) if (!(k in obj)) return fb;\n  return { ok: true, value: obj };\n}\n\nfunction decideRoute(cls, req) {\n  const c = cls || {};\n  const attempt = (req && req.attempt) || 1;\n  const intents = c.intents || [];\n  if (intents.includes('human_request')) return { next: 'handoff', reason: 'customer_asked_human' };\n  if (c.sentiment === 'angry') return { next: 'handoff', reason: 'strong_negative_sentiment' };\n  const unsure = !intents.length || (c.confidence || 0) < CONFIDENCE_MIN || (c.missing || []).length > 0;\n  if (unsure) {\n    if (attempt >= MAX_ATTEMPT) return { next: 'handoff', reason: 'clarify_limit_reached' };\n    return { next: 'clarify', reason: 'low_confidence_or_missing' };\n  }\n  return { next: 'handler', reason: '' };\n}\n// ↑ lib/common.js 복사 끝\n\nfunction errText(e) {\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return String(e.message || e.description || JSON.stringify(e)).slice(0, 200);\n}\n// ticketmoa-agents 분류 결과로 갈 곳을 정한다 (규칙만, LLM 없음). 못 읽으면 이관 (fail-closed).\nconst body = $('Question webhook').first().json.body || {};\nconst registry = $('Load registry').first().json.registry;\nconst byId = Object.fromEntries(registry.intents.map((i) => [i.intent_id, i]));\nconst q = String(body.question || '');\nconst raw = $json || {};\nconst agentOut = typeof raw.output === 'string' && !('intents' in raw) ? raw.output : raw;\nconst parsed = raw.error ? { ok: false, value: {} } : parseAgentJson(agentOut, ['intents', 'confidence'], {});\nconst cls = parsed.value;\nconst ent = cls.entities && typeof cls.entities === 'object' ? cls.entities : {};\nconst pick = (re) => ((q.match(re) || [])[0] || '').toUpperCase() || null;\nconst slots = {\n  record_id: ent.record_id || ent.ticket_id || pick(/\\bC-\\d{4}\\b/i),\n  booking_id: ent.booking_id || pick(/\\bT\\d{8}-\\d{4}\\b/i),\n};\nconst intents = (Array.isArray(cls.intents) ? cls.intents : []).map(String).filter((i) => byId[i]);\nconst urgency = cls.urgency === 'high' ? 'high' : 'normal';\nconst base = {\n  intents, slots, urgency, priority: urgency === 'high' ? 'high' : 'normal',\n  category: intents[0] || 'unknown',\n  confidence: typeof cls.confidence === 'number' ? cls.confidence : null,\n  sentiment: cls.sentiment || '',\n  used: ['ticketmoa-agents'],\n  steps: { agents_ms: Date.now() - $('Load registry').first().json.t0 },\n  t_routed: Date.now(),\n  llm_calls: parsed.ok ? (typeof raw.llm_calls === 'number' ? raw.llm_calls : 1) : 0,\n};\n// 환불 2차 확인은 분류 없이 ticketmoa-refund로 보낸다 (Refund confirm?에서 바로 온다). 확정 여부는 refund 규칙이 판단한다.\nconst ctx = body.context && typeof body.context === 'object' ? body.context : {};\nif (ctx.pending_action === 'refund_request' && typeof ctx.confirm === 'boolean') {\n  const confirmSlots = { ...slots, booking_id: String(ctx.booking_id || '').toUpperCase() || slots.booking_id };\n  return [{ json: { ...base, intents: ['refund_request'], slots: confirmSlots, category: 'refund_request', used: [], llm_calls: 0, next: 'refund', reason: '', missing: [], escalate: false } }];\n}\nif (!parsed.ok) {\n  return [{ json: { ...base, next: 'handoff', reason: raw.error ? 'agents_failed' : 'agents_unreadable', agents_error: errText(raw.error), missing: [], escalate: false } }];\n}\n// 레지스트리 required_slots가 비어 있으면 missing에 더한다 (환불은 예매 번호도 인정)\nconst missing = (Array.isArray(cls.missing) ? cls.missing : []).map(String);\nfor (const id of intents) for (const s of byId[id].required_slots || []) {\n  const have = s === 'record_id' ? slots.record_id || (id === 'refund_request' && slots.booking_id) : slots[s];\n  if (!have && !missing.includes(s)) missing.push(s);\n}\n// 뜻은 분명한데 등록 업무가 없는 문의는 되묻지 않는다: 검색과 tech로 보내고, 근거가 없으면 tech가 이관한다 (WF-03)\nconst unmatchedClear = intents.length === 0 && cls.clarity === 'clear' && typeof cls.confidence === 'number' && cls.confidence >= CONFIDENCE_MIN;\nconst d = decideRoute({ ...cls, intents: unmatchedClear ? ['__unmatched'] : intents, missing }, { attempt: Number(body.attempt) || 1 });\nlet next = d.next;\nlet reason = d.reason;\nconst hook = (id) => String(byId[id].handler || '').replace('/webhook/', '');\nconst hooks = intents.map(hook);\nif (next === 'handler') {\n  if (intents.some((i) => byId[i].automation === 'handoff')) { next = 'handoff'; reason = 'registry_handoff'; }\n  else if (hooks.includes('ticketmoa-tech') && intents.includes('booking_lookup')) next = 'tech_lookup';\n  else if (unmatchedClear) next = 'tech';\n  else next = { 'ticketmoa-tech': 'tech', 'ticketmoa-refund': 'refund', 'ticketmoa-payment': 'payment' }[hooks[0]] || 'handoff';\n}\n// 근거를 찾아 함께 이관하는 경우: 당일 취소는 환불 규정 (TM-06), 강한 불만은 해당 업무 문서 (TM-05)\nconst signals = cls.signals && typeof cls.signals === 'object' ? cls.signals : {};\nconst angryScope = [...new Set(intents.flatMap((i) => byId[i].kb_scope || []))];\nlet evidence = null;\nif (intents.includes('refund_request') && signals.show_day === true && next !== 'handoff') {\n  next = 'evidence_handoff'; reason = 'show_day_cancel';\n  evidence = { query: '관람 당일 취소 환불 규정 ', scope: ['refund-policy'], category: 'refund_exception', answer: '관람 당일 취소는 규정상 자동으로 처리하지 않아 상담원에게 넘깁니다.' };\n} else if (reason === 'strong_negative_sentiment' && angryScope.length) {\n  next = 'evidence_handoff';\n  evidence = { query: '', scope: angryScope, category: intents[0], answer: '불편을 드려 죄송합니다. 상담원이 직접 확인하겠습니다.' };\n}\n// 레지스트리 escalate_if: 처리는 하되 끝나면 이관 (티켓 생성)\nconst escalate = intents.some((i) => (byId[i].escalate_if || []).some((r) =>\n  r === 'always' || (r === 'urgency=high' && urgency === 'high') ||\n  (r === 'sentiment=angry' && cls.sentiment === 'angry') || (r === 'appeal_requested' && ent.appeal_requested === true)));\nreturn [{ json: { ...base, category: evidence ? evidence.category : base.category, evidence, next, reason, missing, escalate } }];\n"
+        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst ROUTES = {\n  AUTO: '자동 답변',\n  CLARIFY: '보완 질문',\n  HANDOFF: '담당자 이관',\n  FORBIDDEN: '권한 없음',\n  BLOCKED: '차단',\n};\n\nconst MAX_ATTEMPT = 3;           // 3회째 보완 질문 대신 이관\n\nconst CONFIDENCE_MIN = 0.7;      // 미만이면 보완 질문\n\nfunction parseAgentJson(raw, required, fallback) {\n  const fb = { ok: false, value: fallback || {} };\n  let obj = raw;\n  if (typeof raw === 'string') {\n    const s = raw.replace(/```(?:json)?/gi, '');\n    const start = s.indexOf('{');\n    const end = s.lastIndexOf('}');\n    if (start < 0 || end <= start) return fb;\n    try { obj = JSON.parse(s.slice(start, end + 1)); } catch (e) { return fb; }\n  }\n  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return fb;\n  for (const k of required || []) if (!(k in obj)) return fb;\n  return { ok: true, value: obj };\n}\n\nfunction decideRoute(cls, req) {\n  const c = cls || {};\n  const attempt = (req && req.attempt) || 1;\n  const intents = c.intents || [];\n  if (intents.includes('human_request')) return { next: 'handoff', reason: 'customer_asked_human' };\n  if (c.sentiment === 'angry') return { next: 'handoff', reason: 'strong_negative_sentiment' };\n  if (!intents.length && c.clarity === 'clear' && (c.confidence || 0) >= CONFIDENCE_MIN) return { next: 'handoff', reason: 'unregistered_intent' };\n  const unsure = !intents.length || (c.confidence || 0) < CONFIDENCE_MIN || (c.missing || []).length > 0;\n  if (unsure) {\n    if (attempt >= MAX_ATTEMPT) return { next: 'handoff', reason: 'clarify_limit_reached' };\n    return { next: 'clarify', reason: 'low_confidence_or_missing' };\n  }\n  return { next: 'handler', reason: '' };\n}\n// ↑ lib/common.js 복사 끝\n\nfunction errText(e) {\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return String(e.message || e.description || JSON.stringify(e)).slice(0, 200);\n}\n// ticketmoa-agents 분류 결과로 갈 곳을 정한다 (규칙만, LLM 없음). 못 읽으면 이관 (fail-closed).\nconst body = $('Question webhook').first().json.body || {};\nconst registry = $('Load registry').first().json.registry;\nconst byId = Object.fromEntries(registry.intents.map((i) => [i.intent_id, i]));\nconst q = String(body.question || '');\nconst raw = $json || {};\nconst agentOut = typeof raw.output === 'string' && !('intents' in raw) ? raw.output : raw;\nconst parsed = raw.error ? { ok: false, value: {} } : parseAgentJson(agentOut, ['intents', 'confidence'], {});\nconst cls = parsed.value;\nconst ent = cls.entities && typeof cls.entities === 'object' ? cls.entities : {};\nconst pick = (re) => ((q.match(re) || [])[0] || '').toUpperCase() || null;\nconst slots = {\n  record_id: ent.record_id || ent.ticket_id || pick(/\\bC-\\d{4}\\b/i),\n  booking_id: ent.booking_id || pick(/\\bT\\d{8}-\\d{4}\\b/i),\n};\nconst intents = (Array.isArray(cls.intents) ? cls.intents : []).map(String).filter((i) => byId[i]);\nconst urgency = cls.urgency === 'high' ? 'high' : 'normal';\nconst base = {\n  intents, slots, urgency, priority: urgency === 'high' ? 'high' : 'normal',\n  category: intents[0] || 'unknown',\n  confidence: typeof cls.confidence === 'number' ? cls.confidence : null,\n  sentiment: cls.sentiment || '',\n  used: ['ticketmoa-agents'],\n  steps: { agents_ms: Date.now() - $('Load registry').first().json.t0 },\n  t_routed: Date.now(),\n  llm_calls: parsed.ok ? (typeof raw.llm_calls === 'number' ? raw.llm_calls : 1) : 0,\n};\n// 환불 2차 확인은 분류 없이 ticketmoa-refund로 보낸다 (Refund confirm?에서 바로 온다). 확정 여부는 refund 규칙이 판단한다.\nconst ctx = body.context && typeof body.context === 'object' ? body.context : {};\nif (ctx.pending_action === 'refund_request' && typeof ctx.confirm === 'boolean') {\n  const confirmSlots = { ...slots, booking_id: String(ctx.booking_id || '').toUpperCase() || slots.booking_id };\n  return [{ json: { ...base, intents: ['refund_request'], slots: confirmSlots, category: 'refund_request', used: [], llm_calls: 0, next: 'refund', reason: '', missing: [], escalate: false } }];\n}\nif (!parsed.ok) {\n  return [{ json: { ...base, next: 'handoff', reason: raw.error ? 'agents_failed' : 'agents_unreadable', agents_error: errText(raw.error), missing: [], escalate: false } }];\n}\n// 레지스트리 required_slots가 비어 있으면 missing에 더한다 (환불은 예매 번호도 인정)\nconst missing = (Array.isArray(cls.missing) ? cls.missing : []).map(String);\nfor (const id of intents) for (const s of byId[id].required_slots || []) {\n  const have = s === 'record_id' ? slots.record_id || (id === 'refund_request' && slots.booking_id) : slots[s];\n  if (!have && !missing.includes(s)) missing.push(s);\n}\n// 뜻이 분명해도 등록 업무가 없으면 일반 문서로 추측 답변하지 않고 이관한다. 모델 장애는 위 분기에서 별도 처리한다.\nconst d = decideRoute({ ...cls, intents, missing }, { attempt: Number(body.attempt) || 1 });\nlet next = d.next;\nlet reason = d.reason;\nconst hook = (id) => String(byId[id].handler || '').replace('/webhook/', '');\nconst hooks = intents.map(hook);\nif (next === 'handler') {\n  if (intents.some((i) => byId[i].automation === 'handoff')) { next = 'handoff'; reason = 'registry_handoff'; }\n  else if (hooks.includes('ticketmoa-tech') && intents.includes('booking_lookup')) next = 'tech_lookup';\n  else next = { 'ticketmoa-tech': 'tech', 'ticketmoa-refund': 'refund', 'ticketmoa-payment': 'payment' }[hooks[0]] || 'handoff';\n}\n// 근거를 찾아 함께 이관하는 경우: 당일 취소는 환불 규정 (TM-06), 강한 불만은 해당 업무 문서 (TM-05)\nconst signals = cls.signals && typeof cls.signals === 'object' ? cls.signals : {};\nconst angryScope = [...new Set(intents.flatMap((i) => byId[i].kb_scope || []))];\nlet evidence = null;\nif (intents.includes('refund_request') && signals.show_day === true && next !== 'handoff') {\n  next = 'evidence_handoff'; reason = 'show_day_cancel';\n  evidence = { query: '관람 당일 취소 환불 규정 ', scope: ['refund-policy'], category: 'refund_exception', answer: '관람 당일 취소는 규정상 자동으로 처리하지 않아 상담원에게 넘깁니다.' };\n} else if (reason === 'strong_negative_sentiment' && angryScope.length) {\n  next = 'evidence_handoff';\n  evidence = { query: '', scope: angryScope, category: intents[0], answer: '불편을 드려 죄송합니다. 상담원이 직접 확인하겠습니다.' };\n}\n// 레지스트리 escalate_if: 처리는 하되 끝나면 이관 (티켓 생성)\nconst escalate = intents.some((i) => (byId[i].escalate_if || []).some((r) =>\n  r === 'always' || (r === 'urgency=high' && urgency === 'high') ||\n  (r === 'sentiment=angry' && cls.sentiment === 'angry') || (r === 'appeal_requested' && ent.appeal_requested === true)));\nreturn [{ json: { ...base, category: evidence ? evidence.category : base.category, evidence, next, reason, missing, escalate } }];\n"
       },
       "position": [
         1760,
@@ -459,7 +467,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ query: $('Question webhook').first().json.body.question, access_level: ($('Check input').first().json.user || {}).access_level || 'all', top_k: 4 }) }}",
+        "jsonBody": "={{ JSON.stringify({ query: $('Question webhook').first().json.body.question, access_level: ($('Check input').first().json.user || {}).access_level || 'all', top_k: 4, scope: $('Plan route').first().json.urgency === 'high' ? ['onsite-entry-fallback'] : undefined }) }}",
         "options": {
           "timeout": 5000
         }
@@ -487,7 +495,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ query: $('Question webhook').first().json.body.question, access_level: ($('Check input').first().json.user || {}).access_level || 'all', top_k: 4 }) }}",
+        "jsonBody": "={{ JSON.stringify({ query: $('Question webhook').first().json.body.question, access_level: ($('Check input').first().json.user || {}).access_level || 'all', top_k: 4, scope: $('Plan route').first().json.urgency === 'high' ? ['onsite-entry-fallback'] : undefined }) }}",
         "options": {
           "timeout": 5000
         }
@@ -609,7 +617,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "parameters": {
-        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst ROUTES = {\n  AUTO: '자동 답변',\n  CLARIFY: '보완 질문',\n  HANDOFF: '담당자 이관',\n  FORBIDDEN: '권한 없음',\n  BLOCKED: '차단',\n};\n\nfunction maskPII(text) {\n  let masked = 0;\n  let out = String(text == null ? '' : text);\n  out = out.replace(/\\b(01[016789])[-.\\s]?(\\d{3,4})[-.\\s]?(\\d{4})\\b/g, (_, a, _b, c) => { masked++; return `${a}-****-${c}`; });\n  out = out.replace(/\\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b/g, (_, first, domain) => { masked++; return `${first}***@${domain}`; });\n  return { text: out, masked };\n}\n\nfunction maskDeep(value) {\n  let masked = 0;\n  const walk = v => {\n    if (typeof v === 'string') { const r = maskPII(v); masked += r.masked; return r.text; }\n    if (Array.isArray(v)) return v.map(walk);\n    if (v && typeof v === 'object') { const o = {}; for (const k of Object.keys(v)) o[k] = walk(v[k]); return o; }\n    return v;\n  };\n  return { value: walk(value), masked };\n}\n// ↑ lib/common.js 복사 끝\n\nconst isRoute = (r) => Object.values(ROUTES).includes(r);\nconst num = (v, d) => (typeof v === 'number' && isFinite(v) ? v : d);\n// 예매·문의 조회 결과(ticketmoa-payment)를 고객 답으로 바꾼다. 연락처는 가리고 가린 개수를 센다.\nfunction describeLookup(p, plan) {\n  const id = (plan.slots || {}).record_id || '';\n  if (!p || p.error) return { route: ROUTES.HANDOFF, text: `${id ? `문의 ${id}` : '예매·문의'} 정보를 지금 확인하지 못했습니다.`, masked: 0, reason: 'payment_failed', record: null };\n  if (p.forbidden === true || Number(p.status) === 403) return { route: ROUTES.FORBIDDEN, text: '본인 명의의 예매·문의 건만 확인할 수 있습니다. 예매하신 계정으로 다시 문의해 주세요.', masked: 0, reason: 'not_owner', record: null };\n  const rec = p.record && typeof p.record === 'object' ? p.record : null;\n  if (!rec) return { route: ROUTES.CLARIFY, text: `${id ? `문의 ${id}` : '입력하신 번호'}를 찾지 못했습니다. 번호를 다시 확인해 주세요.`, masked: 0, reason: 'record_not_found', record: null };\n  const m = maskDeep(rec);\n  const r = m.value;\n  const preMasked = (JSON.stringify(rec).match(/\\d{3}-\\*{4}-\\d{4}|\\*\\*\\*@/g) || []).length; // 하위 웹훅이 이미 가린 것\n  const parts = [`문의 ${r.ticket_id || id}(${r.title || '제목 없음'})는 현재 '${r.status || '확인 중'}' 상태입니다.`];\n  if (r.note) parts.push(String(r.note));\n  const q = String(($('Question webhook').first().json.body || {}).question || '');\n  if (r.contact && /연락처|전화|이메일|메일/.test(q)) parts.push(`등록된 연락처: ${[r.contact.phone, r.contact.email].filter(Boolean).join(', ')}`);\n  return { route: ROUTES.AUTO, text: parts.join(' '), masked: m.masked + preMasked, reason: '', record: r };\n}\nfunction errText(e) {\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return String(e.message || e.description || JSON.stringify(e)).slice(0, 200);\n}\nconst plan = $('Plan route').first().json;\nconst ti = $('Tech input').first().json;\nconst r = $json || {};\nconst used = [...plan.used, 'ticketmoa-search', 'ticketmoa-tech'];\nlet llm = plan.llm_calls;\nlet route; let answer; let sources = []; let reason = ''; let masked = 0;\nconst extra = {};\nif (ti.search_error) extra.search_error = ti.search_error;\nif (r.error || typeof r.answer !== 'string' || !r.answer.trim()) {\n  route = ROUTES.HANDOFF; answer = '지금은 안내를 준비하지 못해 담당자에게 넘깁니다.'; reason = (!r.error && r.reason) || 'tech_failed';\n  if (!r.error) llm += num(r.llm_calls, 0);\n  if (r.error) extra.error = errText(r.error);\n} else {\n  route = isRoute(r.route) ? r.route : ROUTES.AUTO; answer = r.answer; reason = r.reason || '';\n  sources = Array.isArray(r.sources) ? r.sources : [];\n  llm += num(r.llm_calls, 1);\n  if (r.alert !== undefined) extra.alert = r.alert;\n}\nif (ti.lookup) {\n  used.push('ticketmoa-payment');\n  const l = describeLookup(ti.lookup, plan);\n  answer += '\\n\\n' + l.text; masked += l.masked;\n  const rank = [ROUTES.AUTO, ROUTES.CLARIFY, ROUTES.FORBIDDEN, ROUTES.HANDOFF];\n  if (rank.indexOf(l.route) > rank.indexOf(route)) route = l.route;\n  if (l.reason && !reason) reason = l.reason;\n}\nconst needs = route === ROUTES.HANDOFF || plan.escalate;\nif (needs) { route = ROUTES.HANDOFF; if (!reason) reason = plan.escalate ? 'registry_escalate' : 'tech_handoff'; }\nconst steps = { ...plan.steps, ...ti.steps, tech_ms: Date.now() - ti.t_tech };\nreturn [{ json: { route, answer, sources, needs_handoff: needs, reason, masked, used, llm_calls: llm, agents_extra: extra, steps } }];\n"
+        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst ROUTES = {\n  AUTO: '자동 답변',\n  CLARIFY: '보완 질문',\n  HANDOFF: '담당자 이관',\n  FORBIDDEN: '권한 없음',\n  BLOCKED: '차단',\n};\n\nfunction maskPII(text) {\n  let masked = 0;\n  let out = String(text == null ? '' : text);\n  out = out.replace(/\\b(01[016789])[-.\\s]?(\\d{3,4})[-.\\s]?(\\d{4})\\b/g, (_, a, _b, c) => { masked++; return `${a}-****-${c}`; });\n  out = out.replace(/\\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b/g, (_, first, domain) => { masked++; return `${first}***@${domain}`; });\n  return { text: out, masked };\n}\n\nfunction maskDeep(value) {\n  let masked = 0;\n  const walk = v => {\n    if (typeof v === 'string') { const r = maskPII(v); masked += r.masked; return r.text; }\n    if (Array.isArray(v)) return v.map(walk);\n    if (v && typeof v === 'object') { const o = {}; for (const k of Object.keys(v)) o[k] = walk(v[k]); return o; }\n    return v;\n  };\n  return { value: walk(value), masked };\n}\n// ↑ lib/common.js 복사 끝\n\nconst isRoute = (r) => Object.values(ROUTES).includes(r);\nconst num = (v, d) => (typeof v === 'number' && isFinite(v) ? v : d);\n// 예매·문의 조회 결과(ticketmoa-payment)를 고객 답으로 바꾼다. 연락처는 가리고 가린 개수를 센다.\nfunction describeLookup(p, plan) {\n  const id = (plan.slots || {}).record_id || '';\n  if (!p || p.error) return { route: ROUTES.HANDOFF, text: `${id ? `문의 ${id}` : '예매·문의'} 정보를 지금 확인하지 못했습니다.`, masked: 0, reason: 'payment_failed', record: null };\n  if (p.forbidden === true || Number(p.status) === 403) return { route: ROUTES.FORBIDDEN, text: '본인 명의의 예매·문의 건만 확인할 수 있습니다. 예매하신 계정으로 다시 문의해 주세요.', masked: 0, reason: 'not_owner', record: null };\n  const rec = p.record && typeof p.record === 'object' ? p.record : null;\n  if (!rec) return { route: ROUTES.CLARIFY, text: `${id ? `문의 ${id}` : '입력하신 번호'}를 찾지 못했습니다. 번호를 다시 확인해 주세요.`, masked: 0, reason: 'record_not_found', record: null };\n  const m = maskDeep(rec);\n  const r = m.value;\n  const preMasked = (JSON.stringify(rec).match(/\\d{3}-\\*{4}-\\d{4}|\\*\\*\\*@/g) || []).length; // 하위 웹훅이 이미 가린 것\n  const parts = [`문의 ${r.ticket_id || id}(${r.title || '제목 없음'})는 현재 '${r.status || '확인 중'}' 상태입니다.`];\n  if (r.note) parts.push(String(r.note));\n  const q = String(($('Question webhook').first().json.body || {}).question || '');\n  if (r.contact && /연락처|전화|이메일|메일/.test(q)) parts.push(`등록된 연락처: ${[r.contact.phone, r.contact.email].filter(Boolean).join(', ')}`);\n  return { route: ROUTES.AUTO, text: parts.join(' '), masked: m.masked + preMasked, reason: '', record: r };\n}\nfunction errText(e) {\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return String(e.message || e.description || JSON.stringify(e)).slice(0, 200);\n}\nconst plan = $('Plan route').first().json;\nconst ti = $('Tech input').first().json;\nconst r = $json || {};\nconst used = [...plan.used, 'ticketmoa-search', 'ticketmoa-tech'];\nlet llm = plan.llm_calls;\nlet route; let answer; let sources = []; let reason = ''; let masked = 0;\nconst extra = {};\nif (Array.isArray(r.issues)) extra.verification_issues = [...new Set(r.issues.filter(x => typeof x === 'string' && /^[a-z][a-z0-9_:-]{0,79}$/.test(x)))].slice(0, 10);\nif (ti.search_error) extra.search_error = ti.search_error;\nif (r.error || typeof r.answer !== 'string' || !r.answer.trim()) {\n  route = ROUTES.HANDOFF; answer = '지금은 안내를 준비하지 못해 담당자에게 넘깁니다.'; reason = (!r.error && r.reason) || 'tech_failed';\n  if (!r.error) llm += num(r.llm_calls, 0);\n  if (r.error) extra.error = errText(r.error);\n} else {\n  route = isRoute(r.route) ? r.route : ROUTES.AUTO; answer = r.answer; reason = r.reason || '';\n  sources = Array.isArray(r.sources) ? r.sources : [];\n  llm += num(r.llm_calls, 1);\n  if (r.alert !== undefined) extra.alert = r.alert;\n}\nif (ti.lookup) {\n  used.push('ticketmoa-payment');\n  const l = describeLookup(ti.lookup, plan);\n  answer += '\\n\\n' + l.text; masked += l.masked;\n  const rank = [ROUTES.AUTO, ROUTES.CLARIFY, ROUTES.FORBIDDEN, ROUTES.HANDOFF];\n  if (rank.indexOf(l.route) > rank.indexOf(route)) route = l.route;\n  if (l.reason && !reason) reason = l.reason;\n}\nconst needs = route === ROUTES.HANDOFF || plan.escalate;\nif (needs) { route = ROUTES.HANDOFF; if (!reason) reason = plan.escalate ? 'registry_escalate' : 'tech_handoff'; }\nconst steps = { ...plan.steps, ...ti.steps, tech_ms: Date.now() - ti.t_tech };\nreturn [{ json: { route, answer, sources, needs_handoff: needs, reason, masked, used, llm_calls: llm, agents_extra: extra, steps } }];\n"
       },
       "position": [
         3300,
@@ -798,7 +806,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "parameters": {
-        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst CHANNELS = ['web', 'app', 'phone', 'kiosk', 'email', 'other'];\n\n/** 승인 목록에 없는 값은 가리지 않고 통째로 other로 바꾼다. 가린 것이 아니므로 security.masked에 세지 않는다. */\nfunction normalizeChannel(channel) {\n  return typeof channel === 'string' && CHANNELS.includes(channel) ? channel : 'other';\n}\n\n/**\n * POST /logs에 보낼 기록. 질문 원문·답변·연락처는 넣지 않는다.\n * @param {object} req   요청 본문\n * @param {object} res   buildResponse 결과\n * @param {object} [extra]  {intents, retries, top_scores, started_at}\n */\nfunction buildLog(req, res, extra) {\n  const e = extra || {};\n  return {\n    request_id: (req && req.request_id) || '',\n    channel: normalizeChannel(req && req.channel),\n    attempt: (req && req.attempt) || 1,\n    route: res.route,\n    intents: e.intents || [],\n    sources: (res.sources || []).map(s => `${s.doc}#${s.section}`),\n    top_scores: e.top_scores || (res.sources || []).map(s => s.score),\n    ticket: res.ticket ? (res.ticket.id || res.ticket.key || true) : null,\n    retries: e.retries || 0,\n    blocked_by: res.security.blocked_by,\n    masked: res.security.masked,\n    timings: res.timings,\n    started_at: e.started_at || '',\n    finished_at: new Date().toISOString(),\n  };\n}\n// ↑ lib/common.js 복사 끝\n\n// 모든 응답이 여기를 지난다: 응답 본문은 그대로 두고, /logs에 남길 한 줄을 만든다.\n// 남기는 것: request_id, route, intents, 하위 웹훅별 시간(steps), llm_calls, ticket 여부, blocked_by (+ 77 보고서가 읽는 status, duration_ms, started_at, tag)\n// 남기지 않는 것: 질문 원문, 답변, 사용자 이름, 연락처\nconst tryJson = (name) => { try { return $(name).first().json; } catch (e) { return null; } };\nconst body = (tryJson('Question webhook') || {}).body || {};\nconst plan = tryJson('Plan route');\nconst started = (tryJson('Check input') || {}).started_at ?? null;\nconst now = Date.now();\nconst invalid = $json.valid === false;\nconst response = invalid ? $json.error : $json;\nconst res = invalid\n  ? { route: null, sources: [], ticket: null, security: { blocked_by: '', masked: 0 }, timings: {} }\n  : response;\nconst { total_ms, ...steps } = res.timings || {};\nconst agents = res.agents || {};\nconst errMsg = [agents.error, agents.search_error, (agents.handoff || {}).error].find(Boolean) || null;\nconst kst = (t) => new Date(t + 9 * 3600000).toISOString().slice(0, 19); // 데이터 API와 같은 한국 시간 형식\nconst log = {\n  workflow: 'ticketmoa-support',\n  execution_id: Number($execution.id),\n  ...buildLog(body, res, { intents: plan ? plan.intents : [], started_at: kst(started ?? now) }),\n  status: invalid ? 'rejected' : (/_failed$/.test(String(res.reason || '')) || errMsg ? 'error' : 'success'),\n  error_message: errMsg ? String(errMsg).slice(0, 120) : null,\n  codes: invalid ? $json.codes : undefined,\n  duration_ms: started ? now - started : null,\n  steps,\n  llm_calls: agents.llm_calls ?? 0,\n  has_ticket: Boolean(res.ticket),\n  tag: typeof body.tag === 'string' ? body.tag : '',\n};\nreturn [{ json: { log, response, status_code: invalid ? 400 : 200 } }];\n"
+        "jsCode": "// ↓ lib/common.js 원문 복사\nconst CHANNELS = ['web', 'app', 'phone', 'kiosk', 'email', 'other'];\n\nfunction normalizeChannel(channel) {\n  return typeof channel === 'string' && CHANNELS.includes(channel) ? channel : 'other';\n}\n\nfunction classifyOutcome(res) {\n  const agents = res.agents || {};\n  const code = x => typeof x === 'string' && /^[a-z][a-z0-9_:-]{0,79}$/.test(x);\n  const reason = code(res.reason) ? res.reason : '';\n  const issues = Array.isArray(agents.verification_issues) ? [...new Set(agents.verification_issues.filter(code))].slice(0, 10) : [];\n  const dependency = /(?:unavailable|timeout|_failed)$/.test(reason) && reason !== 'verification_failed'\n    || issues.some(x => /(?:unavailable|timeout)$/.test(x))\n    || Boolean(agents.error || agents.search_error || (agents.handoff || {}).error);\n  // 이관을 시도했는데 티켓이 없으면 사유와 상관없이 장애다 (WF-04: 사유는 원래 분류값으로 남는다).\n  const ticketMissing = Boolean(agents.handoff) && !res.ticket;\n  const malformed = ['writer_unreadable', 'writer_empty_answer'].includes(reason) || issues.includes('unreadable');\n  const rejected = reason === 'verification_failed';\n  const error = dependency || ticketMissing || malformed || rejected;\n  const failure_kind = dependency || ticketMissing ? 'dependency' : malformed ? 'model_output' : rejected ? (issues.length ? 'verification_rejected' : 'verification_unknown') : reason === 'no_evidence' ? 'no_evidence' : '';\n  return { reason, verification_issues: issues, failure_kind, status: error ? 'error' : 'success', error_message: error ? (ticketMissing ? 'ticket_not_created' : (reason || 'upstream_error')) : null };\n}\n\nfunction buildLog(req, res, extra) {\n  const e = extra || {};\n  return {\n    request_id: (req && req.request_id) || '',\n    channel: normalizeChannel(req && req.channel),\n    attempt: (req && req.attempt) || 1,\n    route: res.route,\n    intents: e.intents || [],\n    sources: (res.sources || []).map(s => `${s.doc}#${s.section}`),\n    top_scores: e.top_scores || (res.sources || []).map(s => s.score),\n    ticket: res.ticket ? (res.ticket.id || res.ticket.key || true) : null,\n    retries: e.retries || 0,\n    blocked_by: res.security.blocked_by,\n    masked: res.security.masked,\n    timings: res.timings,\n    started_at: e.started_at || '',\n    finished_at: new Date().toISOString(),\n    ...classifyOutcome(res),\n  };\n}\n// ↑ lib/common.js 복사 끝\n\n// 모든 응답이 여기를 지난다: 응답 본문은 그대로 두고, /logs에 남길 한 줄을 만든다.\n// 남기는 것: request_id, route, intents, 하위 웹훅별 시간(steps), llm_calls, ticket 여부, blocked_by (+ 77 보고서가 읽는 status, duration_ms, started_at, tag)\n// 남기지 않는 것: 질문 원문, 답변, 사용자 이름, 연락처\nconst tryJson = (name) => { try { return $(name).first().json; } catch (e) { return null; } };\nconst body = (tryJson('Question webhook') || {}).body || {};\nconst plan = tryJson('Plan route');\nconst started = (tryJson('Check input') || {}).started_at ?? null;\nconst now = Date.now();\nconst invalid = $json.valid === false;\nconst response = invalid ? $json.error : $json;\nconst res = invalid\n  ? { route: null, sources: [], ticket: null, security: { blocked_by: '', masked: 0 }, timings: {} }\n  : response;\nconst { total_ms, ...steps } = res.timings || {};\nconst agents = res.agents || {};\nconst kst = (t) => new Date(t + 9 * 3600000).toISOString().slice(0, 19); // 데이터 API와 같은 한국 시간 형식\nconst log = {\n  workflow: 'ticketmoa-support',\n  execution_id: Number($execution.id),\n  ...buildLog(body, res, { intents: plan ? plan.intents : [], started_at: kst(started ?? now) }),\n  ...(invalid ? { status: 'rejected' } : {}),\n  codes: invalid ? $json.codes : undefined,\n  duration_ms: started ? now - started : null,\n  steps,\n  llm_calls: agents.llm_calls ?? 0,\n  has_ticket: Boolean(res.ticket),\n  tag: typeof body.tag === 'string' ? body.tag : '',\n};\nreturn [{ json: { log, response, status_code: invalid ? 400 : 200 } }];\n"
       },
       "position": [
         4620,
@@ -822,14 +830,22 @@
         "method": "POST",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ items: [$json.log] }) }}"
+        "jsonBody": "={{ JSON.stringify({ items: [$json.log] }) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "position": [
         4840,
         0
       ],
       "id": "cc12c3ab-8643-571d-83f4-d27c09dd8e5a",
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaDataApi1",
+          "name": "ticketmoa-data-api"
+        }
+      }
     },
     {
       "name": "Rejected?",
@@ -936,6 +952,132 @@
       "parameters": {
         "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 다시 복사)\nconst ROUTES = {\n  AUTO: '자동 답변',\n  CLARIFY: '보완 질문',\n  HANDOFF: '담당자 이관',\n  FORBIDDEN: '권한 없음',\n  BLOCKED: '차단',\n};\n// ↑ lib/common.js 복사 끝\n\n// 검색이 실패해도 이관은 그대로 간다 (근거만 빠진다)\nconst plan = $('Plan route').first().json;\nconst r = $json || {};\nconst hits = !r.error && Array.isArray(r.hits) ? r.hits : [];\nreturn [{ json: { route: ROUTES.HANDOFF, answer: plan.evidence.answer, sources: hits, needs_handoff: true,\n  reason: plan.reason, masked: 0, used: [...plan.used, 'ticketmoa-search'], llm_calls: plan.llm_calls,\n  agents_extra: r.error ? { search_error: String(r.error.message || r.error).slice(0, 200) } : {},\n  steps: { ...plan.steps, search_ms: Date.now() - plan.t_routed } } }];\n"
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 tools/abuse_guard_apply.py를 다시 돌린다)\nconst RATE_LIMIT = { max: 5, windowSeconds: 60 }; // 같은 사용자·같은 질문이 60초에 5건 넘으면 차단\n\n/**\n * 반복 요청을 세는 캐시 키. 같은 사용자가 같은 질문을 되풀이하는 것(매크로)만 센다.\n * 사용자 단위로만 세면 공통 시나리오(김하늘 유효 요청 5건)와 시연에서 정상 문의까지 막힌다.\n * 질문 원문은 키에 남기지 않고 공백을 정리한 앞 100자의 FNV-1a 해시만 쓴다.\n * @param {string} user\n * @param {string} question\n * @returns {string} 예: \"ratelimit:박서준:1a2b3c4d\"\n */\nfunction rateLimitKey(user, question) {\n  const q = String(question == null ? '' : question).replace(/\\s+/g, ' ').trim().toLowerCase().slice(0, 100);\n  let h = 0x811c9dc5;\n  for (let i = 0; i < q.length; i++) {\n    h ^= q.charCodeAt(i);\n    h = Math.imul(h, 0x01000193) >>> 0;\n  }\n  return `ratelimit:${String(user || '')}:${h.toString(16).padStart(8, '0')}`;\n}\n\n/**\n * 최근 요청 목록으로 차단 여부를 정한다.\n * 목록은 데이터 API /cache/<rateLimitKey>에 저장하고, 돌려준 recent를 다시 저장한다.\n * requestId를 주면 같은 request_id는 한 번만 센다 (--repeat·bench·재전송은 같은 본문을 다시 보낸다).\n * @param {Array<string|{at:string,rid:string}>} recent  이전 요청 (ISO 문자열 또는 {at, rid}, 없으면 [])\n * @param {Date} [now]\n * @param {string} [requestId]\n * @returns {{blocked:boolean, recent:Array, count:number, reason:string}}\n * blocked면 LLM을 부르지 않고 route \"차단\", security.blocked_by \"rate_limit\".\n */\nfunction checkRateLimit(recent, now, requestId) {\n  const t = now || new Date();\n  const from = t.getTime() - RATE_LIMIT.windowSeconds * 1000;\n  const at = x => new Date(x && typeof x === 'object' ? x.at : x).getTime();\n  const kept = (Array.isArray(recent) ? recent : []).filter(x => at(x) > from);\n  const seen = requestId && kept.some(x => x && typeof x === 'object' && x.rid === requestId);\n  if (!seen) kept.push(requestId ? { at: t.toISOString(), rid: String(requestId) } : t.toISOString());\n  const blocked = kept.length > RATE_LIMIT.max;\n  return { blocked, recent: kept, count: kept.length, reason: blocked ? 'too_many_requests' : '' };\n}\n\n// ---------------------------------------------------------------------------\n// 13. 가상 IP 차단 (해외 접속·블랙리스트, 가산) · TM-10, TM-11\n// ---------------------------------------------------------------------------\n\n/**\n * 요청 context.client_ip를 config/ip-policy.json으로 검사한다.\n * IP가 없으면(수업 환경의 일반 요청) 통과시킨다.\n * @param {string} ip\n * @param {{geo:Array<{prefix:string,country:string}>, allowed_countries:string[], blocklist:string[], blocklist_reason:object}} policy\n * @returns {{blocked:boolean, blocked_by:string, reason:string, country:string}}\n * blocked면 LLM을 부르지 않고 route \"차단\". 해외 차단 안내는 fair-booking-policy 3절 문구를 쓴다.\n */\nfunction checkIpPolicy(ip, policy) {\n  const p = policy || {};\n  if (!ip) return { blocked: false, blocked_by: '', reason: '', country: '' };\n  if ((p.blocklist || []).includes(ip)) {\n    return { blocked: true, blocked_by: 'ip_blocklist', reason: (p.blocklist_reason || {})[ip] || 'blocklisted', country: '' };\n  }\n  const hit = (p.geo || []).find(g => ip.startsWith(g.prefix));\n  const country = hit ? hit.country : 'UNKNOWN';\n  if (!(p.allowed_countries || []).includes(country)) {\n    return { blocked: true, blocked_by: 'geo', reason: 'country_not_allowed', country };\n  }\n  return { blocked: false, blocked_by: '', reason: '', country };\n}\n// ↑ lib/common.js 복사 끝\n\n// config/ip-policy.json 복사본 (가상 IP 정책, RFC 5737 대역). 정책을 고치면 이 노드도 다시 만든다.\nconst IP_POLICY = {\n  \"_note\": \"가상 IP 정책 (시연용). IP는 문서·시험용으로 예약된 대역(RFC 5737)만 써서 실제 사용자와 겹치지 않는다.\",\n  \"geo\": [\n    {\n      \"prefix\": \"203.0.113.\",\n      \"country\": \"KR\"\n    },\n    {\n      \"prefix\": \"198.51.100.\",\n      \"country\": \"US\"\n    },\n    {\n      \"prefix\": \"192.0.2.\",\n      \"country\": \"CN\"\n    }\n  ],\n  \"allowed_countries\": [\n    \"KR\"\n  ],\n  \"blocklist\": [\n    \"203.0.113.66\",\n    \"203.0.113.99\"\n  ],\n  \"blocklist_reason\": {\n    \"203.0.113.66\": \"macro_detected\",\n    \"203.0.113.99\": \"scalping_reported\"\n  }\n};\n\n// 가산 TM-10·11: context.client_ip가 있으면 가상 IP 정책으로 검사 (없으면 통과). LLM 앞.\n// TM-09용 반복 요청 키도 여기서 만든다 (사용자 + 질문 해시, 질문 원문은 남기지 않음).\nconst body = $('Question webhook').first().json.body || {};\nconst ctx = body.context && typeof body.context === 'object' ? body.context : {};\nconst ip = checkIpPolicy(String(ctx.client_ip || '').trim(), IP_POLICY);\nreturn [{ json: {\n  ip_blocked: ip.blocked,\n  blocked_by: ip.blocked_by,\n  reason: ip.reason,\n  country: ip.country,\n  rate_key: rateLimitKey(body.user, body.question),\n  started_at: $json.started_at,\n} }];\n"
+      },
+      "name": "Abuse rules",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        220
+      ],
+      "id": "22dd4550-f369-534b-8903-cbf43434e842"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'http://data-api:8800/cache/' + encodeURIComponent($json.rate_key) }}",
+        "options": {
+          "timeout": 1000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "name": "Get rate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1260,
+        220
+      ],
+      "onError": "continueErrorOutput",
+      "id": "b56d0a9a-bbdb-59c8-970d-a8dbef085c56",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaDataApi1",
+          "name": "ticketmoa-data-api"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ↓ lib/common.js에서 그대로 복사 (고치려면 lib/common.js를 고치고 tools/abuse_guard_apply.py를 다시 돌린다)\nconst RATE_LIMIT = { max: 5, windowSeconds: 60 }; // 같은 사용자·같은 질문이 60초에 5건 넘으면 차단\n\n/**\n * 반복 요청을 세는 캐시 키. 같은 사용자가 같은 질문을 되풀이하는 것(매크로)만 센다.\n * 사용자 단위로만 세면 공통 시나리오(김하늘 유효 요청 5건)와 시연에서 정상 문의까지 막힌다.\n * 질문 원문은 키에 남기지 않고 공백을 정리한 앞 100자의 FNV-1a 해시만 쓴다.\n * @param {string} user\n * @param {string} question\n * @returns {string} 예: \"ratelimit:박서준:1a2b3c4d\"\n */\nfunction rateLimitKey(user, question) {\n  const q = String(question == null ? '' : question).replace(/\\s+/g, ' ').trim().toLowerCase().slice(0, 100);\n  let h = 0x811c9dc5;\n  for (let i = 0; i < q.length; i++) {\n    h ^= q.charCodeAt(i);\n    h = Math.imul(h, 0x01000193) >>> 0;\n  }\n  return `ratelimit:${String(user || '')}:${h.toString(16).padStart(8, '0')}`;\n}\n\n/**\n * 최근 요청 목록으로 차단 여부를 정한다.\n * 목록은 데이터 API /cache/<rateLimitKey>에 저장하고, 돌려준 recent를 다시 저장한다.\n * requestId를 주면 같은 request_id는 한 번만 센다 (--repeat·bench·재전송은 같은 본문을 다시 보낸다).\n * @param {Array<string|{at:string,rid:string}>} recent  이전 요청 (ISO 문자열 또는 {at, rid}, 없으면 [])\n * @param {Date} [now]\n * @param {string} [requestId]\n * @returns {{blocked:boolean, recent:Array, count:number, reason:string}}\n * blocked면 LLM을 부르지 않고 route \"차단\", security.blocked_by \"rate_limit\".\n */\nfunction checkRateLimit(recent, now, requestId) {\n  const t = now || new Date();\n  const from = t.getTime() - RATE_LIMIT.windowSeconds * 1000;\n  const at = x => new Date(x && typeof x === 'object' ? x.at : x).getTime();\n  const kept = (Array.isArray(recent) ? recent : []).filter(x => at(x) > from);\n  const seen = requestId && kept.some(x => x && typeof x === 'object' && x.rid === requestId);\n  if (!seen) kept.push(requestId ? { at: t.toISOString(), rid: String(requestId) } : t.toISOString());\n  const blocked = kept.length > RATE_LIMIT.max;\n  return { blocked, recent: kept, count: kept.length, reason: blocked ? 'too_many_requests' : '' };\n}\n\n// ---------------------------------------------------------------------------\n// 13. 가상 IP 차단 (해외 접속·블랙리스트, 가산) · TM-10, TM-11\n// ---------------------------------------------------------------------------\n\n/**\n * 요청 context.client_ip를 config/ip-policy.json으로 검사한다.\n * IP가 없으면(수업 환경의 일반 요청) 통과시킨다.\n * @param {string} ip\n * @param {{geo:Array<{prefix:string,country:string}>, allowed_countries:string[], blocklist:string[], blocklist_reason:object}} policy\n * @returns {{blocked:boolean, blocked_by:string, reason:string, country:string}}\n * blocked면 LLM을 부르지 않고 route \"차단\". 해외 차단 안내는 fair-booking-policy 3절 문구를 쓴다.\n */\nfunction checkIpPolicy(ip, policy) {\n  const p = policy || {};\n  if (!ip) return { blocked: false, blocked_by: '', reason: '', country: '' };\n  if ((p.blocklist || []).includes(ip)) {\n    return { blocked: true, blocked_by: 'ip_blocklist', reason: (p.blocklist_reason || {})[ip] || 'blocklisted', country: '' };\n  }\n  const hit = (p.geo || []).find(g => ip.startsWith(g.prefix));\n  const country = hit ? hit.country : 'UNKNOWN';\n  if (!(p.allowed_countries || []).includes(country)) {\n    return { blocked: true, blocked_by: 'geo', reason: 'country_not_allowed', country };\n  }\n  return { blocked: false, blocked_by: '', reason: '', country };\n}\n// ↑ lib/common.js 복사 끝\n\n// 가산 TM-09: 같은 사용자·같은 질문이 60초에 6번째면 차단. 같은 request_id는 한 번만 센다.\n// /cache 조회가 실패하면(데이터 API 문제) 막지 않고 통과시킨다 (fail-open).\nconst a = $('Abuse rules').first().json;\nconst base = { rate_key: a.rate_key, started_at: a.started_at, country: a.country };\nif (a.ip_blocked) return [{ json: { ...base, blocked: true, blocked_by: a.blocked_by, reason: a.reason, recent: [] } }];\nconst res = $input.first().json || {};\nconst status = typeof res.statusCode === 'number' ? res.statusCode : null;\nif (status !== 200 && status !== 404) {\n  return [{ json: { ...base, blocked: false, blocked_by: '', reason: '', recent: [], rate_check: 'cache_unavailable' } }];\n}\nconst prev = status === 200 && res.body && Array.isArray(res.body.value) ? res.body.value : [];\nconst body = $('Question webhook').first().json.body || {};\nconst r = checkRateLimit(prev, new Date(), body.request_id);\nreturn [{ json: { ...base, blocked: r.blocked, blocked_by: r.blocked ? 'rate_limit' : '', reason: r.reason,\n  recent: r.recent, count: r.count } }];\n"
+      },
+      "name": "Rate check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        220
+      ],
+      "id": "a87ee544-66fb-562f-a498-1bbf4dce9a44"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "abuse1",
+              "leftValue": "={{ $json.blocked }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Abuse blocked?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1580,
+        220
+      ],
+      "id": "efa830a4-e5d4-55d3-b944-9605ad0a4c99"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'http://data-api:8800/cache/' + encodeURIComponent($json.rate_key) }}",
+        "options": {
+          "timeout": 1000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ value: $json.recent, ttl: 120 }) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "name": "Save rate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1740,
+        340
+      ],
+      "onError": "continueErrorOutput",
+      "id": "c9eb2677-c475-55f8-94f3-be44e0bde2e1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ticketmoaDataApi1",
+          "name": "ticketmoa-data-api"
+        }
+      }
     }
   ],
   "connections": {
@@ -1030,7 +1172,7 @@
         ],
         [
           {
-            "node": "Load registry",
+            "node": "Abuse rules",
             "type": "main",
             "index": 0
           }
@@ -1515,9 +1657,86 @@
           }
         ]
       ]
+    },
+    "Abuse rules": {
+      "main": [
+        [
+          {
+            "node": "Get rate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get rate": {
+      "main": [
+        [
+          {
+            "node": "Rate check",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rate check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rate check": {
+      "main": [
+        [
+          {
+            "node": "Abuse blocked?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abuse blocked?": {
+      "main": [
+        [
+          {
+            "node": "Blocked answer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save rate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save rate": {
+      "main": [
+        [
+          {
+            "node": "Load registry",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Load registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "errorWorkflow": "ticketmoaErrors01"
   }
 }

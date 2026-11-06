@@ -1,0 +1,306 @@
+{
+  "webhook": "ticketmoa-support",
+  "request": {
+    "request_id": "wf01",
+    "user": "김하늘",
+    "channel": "web",
+    "question": "모바일티켓 QR이 회색으로만 나오고 안 떠요. 어떻게 해야 하나요?"
+  },
+  "n": 5,
+  "p50": 5.452,
+  "p95": 6.0,
+  "max": 6.0,
+  "failures": 0,
+  "runs": [
+    {
+      "run": 1,
+      "status": 200,
+      "seconds": 5.095,
+      "response": {
+        "request_id": "wf01",
+        "route": "자동 답변",
+        "answer": "모바일티켓 QR이 회색으로 보일 때는 앱을 최신 버전으로 업데이트하고, 와이파이와 모바일 데이터를 바꿔가며 마이티켓을 새로고침해 보세요. 로그아웃 후 다시 로그인하고, 휴대폰 시간이 자동 설정인지 확인하는 것도 중요합니다. 시간이 5분 이상 어긋나면 QR이 회색으로 표시될 수 있습니다. 만약 공연 시작 30분 이내라면 현장 발권 창구로 가시기 바랍니다.",
+        "sources": [
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "2. QR이 안 뜨거나 회색으로 보일 때",
+            "score": 0.63
+          },
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "3. 입장 게이트에서 인식되지 않을 때",
+            "score": 0.533
+          },
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "1. 모바일티켓이 열리는 시점",
+            "score": 0.512
+          },
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "4. 상담원 연결이 필요한 경우",
+            "score": 0.491
+          }
+        ],
+        "ticket": null,
+        "agents": {
+          "used": [
+            "ticketmoa-agents",
+            "ticketmoa-search",
+            "ticketmoa-tech"
+          ],
+          "llm_calls": 3,
+          "intents": [
+            "tech_issue"
+          ],
+          "confidence": 0.95,
+          "alert": null
+        },
+        "security": {
+          "blocked_by": "",
+          "reason": "",
+          "masked": 0
+        },
+        "timings": {
+          "total_ms": 4943,
+          "agents_ms": 1386,
+          "search_ms": 316,
+          "tech_ms": 3199
+        },
+        "reason": ""
+      }
+    },
+    {
+      "run": 2,
+      "status": 200,
+      "seconds": 6.0,
+      "response": {
+        "request_id": "wf01",
+        "route": "자동 답변",
+        "answer": "모바일티켓 QR이 회색으로 보일 때는 앱을 최신 버전으로 업데이트하고, 와이파이와 모바일 데이터를 바꿔가며 마이티켓을 새로고침해 보세요. 로그아웃 후 다시 로그인하고, 휴대폰 시간이 자동 설정인지 확인하는 것도 중요합니다. 시간이 5분 이상 어긋나면 QR이 회색으로 표시될 수 있습니다. 위 방법으로 해결되지 않고 공연 시작 30분 이내라면 현장 발권 창구를 이용하시기 바랍니다.",
+        "sources": [
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "2. QR이 안 뜨거나 회색으로 보일 때",
+            "score": 0.63
+          },
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "3. 입장 게이트에서 인식되지 않을 때",
+            "score": 0.533
+          },
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "1. 모바일티켓이 열리는 시점",
+            "score": 0.512
+          },
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "4. 상담원 연결이 필요한 경우",
+            "score": 0.491
+          }
+        ],
+        "ticket": null,
+        "agents": {
+          "used": [
+            "ticketmoa-agents",
+            "ticketmoa-search",
+            "ticketmoa-tech"
+          ],
+          "llm_calls": 3,
+          "intents": [
+            "tech_issue"
+          ],
+          "confidence": 0.95,
+          "alert": null
+        },
+        "security": {
+          "blocked_by": "",
+          "reason": "",
+          "masked": 0
+        },
+        "timings": {
+          "total_ms": 5891,
+          "agents_ms": 1709,
+          "search_ms": 363,
+          "tech_ms": 3782
+        },
+        "reason": ""
+      }
+    },
+    {
+      "run": 3,
+      "status": 200,
+      "seconds": 5.452,
+      "response": {
+        "request_id": "wf01",
+        "route": "자동 답변",
+        "answer": "모바일티켓 QR이 회색으로 보일 때는 앱을 최신 버전으로 업데이트하고, 와이파이와 모바일 데이터를 바꿔가며 마이티켓을 새로고침해 보세요. 로그아웃 후 다시 로그인하고, 휴대폰 시간이 자동 설정인지 확인하는 것도 중요합니다. 시간이 5분 이상 어긋나면 QR이 회색으로 표시될 수 있습니다. 위 방법으로 해결되지 않고 공연 시작 30분 이내라면 현장 발권 창구를 이용하시기 바랍니다.",
+        "sources": [
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "2. QR이 안 뜨거나 회색으로 보일 때",
+            "score": 0.63
+          },
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "3. 입장 게이트에서 인식되지 않을 때",
+            "score": 0.533
+          },
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "1. 모바일티켓이 열리는 시점",
+            "score": 0.512
+          },
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "4. 상담원 연결이 필요한 경우",
+            "score": 0.491
+          }
+        ],
+        "ticket": null,
+        "agents": {
+          "used": [
+            "ticketmoa-agents",
+            "ticketmoa-search",
+            "ticketmoa-tech"
+          ],
+          "llm_calls": 3,
+          "intents": [
+            "tech_issue"
+          ],
+          "confidence": 0.95,
+          "alert": null
+        },
+        "security": {
+          "blocked_by": "",
+          "reason": "",
+          "masked": 0
+        },
+        "timings": {
+          "total_ms": 5326,
+          "agents_ms": 1476,
+          "search_ms": 286,
+          "tech_ms": 3530
+        },
+        "reason": ""
+      }
+    },
+    {
+      "run": 4,
+      "status": 200,
+      "seconds": 5.271,
+      "response": {
+        "request_id": "wf01",
+        "route": "자동 답변",
+        "answer": "모바일티켓 QR이 회색으로 보일 때는 앱을 최신 버전으로 업데이트하고, 와이파이와 모바일 데이터를 바꿔가며 마이티켓을 새로고침해 보세요. 로그아웃 후 다시 로그인하고, 휴대폰 시간이 자동 설정인지 확인하는 것도 중요합니다. 시간이 5분 이상 어긋나면 QR이 회색으로 표시될 수 있습니다. 만약 공연 시작 30분 이내라면 현장 발권 창구를 이용하시기 바랍니다.",
+        "sources": [
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "2. QR이 안 뜨거나 회색으로 보일 때",
+            "score": 0.63
+          },
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "3. 입장 게이트에서 인식되지 않을 때",
+            "score": 0.533
+          },
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "1. 모바일티켓이 열리는 시점",
+            "score": 0.512
+          },
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "4. 상담원 연결이 필요한 경우",
+            "score": 0.491
+          }
+        ],
+        "ticket": null,
+        "agents": {
+          "used": [
+            "ticketmoa-agents",
+            "ticketmoa-search",
+            "ticketmoa-tech"
+          ],
+          "llm_calls": 3,
+          "intents": [
+            "tech_issue"
+          ],
+          "confidence": 0.95,
+          "alert": null
+        },
+        "security": {
+          "blocked_by": "",
+          "reason": "",
+          "masked": 0
+        },
+        "timings": {
+          "total_ms": 5153,
+          "agents_ms": 1669,
+          "search_ms": 349,
+          "tech_ms": 3102
+        },
+        "reason": ""
+      }
+    },
+    {
+      "run": 5,
+      "status": 200,
+      "seconds": 5.915,
+      "response": {
+        "request_id": "wf01",
+        "route": "자동 답변",
+        "answer": "모바일티켓 QR이 회색으로 보일 때는 앱을 최신 버전으로 업데이트하고, 와이파이와 모바일 데이터를 바꿔가며 마이티켓을 새로고침해 보세요. 로그아웃 후 다시 로그인하고, 휴대폰 시간이 자동 설정인지 확인하는 것도 중요합니다. 시간이 5분 이상 어긋나면 QR이 회색으로 표시될 수 있습니다. 만약 공연 시작 30분 이내라면 현장 발권 창구로 가시기 바랍니다.",
+        "sources": [
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "2. QR이 안 뜨거나 회색으로 보일 때",
+            "score": 0.63
+          },
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "3. 입장 게이트에서 인식되지 않을 때",
+            "score": 0.533
+          },
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "1. 모바일티켓이 열리는 시점",
+            "score": 0.512
+          },
+          {
+            "doc": "mobile-ticket-troubleshooting",
+            "section": "4. 상담원 연결이 필요한 경우",
+            "score": 0.491
+          }
+        ],
+        "ticket": null,
+        "agents": {
+          "used": [
+            "ticketmoa-agents",
+            "ticketmoa-search",
+            "ticketmoa-tech"
+          ],
+          "llm_calls": 3,
+          "intents": [
+            "tech_issue"
+          ],
+          "confidence": 0.95,
+          "alert": null
+        },
+        "security": {
+          "blocked_by": "",
+          "reason": "",
+          "masked": 0
+        },
+        "timings": {
+          "total_ms": 5802,
+          "agents_ms": 1969,
+          "search_ms": 372,
+          "tech_ms": 3421
+        },
+        "reason": ""
+      }
+    }
+  ]
+}
