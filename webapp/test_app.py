@@ -46,7 +46,7 @@ class RequestTest(unittest.TestCase):
 
 class MaskTest(unittest.TestCase):
     def test_phone_and_email(self):
-        out = mask_deep({"q": "연락처 010-1234-5678, kim@example.com", "n": [1, "01098765432"]})
+        out = mask_deep({"q": "연락처 010-0000-5678, kim@example.com", "n": [1, "01000005432"]})
         self.assertEqual(out["q"], "연락처 010-****-5678, k***@example.com")
         self.assertEqual(out["n"], [1, "010-****-5432"])
 
@@ -57,7 +57,7 @@ class ChatLogTest(unittest.TestCase):
 
     def test_add_since_get_and_reload(self):
         log = ChatLog(self.path)
-        log.add({"request_id": "r1", "question": "제 번호 010-1111-2222"}, 200, {"route": "자동 답변"}, 10)
+        log.add({"request_id": "r1", "question": "제 번호 010-0000-2222"}, 200, {"route": "자동 답변"}, 10)
         log.add({"request_id": "r2", "question": "b"}, 200, {"route": "차단"}, 5)
         items, last = log.since(1)
         self.assertEqual((last, [i["request"]["request_id"] for i in items]), (2, ["r2"]))
