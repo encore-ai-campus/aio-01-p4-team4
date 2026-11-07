@@ -132,7 +132,7 @@ flowchart TD
 | 보안 시나리오 (`cases/security-permissions.json`) 1회 | 8/8 |
 | 정상 문의 `bench -n 5` | p50 5.64초, p95 6.06초, 실패 0/5 |
 
-- **WF-01:** 재시작 후 첫 호출이 이번 회차는 8.0초로 기준(8초)을 넘어 실패했습니다. 이전 회차는 9.9초, 7.4초, 7.9초였고 간헐 지연은 미결입니다.
+- **WF-01:** 재시작 후 첫 호출이 이번 회차는 8.0초로 기준(8초)을 넘어 실패했습니다(예열 없음). 이전 회차는 9.9초, 7.4초, 7.9초였습니다. 재시작 뒤 `tools/demo.py --warm`으로 예열하면 첫 호출 지연은 사라지지만(측정 4.80~5.76초) 모델 응답 변동은 남아 간헐 지연은 미결입니다.
 - **사칭:** 로그인이 없어 요청의 `user`는 본인 확인이 아닙니다. 내 이름으로 남의 건은 볼 수 없지만, 다른 사람 이름을 입력하면 그 사람의 건이 조회됩니다(가짜 데이터, 연락처는 가림).
 - **재색인 직후:** 첫 공개 검색이 `index_unavailable`일 수 있어, 재색인 뒤 잠시 기다렸다가 시연합니다.
 
@@ -214,14 +214,14 @@ ssh -o BatchMode=yes aio-t4 "whoami"   # toor가 나오면 서버 접속 준비 
 
 ```powershell
 scp workflows/<내 파일>.json aio-t4:~/aio-01-p4-team4/workflows/
-ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py check workflows/<내 파일>.json && uv run tools/flow.py push workflows/<내 파일>.json && sleep 10 && uv run --env-file .env tools/reindex.py'"
+ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py check workflows/<내 파일>.json && uv run tools/flow.py push workflows/<내 파일>.json && sleep 10 && uv run --env-file .env tools/reindex.py && sleep 5 && uv run --env-file .env tools/demo.py --warm'"
 ```
 
 전체 배포는 리드가 `main` 기준으로 한다.
 
 ```powershell
 scp -r workflows knowledge data cases config lib requests tools aio-t4:~/aio-01-p4-team4/
-ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py push workflows/*.json && sleep 10 && uv run --env-file .env tools/reindex.py'"
+ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py push workflows/*.json && sleep 10 && uv run --env-file .env tools/reindex.py && sleep 5 && uv run --env-file .env tools/demo.py --warm'"
 ```
 
 - **`push`는 공용 n8n을 다시 켠다.** 한 사람이 올려도 팀 전체의 실행이 끊기고, In-Memory 색인이 사라질 수 있다. 그래서 올리기 전에 팀 채팅에 알리고, 올린 뒤에는 `tools/reindex.py`로 색인을 다시 돌린다. 이 스크립트는 OpenAI 임베딩을 호출한다.
@@ -256,7 +256,7 @@ GitHub에서 `test`로 PR을 열면 리드가 검토하고 병합한다. 리드�
 ```bash
 uv run tools/flow.py push workflows/*.json
 sleep 10
-uv run --env-file .env tools/reindex.py
+uv run --env-file .env tools/reindex.py && sleep 5 && uv run --env-file .env tools/demo.py --warm
 uv run --env-file .env tools/flow.py test cases/common.json --webhook ticketmoa-support -v
 uv run --env-file .env tools/flow.py test cases/team.json -v
 ```
@@ -307,7 +307,7 @@ curl -s -X POST http://localhost:8800/logs-reset     # 시험 전에 비우기
 
 ```bash
 cd ~/aio-01-p4-team4
-uv run --env-file .env tools/demo.py --warm    # 시연 전 예열. 쉬고 난 뒤 첫 요청은 느리거나 이관될 수 있다
+uv run --env-file .env tools/demo.py --warm    # 시연 전 예열. 재시작 뒤 첫 호출의 지연을 예열 호출이 대신 낸다. 쉬고 난 뒤 첫 요청도 느리거나 이관될 수 있다
 uv run --env-file .env tools/demo.py --pause   # 전체, 단계마다 Enter
 ```
 
