@@ -47,9 +47,11 @@
 - 환불 확정이나 결제 취소처럼 돈이 움직이는 처리: 에이전트가 실행하지 않고, 고객 확정 뒤 상담원에게 넘깁니다.
 - 환불 예정액 30만원 초과, 관람일 전날 17시 이후, 공연 당일 취소 요청
 - 강한 부정 감정, 상담원 연결을 직접 요청한 경우
-- 현장 스태프 전용 절차를 묻는 일반 고객 질문: `staff-entry-manual`은 `access_level`이 `staff`인 사용자만 검색합니다.
+- 현장 스태프 전용 절차를 묻는 요청: 로그인이 없어 직원을 증명할 수 없으므로 `staff-entry-manual`은 누구도 검색하지 못합니다. 담당자에게 넘깁니다.
 
 ## 전체 흐름
+
+> **현재 구현과 다른 부분:** 이 절의 그림과 `환불 2단계`, 위 표의 예매 조회·결제·환불 처리는 개인 조회 차단 전 흐름입니다. 지금은 개인 조회와 개인별 환불을 제공하지 않고 `권한 없음`으로 답하며, 일반 환불 규정만 안내합니다. 수업 기준과 충돌해 강사 확인 중이고, 답을 받은 뒤 고칩니다. 현재 노드 흐름은 [워크플로우 설계서](docs/WORKFLOW-DESIGN.md) 3.1절 주의문과 4.2절을 보세요.
 
 걸러낼 수 있는 요청은 LLM을 부르기 전에 끝냅니다. 규칙으로 정할 수 있는 것은 규칙으로 처리하고, LLM은 분류·답변·검증에만 씁니다.
 
@@ -95,7 +97,7 @@ flowchart TD
 | 장치 | 동작 |
 | --- | --- |
 | 팀 키 | 본체 웹훅은 Header Auth로 막혀 있고, 키가 없거나 틀리면 403 |
-| 권한 | 질문 글이 아니라 `user`로 조회한 `access_level`로 판단하고, 직원 문서는 검색 전에 거름 |
+| 권한 | 요청의 이름이나 `access_level`은 본인 확인으로 쓰지 않고, 공개 경로에서 직원 저장소를 검색하지 않음 |
 | 근거 검증 | 검증 Agent가 근거·정책·개인정보를 확인하고, 통과하지 못하면 이관 |
 | 부정 사용 차단 | 가상 IP 정책과 반복 요청(같은 사용자·같은 질문 60초에 6번째)을 LLM 앞에서 차단. 기록 조회가 실패하면 막지 않고 통과 |
 | 개인정보 | 응답과 로그에서 연락처를 가리고 가린 개수는 `security.masked`에 표시 |
@@ -117,23 +119,24 @@ flowchart TD
 | `ticketmoa-search` | `ticketmoa-search` | 13 | 권한별 메모리 키 검색 | 정예진 |
 | `ticketmoa-tech` | `ticketmoa-tech` | 17 | 근거 기반 답변 작성, 공연 직전 대체 입장 안내 | 정예진 |
 | `ticketmoa-payment` | `ticketmoa-payment` | 11 | 본인 예매·문의 조회, 연락처 가림 | 심환석 |
-| `ticketmoa-handoff` | `ticketmoa-handoff` | 29 | 요약 티켓, 중복 방지, 재시도, DLQ, 알림 | 심환석 |
-| `ticketmoa-errors` | 없음 (Error Workflow) | 3 | 워크플로우 오류 처리 | 심환석 |
+| `ticketmoa-handoff` | `ticketmoa-handoff` | 33 | 요약 티켓, 중복 방지, 재시도, DLQ, 알림 | 심환석 |
+| `ticketmoa-errors` | 없음 (Error Workflow) | 9 | 오류 정보 정규화, 중복 판정, `/alerts`·디스코드 동시 알림 | 심환석 |
+| `ticketmoa-ops` (가산) | `ticketmoa-ops` | 6 | 티켓·알림·DLQ·로그·장애 설정 읽기 전용 조회 | 심환석 |
 
 ## 현재 상태
 
-2026-11-06 23:25~23:31 KST, **팀 VM**에 지식 문서 42청크로 색인한 뒤 시험한 결과입니다. 보고서는 `runs/vm/`에 있고, 모든 시험의 버전과 환경은 `docs/EXECUTION-RESULT.md` 0절(Q행)에 있습니다. **전체 통과가 아닙니다.**
+2026-11-07 15:47~15:57 KST, **팀 VM**에 지식 문서 42청크로 색인한 뒤 시험한 결과입니다. 보고서는 `runs/vm/`에 있고, 모든 시험의 버전과 환경은 `docs/EXECUTION-RESULT.md` 0절(R행)에 있습니다. **전체 통과가 아닙니다.**
 
 | 시험 | 결과 |
 | --- | --- |
 | 공통 시나리오 (`cases/common.json`) 3회 | 48/51 (WF-07 0/3) |
 | 팀 시나리오 (`cases/team.json`, 새 정책 기대값) 1회 | 13/13 |
 | 보안 시나리오 (`cases/security-permissions.json`) 1회 | 7/7 |
-| 정상 문의 `bench -n 5` | p50 6.09초, p95 6.75초, 실패 0/5 |
+| 정상 문의 `bench -n 5` | p50 5.94초, p95 6.36초, 실패 0/5 |
 
 - **WF-07:** 로그인이 없어 개인 조회를 막으므로 연락처를 읽지 않고, 수업 판정 `security.masked ≥ 1`을 만족하지 못합니다. 강사 확인 중입니다.
 - **WF-11:** 3/3이지만 조회 차단으로 느린 API를 호출하지 않은 0.2초 결과라 지연 처리 검증이 아닙니다.
-- **WF-01:** 재시작 후 첫 호출이 이번 회차는 7.4초, 8분 전 회차는 9.9초였습니다(기준 8초). 간헐 지연은 미결입니다.
+- **WF-01:** 재시작 후 첫 호출이 이번 회차는 7.9초, 이전 회차는 7.4초와 9.9초였습니다(기준 8초). 간헐 지연은 미결입니다.
 
 ## 디렉터리
 
@@ -153,7 +156,8 @@ aio-01-p4-team4/
 │   ├── ticketmoa-tech.json        # 정예진
 │   ├── ticketmoa-payment.json     # 심환석
 │   ├── ticketmoa-handoff.json     # 심환석
-│   └── ticketmoa-errors.json      # 심환석
+│   ├── ticketmoa-errors.json      # 심환석
+│   └── ticketmoa-ops.json         # 심환석 (가산)
 │
 ├── knowledge/                 # 지식 문서 8개 (staff-entry-manual만 스태프 전용)
 ├── data/                      # users.json 5명, records.json 6건 (가짜 데이터)
@@ -185,8 +189,8 @@ aio-01-p4-team4/
     ├── TEAM-CHARTER.md        # 팀 헌장
     ├── TODO.md                # 교시별 일정
     ├── WORKFLOW-DESIGN.md     # 산출물 1: 워크플로우 설계서
-    ├── RAG-ARCHITECTURE.md    # 산출물 2: RAG 설계서 (초안, 측정 값 작성 중)
-    ├── EXECUTION-RESULT.md    # 산출물 3: 실행 결과서 (작성 예정)
+    ├── RAG-ARCHITECTURE.md    # 산출물 2: RAG 설계서
+    ├── EXECUTION-RESULT.md    # 산출물 3: 실행 결과서
     ├── daily/                 # 데일리 기록 80·81·82
     └── images/                # 기획 구조도, 오케스트레이션 구조도
 ```
@@ -202,7 +206,7 @@ git clone https://github.com/ensk712-rgb/aio-01-p4-team4.git
 cd aio-01-p4-team4
 git switch test                         # 통합 브랜치에서 시작
 git switch -c feat/<이름>-<파일>        # 예: feat/jeongyejin-search
-node --test lib/test/*.test.js          # 공통 함수 테스트 (16개 통과해야 함)
+node --test lib/test/*.test.js          # 공통 함수 테스트 (전부 통과해야 함)
 ssh -o BatchMode=yes aio-t4 "whoami"   # toor가 나오면 서버 접속 준비 끝
 ```
 

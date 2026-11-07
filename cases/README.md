@@ -4,6 +4,8 @@
 
 ## 공통 시나리오 (`common.json`, 14유형 17케이스)
 
+판정은 수업 기준이다. 최신 R행에서 WF-07은 개인 조회 차단으로 0/3이고, WF-11은 느린 API를 지나지 않았다 (`docs/EXECUTION-RESULT.md` 8절). 차단 정책 시험은 `security-permissions.json` SEC-01~07에 있다.
+
 | ID | 사용자 | 질문 | 판정 |
 | --- | --- | --- | --- |
 | WF-01 | 김하늘 | QR이 회색으로만 나와요 | `자동 답변`, sources ⊃ `mobile-ticket-troubleshooting` |
