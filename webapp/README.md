@@ -46,7 +46,7 @@ TM_TARGET=vm python3 webapp/app.py          # VM n8n (.env의 TM_VM_N8N_URL)
 | `gif/ex5-privacy.gif` | 내 문의 / 남의 문의 | 본인 건은 연락처를 가려 안내, 남의 건은 LLM 없이 거절 | WF-07 · WF-06 |
 | `gif/ex6-attack.gif` | 프롬프트 주입 | 규칙으로 LLM 전에 차단 (LLM 0회) | WF-08 |
 
-`gif/`의 파일은 2026-11-05 VM n8n(`main` e7b8eff 워크플로우)에 실제로 보낸 요청으로 녹화했다. `ex3-refund`와 `ex5-privacy`는 개인 조회 차단 전 동작이라 현재 응답과 다르다.
+`gif/`의 파일은 2026-11-05 VM n8n(`main` e7b8eff 워크플로우)에 실제로 보낸 요청으로 녹화했다.
 
 ## GIF 다시 만들기
 

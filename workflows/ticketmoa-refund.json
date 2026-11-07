@@ -38,9 +38,9 @@
         0
       ],
       "parameters": {
-        "jsCode": "const input = $input.first().json || {};\nconst b = input.body && typeof input.body === 'object' ? input.body : {};\nreturn [{ json: {\n  request_id: typeof b.request_id === 'string' ? b.request_id.slice(0, 100) : '',\n  route: '권한 없음',\n  answer: '현재 TicketMoa는 로그인 및 본인 확인 기능을 제공하지 않아 개인별 문의 내역이나 환불·결제 진행 상태를 조회할 수 없습니다. 일반적인 이용 방법과 환불·결제 정책은 안내해 드릴 수 있습니다.',\n  record: null,\n  sources: [],\n  ticket: null,\n} }];"
+        "jsCode": "\nconst b = $input.first().json.body || {};\nconst context = b.context && typeof b.context === 'object' ? b.context : {};\nconst isConfirm = context.pending_action === 'refund_request' && typeof context.confirm === 'boolean';\nconst rawBooking = String(context.booking_id || b.booking_id || '').toUpperCase();\nconst booking_id = /^T\\d{8}-\\d{4}$/.test(rawBooking) ? rawBooking : '';\nreturn [{ json: {\n  request_id: String(b.request_id || ''), user: String(b.user || ''), access_level: b.access_level === 'staff' ? 'staff' : 'all',\n  question: String(b.question || ''), record_id: String(b.record_id || '').toUpperCase(), booking_id,\n  confirm: context.confirm === true, deadline_ms: Number(b.deadline_ms) || Date.now() + 5000,\n  stage: isConfirm ? 'confirm' : 'quote',\n  pending_key: encodeURIComponent('refund-pending:' + b.user + ':' + booking_id),\n  // 안전장치: context의 신원·금액·권한 칸은 쓰지 않는다. 무엇이 들어왔는지만 남긴다 (security/refund-guard.js)\n  ignored_context: ['user','requester','role','access_level','approved','approval','amount','refund','refund_amount','fee','ticket','status','owner','record_id'].filter(k => k in context),\n} }];"
       },
-      "notes": "비로그인 서비스 정책: 개인별 환불 조회·확정 처리를 항상 차단한다. 기존 조회·캐시·티켓 경로로 보내지 않는다.",
+      "notes": "【역할】 1차(금액 안내)인지 2차(확인)인지 정한다.\n【입력】 요청 본문.\n【처리】 context.pending_action과 boolean confirm이 함께 있을 때만 2차다. 문자열 \"true\"는 확인으로 보지 않는다. context의 금액은 쓰지 않는다. 형식이 틀린 예매번호는 빈 값으로 보아 대기 상태를 찾지 못한다.\n【출력】 {request_id, user, record_id, booking_id, confirm, stage, pending_key, ...}.",
       "notesInFlow": false
     },
     {
@@ -1330,7 +1330,7 @@
       "main": [
         [
           {
-            "node": "환불 처리 응답",
+            "node": "단계 분기",
             "type": "main",
             "index": 0
           }
