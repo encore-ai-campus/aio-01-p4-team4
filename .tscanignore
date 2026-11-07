@@ -39,8 +39,8 @@ cases/common.json:284
 cases/team.json:5
 cases/team.json:215
 cases/team.json:266
-docs/EXECUTION-RESULT.md:339
-docs/EXECUTION-RESULT.md:491
+docs/EXECUTION-RESULT.md:341
+docs/EXECUTION-RESULT.md:493
 docs/KSM-AEQ.md:27
 docs/PROMPTS.md:20
 docs/PROMPTS.md:27
@@ -77,6 +77,15 @@ runs/vm/tm-reg-run-20261107-084143.log:30
 runs/vm/tm-reg-run-20261107-084143.log:31
 runs/vm/tm-reg-run-20261107-084143.log:33
 runs/vm/tm-reg-run-20261107-084143.log:34
+runs/vm/tm-reg-run-20261107-093328.log:19
+runs/vm/tm-reg-run-20261107-093328.log:20
+runs/vm/tm-reg-run-20261107-093328.log:21
+runs/vm/tm-reg-run-20261107-093328.log:22
+runs/vm/tm-reg-run-20261107-093328.log:23
+runs/vm/tm-reg-run-20261107-093328.log:24
+runs/vm/tm-reg-run-20261107-093328.log:25
+runs/vm/tm-reg-run-20261107-093328.log:27
+runs/vm/tm-reg-run-20261107-093328.log:28
 security/promptfoo/README.md:75
 security/promptfoo/README.md:88
 security/promptfoo/promptfooconfig.yaml:5

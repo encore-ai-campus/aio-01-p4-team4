@@ -4,7 +4,7 @@
 
 ## 공통 시나리오 (`common.json`, 14유형 17케이스)
 
-판정은 수업 기준이다. 최신 S행 결과는 `docs/EXECUTION-RESULT.md` 8절에 있다.
+판정은 수업 기준이다. 최신 T행 결과는 `docs/EXECUTION-RESULT.md` 8절에 있다.
 
 | ID | 사용자 | 질문 | 판정 |
 | --- | --- | --- | --- |
