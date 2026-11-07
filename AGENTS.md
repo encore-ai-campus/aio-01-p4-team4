@@ -69,11 +69,11 @@ route 값: "자동 답변" | "보완 질문" | "담당자 이관" | "권한 없�
 git pull                                            # 바꾸기 전 (Windows 로컬)
 # 내 파일만 고친다
 scp workflows/<내 파일>.json aio-t4:~/aio-01-p4-team4/workflows/
-ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py check workflows/<내 파일>.json && uv run tools/flow.py push workflows/<내 파일>.json && sleep 10 && uv run --env-file .env tools/reindex.py && uv run --env-file .env tools/flow.py test cases/common.json --webhook ticketmoa-support'"
+ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && uv run tools/flow.py check workflows/<내 파일>.json && uv run tools/flow.py push workflows/<내 파일>.json && sleep 10 && uv run --env-file .env tools/reindex.py && sleep 5 && uv run --env-file .env tools/demo.py --warm && uv run --env-file .env tools/flow.py test cases/common.json --webhook ticketmoa-support'"
 git commit -m "<무엇> · common N/14"
 ```
 
-`flow.py`는 저장소의 `tools/flow.py`(78일차 `flow.py`를 부르고 `.env`의 `TM_TEAM_KEY`를 `X-Team-Key`로 붙임)를 저장소 뿌리에서 쓴다. 78 원본이 다른 곳에 있으면 `FLOW_PY`로 경로를 준다. 공통 시나리오를 깨뜨렸으면 깨뜨린 사람이 고친다.
+`push`는 n8n을 다시 켠다. 재시작 뒤 첫 호출에는 약 1~2초가 더 붙으므로 시험·시연 전에 `tools/demo.py --warm`으로 예열하고, 결과에 예열 여부를 적는다. `flow.py`는 저장소의 `tools/flow.py`(78일차 `flow.py`를 부르고 `.env`의 `TM_TEAM_KEY`를 `X-Team-Key`로 붙임)를 저장소 뿌리에서 쓴다. 78 원본이 다른 곳에 있으면 `FLOW_PY`로 경로를 준다. 공통 시나리오를 깨뜨렸으면 깨뜨린 사람이 고친다.
 
 ## 8. 로컬과 서버
 
