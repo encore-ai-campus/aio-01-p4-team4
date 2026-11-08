@@ -31,7 +31,7 @@ WF-12에서 search는 공개용 고객 인덱스를 조회하고 payment는 요�
 
 ### 1.1 업무 시나리오
 
-가상의 온라인 티켓 예매 기업 티켓모아의 고객센터로 모바일티켓, 앱, 결제 오류, 입장 장애, 환불 문의가 들어온다. 이 워크플로우는 공개 지식 문서를 바탕으로 문의를 자동 분류·답변하고, 해결이 어렵거나 사람의 승인이 필요한 건은 요약해 상담원 티켓으로 넘긴다. 과거에는 요청의 `user` 이름을 기준으로 예매·문의 기록도 조회했지만, 이는 로그인 없는 현재 정책에서 개인 신원을 증명하지 않으므로 개인 상태 조회는 제한 대상이다.
+가상의 온라인 티켓 예매 기업 티켓모아의 고객센터로 모바일티켓, 앱, 결제 오류, 입장 장애, 환불 문의가 들어온다. 이 워크플로우는 공개 지식 문서를 바탕으로 문의를 자동 분류·답변하고, 해결이 어렵거나 사람의 승인이 필요한 건은 요약해 상담원 티켓으로 넘긴다. 요청의 `user` 이름으로 예매·문의 기록도 조회하며, 기록의 `requester`와 일치하는 본인 건만 연락처를 가려 답하고 남의 건은 거절한다 (11/07 팀 결정으로 복구). 로그인이 없어 `user`가 신원을 증명하지는 않으므로 다른 사람 이름을 입력하는 사칭은 막지 못한다 (5절).
 
 고객은 `POST /webhook/ticketmoa-support`로 질문을 보내고, 다음 다섯 가지 중 하나로 답을 받는다.
 
@@ -428,8 +428,8 @@ ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && FLOW_PY=~/aio-tools/Last3Mon/78/to
 
 운영으로 옮길 때 함께 바꿀 것:
 
-- **인증:** data-api 호출 23곳에 Credential `ticketmoa-data-api`(`X-Api-Key`, id `ticketmoaDataApi1`)를 연결했다. 헤더가 실제로 나가는 것은 임시 워크플로우로 확인했다(2026-11-05, 로컬). VM에서는 이 Credential로 공통·팀 시나리오를 통과했다. 연습용 data-api는 키를 검사하지 않으므로, 틀린 키를 거절하는지는 이 환경에서 시험할 수 없다. 운영 시스템 호출에는 시스템별 Credential을 연결한다.
-- **색인:** 지금은 In-Memory Vector Store를 쓰고, n8n을 재시작한 뒤에는 `ticketmoa-index`를 다시 호출한다. 재시작 후 데이터가 유지되는지는 아직 확인하지 않았다.
+- **인증:** data-api 호출 26곳(support 4, handoff 10, refund 7, errors 3, ops 1, payment 1)에 Credential `ticketmoa-data-api`(`X-Api-Key`, id `ticketmoaDataApi1`)를 연결했다. 헤더가 실제로 나가는 것은 임시 워크플로우로 확인했다(2026-11-05, 로컬). VM에서는 이 Credential로 공통·팀 시나리오를 통과했다. 연습용 data-api는 키를 검사하지 않으므로, 틀린 키를 거절하는지는 이 환경에서 시험할 수 없다. 운영 시스템 호출에는 시스템별 Credential을 연결한다.
+- **색인:** 지금은 In-Memory Vector Store를 쓰고, n8n을 재시작한 뒤에는 `ticketmoa-index`를 다시 호출한다. 재시작하면 색인이 비어 검색이 `index_unavailable`로 실패하며, 재색인 약 2.0초 뒤 복구됨을 확인했다 (결과서 O행).
 - **최종 사용자 신원 범위:** 웹앱은 로그인·세션을 제공하지 않으며 요청의 `user`는 입력값이지 인증된 신원이 아니다. 로그인·세션·토큰 인증은 의도적으로 제외했다. 로그인이 없어 요청의 `user`는 본인 확인이 아니다. 기록의 `requester`와 일치해야 조회되므로 내 이름으로 남의 건은 볼 수 없지만, 다른 사람 이름을 입력하는 사칭은 막지 못한다. 데이터는 모두 가짜이고 연락처는 가려서 답한다. `X-Team-Key`는 서비스 간 호출 키이지 최종 사용자 인증이 아니다. 운영으로 옮기면 인증된 신원을 `requester`로 넘겨야 한다.
 
 ### 5.1 인증·시간 제한·오류 처리와 어댑터 경계
@@ -438,9 +438,9 @@ ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && FLOW_PY=~/aio-tools/Last3Mon/78/to
 | --- | --- | ---: | --- | --- |
 | 고객/웹앱 → A support | `X-Team-Key` (서비스 인증) | 호출자 기준 | 형식 오류 400, 나머지 fail-closed 응답 | `channel`은 `web/app/phone/kiosk/email/other` 메타데이터일 뿐 실제 채널 전송기가 아니다. 로그인·세션을 구현한 사용자 어댑터는 이 프로젝트 범위에 없다. `attempt`는 요청 계약에 따라 호출자가 전달하며 사용자 신원을 증명하지 않는다 |
 | A → B agents/refund | `ticketmoa-team-key` | agents/refund 5초, verify는 남은 시간 0.5~5초 | HTTP 오류·읽기 실패를 보완 질문/성공으로 바꾸지 않고 이관 | B는 분류·검증·환불 규칙 어댑터이며 고객 채널에 직접 전송하지 않는다 |
-| A → C search/tech | `ticketmoa-team-key` | search/tech 5초, evidence search 2초 | 빈 근거와 검색/작성/검증 장애를 서로 다른 reason으로 보존하고 이관 | C는 고객/직원 인덱스와 답변 생성 어댑터다. Notion·PGVector 전환 계획은 미구현 |
+| A → C search/tech | `ticketmoa-team-key` | search/tech 5초, evidence search 2초 | 검색 장애와 빈 근거는 같은 `no_evidence`로 이관하고 검색 오류는 `agents_extra.search_error`에 남김. 작성·검증 장애는 7.1절의 사유 코드로 이관(작성 실패는 `llm_unavailable`) | C는 고객/직원 인덱스와 답변 생성 어댑터다. Notion·PGVector 전환 계획은 미구현 |
 | A/B/C/D → data-api | `ticketmoa-data-api` (`X-Api-Key`) | 조회 최대 2초(전체 2.2초), 일반 호출 노드별 0.5~5초 | 429·5xx·timeout만 재시도, 401·403 비재시도 | 연습용 단일 API를 회원·예매·티켓·알림·로그·캐시 역할로 나눈 가짜 어댑터다. 운영 시스템별 Credential/URL로 교체해야 한다 |
-| D handoff·errors → 알림 | data-api 인증, Discord는 별도 Credential | 알림 0.8초 | `/alerts`는 항상 남기고 Discord 실패는 본 흐름을 깨지 않음 | `venue-staff`·`cs-oncall`은 논리 채널이다. 실제 Slack/Jira 어댑터는 구현하지 않았다 |
+| D handoff·errors → 알림 | data-api 인증, Discord는 별도 Credential | handoff 알림 0.8초, errors 알림 3초 | `/alerts`는 항상 남기고 Discord 실패는 본 흐름을 깨지 않음 | `venue-staff`·`cs-oncall`은 논리 채널이다. 실제 Slack/Jira 어댑터는 구현하지 않았다 |
 
 ## 6. 연결선마다 페이로드
 
@@ -477,7 +477,7 @@ ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && FLOW_PY=~/aio-tools/Last3Mon/78/to
 | `Call payment` → `Collect payment` | `{request_id, status, record(가림), forbidden, masked}` 또는 `{error}` |
 | `Route` evidence_handoff → `Call search (evidence)` | `{query(evidence.query + question), access_level:"all", scope, top_k:2}` |
 | `Call search (evidence)` → `Evidence handoff answer` | `{hits, top_score, indexed}` 또는 `{error}` |
-| `Clarify answer` · `Handoff answer` · `Collect tech` · `Evidence handoff answer` → `Needs handoff?` | `{route, answer, sources, needs_handoff, reason, masked, used, llm_calls, agents_extra, steps}` |
+| `Clarify answer` · `Handoff answer` · `Collect tech` · `Collect refund` · `Collect payment` · `Evidence handoff answer` → `Needs handoff?` | `{route, answer, sources, needs_handoff, reason, masked, used, llm_calls, agents_extra, steps}` |
 | `Needs handoff?` 예 → `Handoff input` | 위와 같음 |
 | `Handoff input` → `Call handoff` | 위 + `{summary, category, priority, alert, t_handoff}`. 호출 본문은 `{request_id, user, summary, category, priority, alert, deadline_ms}` |
 | `Call handoff` → `Collect ticket` | `{request_id, ticket, duplicate, dlq, alert, masked, reason, retries}` 또는 `{error}` |
@@ -505,7 +505,7 @@ ssh aio-t4 "bash -lc 'cd ~/aio-01-p4-team4 && FLOW_PY=~/aio-tools/Last3Mon/78/to
 
 ### 6.3 시간 값 `deadline_ms`
 
-support는 `handoff`, `refund`, `payment`로 넘기며, 값은 남은 시간(ms)이다. `tech`는 이 칸을 절대 시각으로 읽기 때문에 지금은 보내지 않는다.
+support는 `handoff`와 `refund`로 넘기고, `payment`에는 refund가 넘긴다. 값은 남은 시간(ms)이다. support의 `Call payment`는 이 칸을 보내지 않는다. `tech`는 이 칸을 절대 시각으로 읽기 때문에 지금은 보내지 않는다.
 
 ### 6.4 필수·선택·타입·변환 및 가린 실측 예시
 
@@ -576,7 +576,7 @@ WF-12 VM 실측을 축약한 가림 예시는 다음과 같다. 원본 조회에
 
 ### 7.3 알려진 빈틈
 
-- `ticketmoa-errors` (`ticketmoaErrors01`)는 기존 4개 노드에서 최신 9개 노드로 운영 n8n에 배포됐다. 배포 전 SHA-256 일치와 `flow.py check` 통과, 배포 후 `active: true` 및 Support·handoff 활성 상태를 확인했다. 기존 운영본은 `backups/ticketmoa-errors-before-update.json`에 백업했고 배포 소스 커밋은 `9254bff`다.
+- `ticketmoa-errors` (`ticketmoaErrors01`)는 기존 4개 노드에서 최신 9개 노드로 운영 n8n에 배포됐다. 배포 전 SHA-256 일치와 `flow.py check` 통과, 배포 후 `active: true` 및 Support·handoff 활성 상태를 확인했다. 기존 운영본은 배포 환경에서 `backups/ticketmoa-errors-before-update.json`으로 백업했고(이 저장소에는 보관하지 않음) 배포 소스 커밋은 `9254bff`다.
 - Error Trigger가 미처리 실행 오류를 받아 허용 목록 기반으로 오류 유형·워크플로우 ID·실행 ID·실패 노드를 정규화한다. 질문 원문·연락처·토큰·오류 메시지·스택은 알림에서 제외한다. 실행 ID 기반 캐시로 중복 알림을 억제하며, 캐시 장애 시 알림을 계속 시도한다. `/alerts`와 Discord는 독립 경로이고, Error Workflow 자체에 `errorWorkflow`를 설정하지 않아 재귀 실행을 막는다. **동시 실행의 원자적 중복 차단은 보장되지 않는다.**
 - 격리된 n8n **2.42.6**에서 시험용 Support `ticketmoaE2ESupport`의 실패 실행 **10**에 이어 Error Workflow 실행 **11**이 자동으로 시작했다. 모의 `/alerts`와 Discord가 모두 실행 ID 10의 알림을 수신했고 시험용 질문·전화번호·토큰은 포함되지 않았다. 관련 단위 테스트 **6/6** 통과 후 로컬 시험 컨테이너를 종료했다. `http://127.0.0.1:18800/events`는 격리 시험용 로컬 수신 기록 주소이며 운영 웹앱 주소·운영 설정이 아니다. 운영 웹앱은 `https://aio-t4.isitsoft.kr/`이다.
 - **미검증:** 운영 Support에 실제 오류를 발생시킨 자동 실행, 운영 Discord 실제 수신, 동시 실행의 원자적 중복 차단. WF-04·WF-10·WF-11은 처리된 장애 경로의 시험이며 Error Trigger 자동 실행의 근거로 쓰지 않는다. tech, search, index에는 Error Workflow를 추가하지 않았다.
