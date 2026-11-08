@@ -1,6 +1,6 @@
 # 티켓모아 실행 결과서 (EXECUTION-RESULT)
 
-## 현재 검증 현황 (2026-11-06 기록 대조)
+## 현재 검증 현황 (2026-11-06 기록 대조, 11/07 T행까지 반영)
 
 이 절의 기존 회귀 현황은 보관된 실행 파일, `docs/daily/DAY81.md`, RAG·워크플로우 설계서와 사용자 제공 VM 터미널 기록을 대조한 결과다. 아래 Error Workflow 격리 통합 시험은 별도 후속 회차로 기록한다. 시각과 코드·정책이 다른 회차는 합산하지 않으며, 파일이 로컬에 없으면 그 한계를 적는다.
 
@@ -40,7 +40,7 @@ TicketMoa는 상용 티켓 예매 서비스 전체가 아니라, **기업 기술
 
 | 항목 | 확인 결과 | 범위·한계 |
 | --- | --- | --- |
-| 운영 배포 | `ticketmoa-errors` (`ticketmoaErrors01`) 기존 4개 → 최신 9개 노드 배포 성공, 배포 후 `active: true`; Support·handoff도 활성 확인 | 기존 운영본 백업 `backups/ticketmoa-errors-before-update.json`, 배포 소스 커밋 `9254bff`. 배포 전 SHA-256 일치 및 `flow.py check` 통과. 운영 Support 오류 주입은 하지 않았다. |
+| 운영 배포 | `ticketmoa-errors` (`ticketmoaErrors01`) 기존 4개 → 최신 9개 노드 배포 성공, 배포 후 `active: true`; Support·handoff도 활성 확인 | 기존 운영본 백업 `backups/ticketmoa-errors-before-update.json`(배포 환경, 저장소 미보관), 배포 소스 커밋 `9254bff`. 배포 전 SHA-256 일치 및 `flow.py check` 통과. 운영 Support 오류 주입은 하지 않았다. |
 | 격리 통합 시험 | 격리 n8n **2.42.6**에서 시험용 Support `ticketmoaE2ESupport`의 미처리 오류 실행 **10**이 실패했고, Error Workflow 실행 **11**이 `mode: error`로 자동 시작·성공했다. 오류 입력의 원본 워크플로우 ID와 실행 ID가 알림에 전달됐다. | 시험용 Support 복제본에서 확인한 자동 실행이다. 운영 Support의 실제 예외 실행 증거는 아니다. |
 | 모의 알림·민감정보 | 시험용 `/alerts`와 Discord 모의 수신기 모두 실행 ID **10**의 알림을 받았다. 알림에 시험용 질문·전화번호·토큰은 없었다. 관련 단위 테스트 **6/6 통과**, 로컬 시험 컨테이너 종료. | 모의 수신 기록 조회 `http://127.0.0.1:18800/events`는 **격리 시험 전용 로컬 주소**이며 운영 웹앱 주소·운영 설정이 아니다. 운영 웹앱은 `https://aio-t4.isitsoft.kr/`이다. 운영 Discord 실제 수신은 미검증이다. |
 
