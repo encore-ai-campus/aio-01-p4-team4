@@ -6,6 +6,7 @@
 - 기간: 2026-11-05 ~ 2026-11-09 (제출 11/09 14:50, `main` 마지막 커밋)
 - 스택: n8n 2.42.6, OpenAI gpt-4.1-mini, text-embedding-3-large, In-Memory Vector Store, 연습용 데이터 API
 - 입구: `POST /webhook/ticketmoa-support` (Header `X-Team-Key` → [Header Auth](#header-auth-팀-키))
+- 산출물: [워크플로우 설계서](docs/WORKFLOW-DESIGN.md) · [RAG 설계서](docs/RAG-ARCHITECTURE.md) · [실행 결과서](docs/EXECUTION-RESULT.md) · 데일리 [80](docs/daily/DAY80.md) · [81](docs/daily/DAY81.md) · [82](docs/daily/DAY82.md)
 
 ## 주제
 
@@ -142,11 +143,11 @@ flowchart TD
 
 ## 현재 상태
 
-2026-11-07 18:33~18:43 KST, **팀 VM**에 지식 문서 42청크로 색인하고 예열한 뒤 시험한 결과입니다. 보고서는 `runs/vm/`에 있고, 모든 시험의 버전과 환경은 `docs/EXECUTION-RESULT.md` 0절(T행)에 있습니다. **예열 후 한 회차의 전체 통과이며, 같은 워크플로우의 예열 없는 S행은 공통 50/51입니다.**
+2026-11-07 18:33~18:43 KST, **팀 VM**에 지식 문서 42청크로 색인하고 예열한 뒤 시험한 결과입니다. 보고서는 `runs/vm/`에 있고, 모든 시험의 버전과 환경은 [실행 결과서](docs/EXECUTION-RESULT.md) 0절(T행)에 있습니다. **예열 후 한 회차의 전체 통과이며, 같은 워크플로우의 예열 없는 S행은 공통 50/51입니다.**
 
 | 시험 | 결과 |
 | --- | --- |
-| 공통 시나리오 (`cases/common.json`) 3회 | 51/51 |
+| 공통 시나리오 (`cases/common.json`) 3회 | 14유형 모두 실행, 세부 판정 51/51 |
 | 팀 시나리오 (`cases/team.json`) 1회 | 13/13 |
 | 보안 시나리오 (`cases/security-permissions.json`) 1회 | 8/8 |
 | 정상 문의 `bench -n 5` | p50 5.61초, p95 6.59초, 실패 0/5 |
@@ -154,6 +155,8 @@ flowchart TD
 - **WF-01:** 예열 뒤 5.3 / 5.2 / 5.5초로 3/3이지만 첫 예열 호출은 8.8초였습니다. 예열 없는 재시작 후 첫 호출은 9.9초, 7.4초, 7.9초, 8.0초였습니다. 예열하면 첫 호출 지연은 사라지지만(측정 4.80~5.76초) 모델 응답 변동은 남아 간헐 지연은 미결입니다.
 - **사칭:** 로그인이 없어 요청의 `user`는 본인 확인이 아닙니다. 내 이름으로 남의 건은 볼 수 없지만, 다른 사람 이름을 입력하면 그 사람의 건이 조회됩니다(가짜 데이터, 연락처는 가림).
 - **재색인 직후:** 첫 공개 검색이 `index_unavailable`일 수 있어, 재색인 뒤 잠시 기다렸다가 시연합니다.
+- **실행 화면:** 정상(WF-01)·예외(WF-04)·이관(WF-12) 3건의 n8n 실행 화면은 [실행 결과서](docs/EXECUTION-RESULT.md) 9절에 있습니다 (11/09 11:13 KST, 실행 25786·25791·25794).
+- **접근 인계:** 평가자 확인용 웹앱은 https://aio-t4.isitsoft.kr/ 입니다. VM 계정, n8n 로그인, `.env`(OpenAI 키·팀 키·Discord 웹후크)는 저장소에 두지 않고 리드가 직접 전달합니다.
 
 ### 11/09 재시험 (팀 VM, 각 1회)
 
