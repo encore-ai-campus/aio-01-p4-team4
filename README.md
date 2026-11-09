@@ -6,7 +6,44 @@
 - 기간: 2026-11-05 ~ 2026-11-09 (제출 11/09 14:50, `main` 마지막 커밋)
 - 스택: n8n 2.42.6, OpenAI gpt-4.1-mini, text-embedding-3-large, In-Memory Vector Store, 연습용 데이터 API
 - 입구: `POST /webhook/ticketmoa-support` (Header `X-Team-Key` → [Header Auth](#header-auth-팀-키))
-- 산출물: [워크플로우 설계서](docs/WORKFLOW-DESIGN.md) · [RAG 설계서](docs/RAG-ARCHITECTURE.md) · [실행 결과서](docs/EXECUTION-RESULT.md) · 데일리 [80](docs/daily/DAY80.md) · [81](docs/daily/DAY81.md) · [82](docs/daily/DAY82.md)
+- 문서: [문서 허브](#문서-허브) (산출물 3종, 시험 결과 보고서, 기획·운영 문서)
+
+## 문서 허브
+
+제출물과 근거 문서를 한곳에 모았습니다. 숫자의 원본은 `runs/`(로컬)와 `runs/vm/`(팀 VM) 보고서입니다.
+
+**필수 산출물 3종**
+
+| 문서 | 내용 | 바로 가기 |
+| --- | --- | --- |
+| 워크플로우 설계서 | 문의가 어떤 노드를 거쳐 답변·이관·오류 처리되는지, 연결선 페이로드, 외부 연동 | [WORKFLOW-DESIGN.md](docs/WORKFLOW-DESIGN.md) |
+| RAG 설계서 | 원본 문서, 청킹, 임베딩, 권한별 검색, 색인·복구 | [RAG-ARCHITECTURE.md](docs/RAG-ARCHITECTURE.md) |
+| 실행 결과서 | 회차별 버전·환경·결과(0절), 시나리오별 기록(8절), 대표 실행 로그와 n8n 화면(9절) | [EXECUTION-RESULT.md](docs/EXECUTION-RESULT.md) |
+
+**시험 결과 보고서**
+
+| 보고서 | 시각 (KST) | 결과 | 바로 가기 |
+| --- | --- | --- | --- |
+| 팀 VM 회귀 시험 기록 (V행, 명령어와 결과) | 11/09 11:45~11:49 | 공통 50/51, 팀 13/13, 보안 8/8, bench p50 5.21초 | [MD](docs/VM-TEST-RUN-20261109.md) · [PDF](docs/VM-TEST-RUN-20261109.pdf) |
+| 대표 실행 3건 n8n 화면 (정상·예외·이관) | 11/09 11:13 | 실행 25786 · 25791 · 25794 | [결과서 9.1절](docs/EXECUTION-RESULT.md#91-n8n-실행-화면-1109-새-실행) |
+| 운영 Error Workflow 확인과 복구 재시험 (U행) | 11/09 09:11~09:16 | 공통 14/17 → 17/17 | [결과서 0절](docs/EXECUTION-RESULT.md) · `runs/vm/u-*-common-20261109-*.json` |
+| 마지막 배포 후 전체 회귀 (T행) | 11/07 18:33~18:43 | 공통 51/51, 팀 13/13, 보안 8/8 | [결과서 8절](docs/EXECUTION-RESULT.md) · `runs/vm/tm-reg-*-20261107-*.json` |
+| 티켓 담당·저장 근거 | 11/06 | 이관 티켓의 담당자·저장 대조 | [TICKET-EVIDENCE.md](docs/TICKET-EVIDENCE.md) |
+| RAG 검색 평가 | 11/06 | 질문 목록과 VM 검색 평가 | [RAG-EVALUATION-QUESTIONS.md](docs/RAG-EVALUATION-QUESTIONS.md) · `runs/vm/rag-search-eval-*.csv` |
+| 기능별 검증 표 | - | 기능과 시험 대응 | [KSM-AEQ.md](docs/KSM-AEQ.md) |
+
+**기획·운영 문서**
+
+| 문서 | 바로 가기 |
+| --- | --- |
+| 주제 제안서 · 팀 헌장 · 기획서 | [TOPIC.md](docs/TOPIC.md) · [TEAM-CHARTER.md](docs/TEAM-CHARTER.md) · [PLAN.md](docs/PLAN.md) |
+| 구현 순서 · 역할별 프롬프트 · TODO | [IMPLEMENTATION-PLAN.md](docs/IMPLEMENTATION-PLAN.md) · [PROMPTS.md](docs/PROMPTS.md) · [TODO.md](docs/TODO.md) |
+| 인증·권한 기술 설계 | [AUTH-TECH-DESIGN.md](docs/AUTH-TECH-DESIGN.md) |
+| 데일리 기록 | [DAY80](docs/daily/DAY80.md) · [DAY81](docs/daily/DAY81.md) · [DAY82](docs/daily/DAY82.md) |
+| 시나리오 · 데이터 · 공통 함수 | [cases/README.md](cases/README.md) · [data/README.md](data/README.md) · [lib/README.md](lib/README.md) |
+| 보안 (환불 위협 모델 등) | [security/README.md](security/README.md) · [refund-threat-model.md](security/refund-threat-model.md) |
+| 웹앱 (시연용 채팅·관리자) | [webapp/README.md](webapp/README.md) · [ADMIN-PLAN.md](webapp/ADMIN-PLAN.md) |
+| 저장소 규칙 | [AGENTS.md](AGENTS.md) |
 
 ## 주제
 
@@ -167,6 +204,7 @@ flowchart TD
 | 공통 시나리오 (`cases/common.json`) | 09:13 | 14/17. 티켓 API 고장 스위치가 켜진 채 시작해 WF-02b·WF-03 티켓 없음, WF-01 9.2초 | `runs/vm/u-faulton-common-20261109-001300.json` |
 | 공통 시나리오 (`cases/common.json`) | 09:16 | **17/17** (`fault all ok` 뒤 재시험) | `runs/vm/u-recheck-common-20261109-001605.json` |
 | 팀 시나리오 (`cases/team.json`) | 10:34 | **13/13** | VM `runs/team-20261109-013404.json` (저장소 미보관) |
+| 공통 3회 · 팀 · 보안 · bench (V행) | 11:45~11:49 | 공통 **50/51**(WF-01 3회차 검증 `llm_unavailable` → 이관), 팀 **13/13**, 보안 **8/8**, bench p50 5.21초·p95 5.58초 | [VM 회귀 시험 기록](docs/VM-TEST-RUN-20261109.md) ([PDF](docs/VM-TEST-RUN-20261109.pdf)) |
 
 팀 시나리오 13개의 기대와 11/09 결과입니다.
 
@@ -242,6 +280,7 @@ aio-01-p4-team4/
     ├── WORKFLOW-DESIGN.md     # 산출물 1: 워크플로우 설계서
     ├── RAG-ARCHITECTURE.md    # 산출물 2: RAG 설계서
     ├── EXECUTION-RESULT.md    # 산출물 3: 실행 결과서
+    ├── VM-TEST-RUN-20261109.md · .pdf  # 11/09 팀 VM 회귀 시험 기록 (명령어와 결과)
     ├── daily/                 # 데일리 기록 80·81·82
     └── images/                # 기획 구조도, 오케스트레이션 구조도, 시스템 구성도, ERD
 ```
