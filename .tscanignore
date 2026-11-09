@@ -28,9 +28,9 @@ email:security/promptfoo/*
 .env.example:12
 AGENTS.md:12
 AGENTS.md:60
-README.md:252
-README.md:274
-README.md:275
+README.md:344
+README.md:366
+README.md:367
 cases/common.json:5
 cases/common.json:102
 cases/common.json:110
@@ -39,8 +39,9 @@ cases/common.json:284
 cases/team.json:5
 cases/team.json:215
 cases/team.json:266
-docs/EXECUTION-RESULT.md:341
-docs/EXECUTION-RESULT.md:493
+docs/EXECUTION-RESULT.md:369
+docs/EXECUTION-RESULT.md:521
+docs/VM-TEST-RUN-20261109.md:244
 docs/KSM-AEQ.md:27
 docs/PROMPTS.md:20
 docs/PROMPTS.md:27
